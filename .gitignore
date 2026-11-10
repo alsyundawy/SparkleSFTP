@@ -57,5 +57,7 @@ known_hosts
 .trunk/
 .kilo/
 .zhistory
+megalinter-reports/
+mega-linter.log
 *.swp
 *~

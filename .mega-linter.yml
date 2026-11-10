@@ -1,0 +1,44 @@
+---
+# MegaLinter Configuration for SparkleSFTP
+# Documentation: https://megalinter.io/latest/configuration/
+# Tuned for Swift 6 + SwiftUI/AppKit, Shell scripts, Docker test fixtures, Markdown docs, and GitHub Actions.
+
+APPLY_FIXES: none
+DEFAULT_BRANCH: main
+
+# Scope linters strictly to SparkleSFTP's technology stack
+ENABLE_LINTERS:
+  - SWIFT_SWIFTLINT
+  - MARKDOWN_MARKDOWNLINT
+  - YAML_YAMLLINT
+  - JSON_JSONLINT
+  - ACTION_ACTIONLINT
+  - BASH_SHELLCHECK
+  - DOCKERFILE_HADOLINT
+  - REPOSITORY_GITLEAKS
+
+# Exclude build outputs, SwiftPM caches, Xcode metadata, and local tooling caches
+ADDITIONAL_EXCLUDED_DIRECTORIES:
+  - .build
+  - .swiftpm
+  - DerivedData
+  - build
+  - dist
+  - .trunk
+  - .kilo
+  - megalinter-reports
+
+FILTER_REGEX_EXCLUDE: (^(\.build|\.swiftpm|DerivedData|build|dist|\.trunk|\.kilo|megalinter-reports)/|\.xcodeproj/.*\.pbxproj$)
+
+# Linter Configuration Bindings
+SWIFT_SWIFTLINT_CONFIG_FILE: .swiftlint.yml
+SWIFT_SWIFTLINT_ARGUMENTS: --strict
+MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
+YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
+BASH_SHELLCHECK_ARGUMENTS: -s bash
+
+# Output, Reporting & Performance
+SHOW_ELAPSED_TIME: true
+FILE_IO_MULTITHREADING: true
+PRINT_ALPACA: false
+GITHUB_COMMENT_REPORTER: false
