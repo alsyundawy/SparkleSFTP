@@ -45,7 +45,7 @@ jobs:
           node-version: "22"
 
       - name: Markdownlint check
-        run: npx --yes markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#node_modules"
+        run: npx --yes markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#node_modules" "#.trunk"
 
       - name: Set up Python for YAML lint
         uses: actions/setup-python@v7

@@ -47,7 +47,7 @@ custom_rules:
 
   no_unchecked_sendable_without_comment:
     name: Unchecked Sendable Requires Justification (LINT-002)
-    regex: '@unchecked\s+Sendable(?!\s*//\s*JUSTIFICATION:)'
+    regex: '@unchecked\s+Sendable(?![ \t]*\{?[ \t]*//\s*JUSTIFICATION:)'
     message: "Add an inline '// JUSTIFICATION: <reason>' comment explaining thread safety on every @unchecked Sendable conformance."
     severity: warning
 
