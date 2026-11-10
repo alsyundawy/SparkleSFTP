@@ -23,7 +23,7 @@ jobs:
       has_swift_project: ${{ steps.detect.outputs.has_swift_project }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Detect Swift project artifacts
         id: detect
@@ -68,7 +68,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install SwiftFormat if needed
         run: |
@@ -92,7 +92,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build and Test
         run: |
