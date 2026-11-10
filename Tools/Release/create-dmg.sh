@@ -25,7 +25,7 @@ hdiutil create -volname "SparkleSFTP ${VERSION}" \
   "${DMG_PATH}"
 
 rm -rf "${STAGING_DIR}"
-shasum -a 256 "${DMG_PATH}" > "${DMG_PATH}.sha256"
+shasum -a 256 "${DMG_PATH}" >"${DMG_PATH}.sha256"
 
 if [[ -n "${DEVELOPER_ID_APP:-}" ]]; then
   codesign --force --timestamp --sign "${DEVELOPER_ID_APP}" "${DMG_PATH}"

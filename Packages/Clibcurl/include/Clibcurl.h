@@ -11,13 +11,8 @@ extern "C" {
 
 typedef size_t (*SparkleCurlWriteCallback)(char *ptr, size_t size, size_t nmemb, void *userdata);
 typedef size_t (*SparkleCurlReadCallback)(char *buffer, size_t size, size_t nitems, void *userdata);
-typedef int (*SparkleCurlXferInfoCallback)(
-    void *clientp,
-    curl_off_t dltotal,
-    curl_off_t dlnow,
-    curl_off_t ultotal,
-    curl_off_t ulnow
-);
+typedef int (*SparkleCurlXferInfoCallback)(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
+                                           curl_off_t ulnow);
 
 void sparklesftp_curl_global_init_once(void);
 

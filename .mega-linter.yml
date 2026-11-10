@@ -1,21 +1,26 @@
 ---
-# MegaLinter Configuration for SparkleSFTP
+# MegaLinter v10 Configuration for SparkleSFTP
 # Documentation: https://megalinter.io/latest/configuration/
-# Tuned for Swift 6 + SwiftUI/AppKit, Shell scripts, Docker test fixtures, Markdown docs, and GitHub Actions.
+# Tuned for SparkleSFTP's actual stack: Swift 6, Clibcurl C bridge, Bash, XML plist/entitlements,
+# JSON/Package.resolved, YAML/Docker Compose, GitHub Actions, Markdown docs, and Betterleaks secret scanning.
 
 APPLY_FIXES: none
 DEFAULT_BRANCH: main
 
-# Scope linters strictly to SparkleSFTP's technology stack
+# Scope linters strictly to existing repository file types & tools (MegaLinter v10)
 ENABLE_LINTERS:
   - SWIFT_SWIFTLINT
+  - C_CPPCHECK
+  - C_CLANG_FORMAT
+  - BASH_BASH_EXEC
+  - BASH_SHELLCHECK
+  - BASH_SHFMT
   - MARKDOWN_MARKDOWNLINT
   - YAML_YAMLLINT
   - JSON_JSONLINT
+  - XML_XMLLINT
   - ACTION_ACTIONLINT
-  - BASH_SHELLCHECK
-  - DOCKERFILE_HADOLINT
-  - REPOSITORY_GITLEAKS
+  - REPOSITORY_BETTERLEAKS
 
 # Exclude build outputs, SwiftPM caches, Xcode metadata, and local tooling caches
 ADDITIONAL_EXCLUDED_DIRECTORIES:
@@ -31,11 +36,29 @@ ADDITIONAL_EXCLUDED_DIRECTORIES:
 FILTER_REGEX_EXCLUDE: (^(\.build|\.swiftpm|DerivedData|build|dist|\.trunk|\.kilo|megalinter-reports)/|\.xcodeproj/.*\.pbxproj$)
 
 # Linter Configuration Bindings
+# Note: MegaLinter's swiftlint descriptor sets cli_config_arg_name="" and appends "--strict" automatically
 SWIFT_SWIFTLINT_CONFIG_FILE: .swiftlint.yml
-SWIFT_SWIFTLINT_ARGUMENTS: --strict
+
+C_CPPCHECK_ARGUMENTS: "--language=c --enable=warning,performance,portability --suppress=missingIncludeSystem --suppress=unusedFunction -I Packages/Clibcurl/include"
+C_CLANG_FORMAT_CONFIG_FILE: .clang-format
+
+BASH_SHELLCHECK_ARGUMENTS: "-s bash"
+BASH_SHFMT_ARGUMENTS: "-i 2 -ci"
+
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
-BASH_SHELLCHECK_ARGUMENTS: -s bash
+
+JSON_JSONLINT_FILE_EXTENSIONS:
+  - .json
+  - .resolved
+
+XML_XMLLINT_ARGUMENTS: "--noout"
+XML_XMLLINT_FILE_EXTENSIONS:
+  - .xml
+  - .plist
+  - .entitlements
+
+REPOSITORY_BETTERLEAKS_CONFIG_FILE: .betterleaks.toml
 
 # Output, Reporting & Performance
 SHOW_ELAPSED_TIME: true
