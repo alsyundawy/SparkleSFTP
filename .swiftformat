@@ -1,0 +1,10 @@
+# SwiftFormat Configuration for SparkleSFTP
+# See docs/CODE_REVIEW_14_PILLARS.md (LINT-003).
+
+--swiftversion 6.0
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--disable redundantBackticks,redundantReturn
+--enable blankLineAfterImports,sortedImports

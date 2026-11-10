@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/alsyundawy/SparkleSFTP/discussions
+    about: Ask questions about SparkleSFTP architecture, protocols, or roadmap.
+  - name: Security Advisories
+    url: https://github.com/alsyundawy/SparkleSFTP/security/advisories/new
+    about: Privately report security vulnerabilities (never disclose credentials or CVEs in public issues).

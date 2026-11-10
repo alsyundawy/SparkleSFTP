@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repo-hygiene:
+    name: Docs, YAML & Script Hygiene
+    runs-on: ubuntu-latest
+    outputs:
+      has_swift_files: ${{ steps.detect.outputs.has_swift_files }}
+      has_swift_project: ${{ steps.detect.outputs.has_swift_project }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect Swift project artifacts
+        id: detect
+        run: |
+          if find . -maxdepth 4 -name "*.swift" -not -path "./.git/*" | grep -q .; then
+            echo "has_swift_files=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_swift_files=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -f "Package.swift" ] || find . -maxdepth 2 -name "*.xcodeproj" -not -path "./.git/*" | grep -q .; then
+            echo "has_swift_project=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_swift_project=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js for Markdownlint
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Markdownlint check
+        run: npx --yes markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#node_modules"
+
+      - name: Set up Python for YAML lint
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: YAML lint check
+        run: |
+          python3 -m pip install --quiet yamllint
+          yamllint -c .yamllint.yml .
+
+      - name: ShellCheck scripts (if present)
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" -not -path "./.build/*" -exec shellcheck -s bash {} +
+
+  swift-lint:
+    name: SwiftLint & SwiftFormat
+    needs: repo-hygiene
+    if: needs.repo-hygiene.outputs.has_swift_files == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SwiftFormat if needed
+        run: |
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            brew install swiftformat
+          fi
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            brew install swiftlint
+          fi
+
+      - name: Run SwiftLint
+        run: swiftlint --strict
+
+      - name: Run SwiftFormat Check
+        run: swiftformat --lint .
+
+  swift-build-test:
+    name: Swift Build & Tests
+    needs: repo-hygiene
+    if: needs.repo-hygiene.outputs.has_swift_project == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and Test
+        run: |
+          if [ -f "Package.swift" ]; then
+            swift build
+            swift test
+          else
+            PROJECT=$(find . -maxdepth 2 -name "*.xcodeproj" | head -n 1)
+            xcodebuild test \
+              -project "$PROJECT" \
+              -scheme SparkleSFTP \
+              -destination "platform=macOS" \
+              CODE_SIGN_IDENTITY="-" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO
+          fi

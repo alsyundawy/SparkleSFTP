@@ -1,0 +1,60 @@
+# SwiftLint Configuration for SparkleSFTP
+# Enforces Swift 6 safety, security hygiene, and 14-pillar code review guardrails.
+# See docs/CODE_REVIEW_14_PILLARS.md (LINT-001, LINT-002, SEC-002, SEC-005).
+
+excluded:
+  - .build
+  - .swiftpm
+  - .trunk
+  - .kilo
+  - build
+  - DerivedData
+  - dist
+  - Packages/*/Tests
+
+opt_in_rules:
+  - fatal_error_message
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - literal_expression_end_indentation
+  - prefer_self_type_over_type_of_self
+  - redundant_nil_coalescing
+  - sorted_imports
+  - unneeded_break_in_switch
+
+disabled_rules:
+  - todo
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_urls: true
+  ignores_comments: true
+
+custom_rules:
+  no_password_in_logs:
+    name: "No Secrets or Passwords in Logs (SEC-005 / CWE-532)"
+    regex: '(Logger\.[a-z]+|print)\(.*(password|passphrase|privateKey|secretData).*\)'
+    message: "Never log passwords, passphrases, or private keys. Use OSLog privacy labels with redacted placeholders."
+    severity: error
+
+  no_accept_any_host_key:
+    name: "No Disabled Host Key Verification (SEC / TOFU)"
+    regex: 'acceptAnything|acceptAnyHostKey'
+    message: "Never disable SSH host key verification in production code."
+    severity: error
+
+  no_unchecked_sendable_without_comment:
+    name: "Unchecked Sendable Requires Justification (LINT-002)"
+    regex: '@unchecked\s+Sendable(?!\s*//\s*JUSTIFICATION:)'
+    message: "Add an inline '// JUSTIFICATION: <reason>' comment explaining thread safety on every @unchecked Sendable conformance."
+    severity: warning
+
+  no_icloud_keychain_sync:
+    name: "Disallow iCloud-Synced Keychain Accessibility (SEC-002 / CWE-522)"
+    regex: 'kSecAttrAccessibleAfterFirstUnlock|kSecAttrAccessibleWhenUnlocked(?!ThisDeviceOnly)'
+    message: "Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly to prevent credential sync outside this Mac."
+    severity: error
+
+reporter: "emoji"

@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  # Enable SwiftPM dependency monitoring once Package.swift is initialized in Phase 02:
+  # - package-ecosystem: swift
+  #   directory: /
+  #   schedule:
+  #     interval: weekly

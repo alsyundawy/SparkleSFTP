@@ -1,0 +1,23 @@
+name: Feature Request
+description: Propose a new feature or enhancement for SparkleSFTP
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem or Motivation
+      description: What workflow or limitation are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the ideal UX, protocol behavior, or architectural fit.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you seen a similar implementation in another macOS/Commander client?

@@ -1,0 +1,61 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX/
+._*
+
+# Xcode & Apple Build Artifacts
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+dist/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app
+*.dmg
+*.pkg
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/*/Tests/.build/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Secrets, Credentials & Signing Material (Never Commit)
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision
+*.provisionprofile
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+known_hosts
+
+# IDE & Local Tooling
+.vscode/
+.idea/
+.trunk/
+.kilo/
+.zhistory
+*.swp
+*~
