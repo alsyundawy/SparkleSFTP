@@ -1,21 +1,21 @@
 # SparkleSFTP System Architecture
 
-This document defines the modular boundaries, dependency directions, concurrency guarantees, and security isolation rules for **SparkleSFTP** — a native macOS dual-pane SFTP, FTP/FTPS, SCP, and SSH Commander written in **Swift 6** and **SwiftUI / AppKit**.
+This document defines the modular boundaries, dependency directions, concurrency guarantees, and security isolation rules for **SparkleSFTP** — a native macOS dual-pane SFTP, FTP/FTPS, SCP, and SSH Commander written in **Swift 6** and **SwiftUI / AppKit** targeting **macOS 13+**.
 
 > [!NOTE]
-> For the full task breakdown and protocol signatures, see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) and [`CODE_REVIEW_14_PILLARS.md`](CODE_REVIEW_14_PILLARS.md).
+> For the verified dependency audit, `Package.swift` contract, and Full MVP design, see [`TECHNICAL_SPECIFICATION.md`](TECHNICAL_SPECIFICATION.md), [`SECURITY_MODEL.md`](SECURITY_MODEL.md), [`ADR/0004`](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), and [`ADR/0005`](ADR/0005-macos13-sqlite3-journal-and-observable-object.md).
 
 ## Architectural Topology
 
 ```mermaid
 flowchart TD
-    UI["UI Layer (SwiftUI + NSTableView / SwiftTerm NSViewRepresentable)"]
-    VM["Presentation / State (@Observable ViewModels)"]
-    APP["Application Core (SessionCoordinator · TransferScheduler)"]
-    DOM["Domain Layer (Models · RemoteConnection · RemoteFileSystem · AppError)"]
-    PA["Protocol Adapters (SFTPService · SSHService · FTPService · SCPCompatibilityAdapter)"]
-    SEC["Security Layer (KeychainService · HostTrustStore · TLS SecTrust · OSLog Redaction)"]
-    PERS["Persistence Layer (ConnectionStore JSON · TransferJournal SwiftData)"]
+    UI["UI Layer (SwiftUI + AppKit NSTableView + QLPreviewPanel + SwiftTerm)"]
+    VM["Presentation / State (@MainActor ObservableObject AppState)"]
+    APP["Application Core (TransferQueue · TransferScheduler · SyncExecutor)"]
+    DOM["Domain Layer (SparkleCore: RemoteConnection · RemoteFileSystem · AppError)"]
+    PA["Protocol Adapters (SFTPService · SSHClientService · FTPService · SCPCompatibilityAdapter)"]
+    SEC["Security Layer (KeychainService · HostTrustStore · SecTrust · PathValidator · OSLog)"]
+    PERS["Persistence Layer (ConnectionStore JSON · TransferJournal SQLite3 WAL)"]
 
     UI --> VM
     VM --> APP
@@ -32,46 +32,49 @@ flowchart TD
 ## Non-Negotiable Dependency Rules
 
 1. **Strict Acyclic Layering (`CIRC-001`, `CIRC-002`)**:
-   - `App -> ApplicationCore -> Domain`
-   - `ProtocolAdapters -> Domain` (plus `Security` contracts where needed for host trust / TLS)
-   - `Security -> Domain`
-   - `Persistence -> Domain`
-   - `Packages/` modules **must never import** anything from `Features/`.
+   - `App -> SparkleFeatures -> Packages/*`
+   - `SparkleNetworking -> SparkleSecurity, SparkleCore, Clibcurl, NIOSSH`
+   - `SparkleTransferEngine -> SparklePersistence, SparkleSecurity, SparkleCore` (communicates via `RemoteFileSystem` closures — never imports `SparkleNetworking`)
+   - `SparkleSecurity -> SparkleCore, NIOSSH, Crypto`
+   - `SparklePersistence -> SparkleCore, SQLite3`
+   - No `Packages/*` target may ever import `SparkleFeatures` (enforced by `Package.swift`).
 2. **UI Isolation**:
-   - SwiftUI Views and `@Observable` ViewModels **must never** import or invoke `Citadel`, `libcurl`, or `Security.framework` Keychain APIs directly.
-   - Views must never hold plaintext secrets in `@State` beyond immediate form input submission into `KeychainService`.
+   - SwiftUI Views and `@MainActor ObservableObject` ViewModels **must never** import or invoke `NIOSSH`, `Clibcurl`, `SQLite3`, or `Security.framework` Keychain C APIs directly.
+   - Views never hold plaintext secrets outside transient edit form fields flushed immediately to `KeychainService`.
 3. **Transfer Lifecycle Independence**:
-   - Active transfers live inside the actor-isolated `TransferQueue` and `TransferJournal` — never coupled to the lifetime of a window, tab, or view.
+   - Active transfers live inside the actor-isolated `TransferQueue` and `TransferJournal` — completely independent of window, tab, or view lifecycles.
 4. **Protocol Composition (`DUP-001`)**:
    - Connection lifecycle & capabilities live in `RemoteConnection`.
-   - Stateless file operations live in `RemoteFileSystem` using closure callbacks (`@escaping @Sendable (TransferProgress) -> Void`) to prevent circular references with `TransferEngine`.
+   - Stateless file operations live in `RemoteFileSystem` using `@escaping @Sendable (TransferProgress) -> Void` closures (`BUG-001`).
 
-## Planned Repository Module Layout
+## Repository Module Layout
 
 ```text
 SparkleSFTP/
-├── App/                      # Entry point, AppDelegate, DI container, AppLifecycle
+├── Package.swift             # Swift 6.0 manifest (.macOS(.v13), pinned deps)
+├── App/                      # Executable entry point, AppDelegate, AppEnvironment, SparkleUpdaterService
 ├── Packages/
-│   ├── Core/                 # Domain models, RemoteConnection, RemoteFileSystem, AppError
-│   ├── Networking/           # Citadel SSH/SFTP, libcurl FTP/FTPS, SCPCompatibilityAdapter, ProxyJump
-│   ├── TransferEngine/       # TransferQueue actor, TransferScheduler, Resume/Recovery, SHA-256 verify
-│   ├── FileManager/          # LocalFileService, Dual-Pane state, DirCompare, POSIX permissions
-│   ├── Security/             # KeychainService, HostTrustStore (TOFU), SecTrust, OSLog redaction
-│   ├── Terminal/             # SwiftTerm NSViewRepresentable, PTY lifecycle, snippets, forwarding
-│   ├── Synchronization/      # Snapshot scanner, comparator, pure SyncPlanner, dry-run executor
-│   ├── Persistence/          # JSON Codable ConnectionStore, SwiftData TransferJournal
-│   └── DesignSystem/         # Semantic colors, typography, reusable components, themes
-├── Features/                 # Feature-level SwiftUI Views & ViewModels
-├── Tests/                    # UnitTests, IntegrationTests, ProtocolTests, SecurityTests, UITests
-├── Tools/                    # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & release scripts
-└── docs/                     # Implementation plan, 14-pillar code review, ADRs, roadmap
+│   ├── Clibcurl/             # Non-variadic C wrapper over macOS SDK <curl/curl.h> (-lcurl)
+│   ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, Protocols, FeatureFlags
+│   ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService
+│   ├── TransferEngine/       # SparkleTransferEngine: TransferQueue, TransferScheduler, ResumeValidator, SHA256Verifier
+│   ├── FileManager/          # SparkleFileManager: LocalFileService, FileSortDescriptor, POSIXPermissions, DualPaneState
+│   ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator, PrivateKeyParser
+│   ├── Terminal/             # SparkleTerminal: SwiftTerm NSViewRepresentable, TerminalSessionManager, PortForwardingManager
+│   ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner, SyncExecutor
+│   ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP importers
+│   └── DesignSystem/         # SparkleDesignSystem: Semantic tokens, EN/ID AppStrings, reusable components
+├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views & AppState ObservableObject
+├── Tests/                    # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
+├── Tools/                    # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
+└── docs/                     # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs
 ```
 
 ## Concurrency & Memory Guarantees
 
-- **Swift 6 Strict Concurrency**: Explicit `Sendable` conformance across all domain errors (`AppError`), progress payloads (`TransferProgress`), path types (`RemotePath`), and transfer metadata (`TransferTaskMetadata`).
-- **Actor Reentrancy Guards (`RUN-003`)**: `TransferQueue` must re-verify task membership and state after every `await` suspension point.
-- **No `Task.detached` Retain Cycles (`MEM-001`)**: Long-lived workers capture `[weak self]` and cancel stored `Task` handles in `deinit`.
-- **Bounded Backpressure (`MEM-003`, `PERF-004`)**: Progress streams use `.bufferingNewest(10)` and `ProgressThrottler` (100 ms / max 10 Hz UI emit rate).
-- **Zero Main-Thread Blocking (`PERF-001`, `PERF-002`, `PERF-003`)**: Directory sorting, paginated loading (`NSTableView` cell reuse), and SHA-256 verification for multi-GB transfers execute off `MainActor`.
-- **PTY Resource Hygiene (`MEM-002`)**: Explicit `deinit` and session teardown close SSH channels, cancel PTY reader tasks, and nil `TerminalViewDelegate` weak references.
+- **Swift 6 Strict Concurrency**: `swiftLanguageModes: [.v6]` across every target; explicit `Sendable` conformance across `AppError`, `TransferProgress`, `RemotePath`, `TransferTaskMetadata`, and `HostTrustState`.
+- **Actor Reentrancy Guards (`RUN-003`)**: `TransferQueue` re-verifies cancellation and task membership after every `await` suspension point.
+- **No `Task.detached` Retain Cycles (`MEM-001`)**: Workers capture `[weak self]` and store `Task` handles cancelled in `deinit`.
+- **Bounded Backpressure (`MEM-003`, `PERF-004`)**: `ProgressThrottler` (100 ms / 10 Hz) + `AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(10))`.
+- **Zero Main-Thread Blocking (`PERF-001`, `PERF-002`, `PERF-003`)**: Paginated directory windows (`NSTableView` cell dequeue reuse), off-`MainActor` sorting, and background streaming `SHA256Verifier`.
+- **PTY Resource Hygiene (`MEM-002`)**: Explicit `PTYResourceBox` teardown closes `SSHPTYChannel`, cancels reader tasks, and clears `TerminalView.terminalDelegate`.

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Stage-Repository_Bootstrap_(Phase_0)-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Stage: Repository Bootstrap"></a>
+  <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Stage-Full_MVP_Implemented-16a34a?style=for-the-badge&logo=github&logoColor=white" alt="Stage: Full MVP Implemented"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Universal_2)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+ Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Language: Swift 6"></a>
   <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/UI-SwiftUI_%2B_AppKit-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="UI: SwiftUI and AppKit"></a>
@@ -34,9 +34,9 @@
 
 > [!IMPORTANT]
 >
-> ### Repository Status: Phase 0 Bootstrap (Pre-Implementation Foundation)
+> ### Repository Status: Full MVP Implemented (Swift 6 + macOS 13+)
 >
-> This repository is currently initialized with **architecture specifications, ADRs, security policies, linter/CI guardrails, and the 14-pillar critical review baseline**. Application source modules (`App/`, `Packages/`, `Features/`, `Tests/`, `Tools/`) will be scaffolded and implemented incrementally starting in Phase 01–02 as defined in [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
+> All core SwiftPM modules (`Package.swift`, `App/`, `Packages/*`, `Features/`, `Tests/*`, `Tools/*`) are implemented and verified with `swift build` and `swift test`. See [`docs/TECHNICAL_SPECIFICATION.md`](docs/TECHNICAL_SPECIFICATION.md), [`DOCNOTE.md`](DOCNOTE.md), [`TODO.md`](TODO.md), and [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 >
 > **Project Lineage:** Originally drafted under the working title `MacSFTP` and standardized as **SparkleSFTP** with all 55 findings from [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md) integrated prior to coding.
 
@@ -72,12 +72,12 @@
 | Layer | Planned Technology | Purpose & Security Baseline |
 | :--- | :--- | :--- |
 | **Language** | Swift 6 | Strict concurrency, actor isolation, `Sendable` safety |
-| **UI Framework** | SwiftUI + AppKit (`NSTableView`) | Native macOS HIG with cell-reused high-volume tables |
-| **SSH & SFTP** | `Citadel` (`swift-nio-ssh >= 0.14.1`) | Async/await SFTP, PTY, Jump Host; mitigates CVE-2026-43798 |
-| **FTP & FTPS** | `libcurl` (`libssh2` backend) | Explicit/implicit TLS FTP; avoids `libssh` (CVE-2025-15224) |
-| **SSH Terminal** | `SwiftTerm` | VT100/xterm emulation via `NSViewRepresentable` + explicit PTY cleanup |
-| **Secrets & Trust** | Apple `Security.framework` | Native Keychain ACLs, Touch ID (`LAContext`), `SecTrustEvaluateWithError` |
-| **Persistence** | JSON (`Codable`) + SwiftData | Lightweight profile JSON (`ConnectionStore`) + durable `TransferJournal` |
+| **UI Framework** | SwiftUI + AppKit (`NSTableView`) | Native macOS HIG with cell-reused high-volume tables (`ObservableObject` for macOS 13+) |
+| **SSH & SFTP** | `apple/swift-nio-ssh` (`0.15.1` >= `0.14.1`) + SFTP v3 Codec | Async/await SFTP v3, PTY, port forwarding; mitigates CVE-2026-43798 & supports macOS 13+ |
+| **FTP & FTPS** | System `libcurl` (`Clibcurl` + `SecTrust`) | Explicit/implicit TLS FTP locked to `ftp,ftps` (no `libssh` / CVE-2025-15224) |
+| **SSH Terminal** | `SwiftTerm` (`1.20.0`) | VT100/xterm emulation via `NSViewRepresentable` + explicit PTY cleanup |
+| **Secrets & Trust** | Apple `Security.framework` | Native Keychain ACLs (`WhenUnlockedThisDeviceOnly`), Touch ID (`LAContext`), `SecTrustEvaluateWithError` |
+| **Persistence** | JSON (`Codable`) + `SQLite3` WAL | Atomic profile JSON (`ConnectionStore`) + ACID `TransferJournal` (macOS 13+) |
 | **Testing** | Swift Testing + Docker Compose | Deterministic OpenSSH, vsftpd, and ProFTPD test fixtures |
 | **Distribution** | Universal 2 DMG + Sparkle | `arm64` + `x86_64`, Developer ID notarized, Ed25519 signed updates |
 

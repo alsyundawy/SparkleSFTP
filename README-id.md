@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Tahap-Bootstrap_Repositori_(Fase_0)-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Tahap: Bootstrap Repositori"></a>
+  <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Tahap-Full_MVP_Terealisasi-16a34a?style=for-the-badge&logo=github&logoColor=white" alt="Tahap: Full MVP Terealisasi"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Universal_2)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+ Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Bahasa-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Bahasa: Swift 6"></a>
   <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/UI-SwiftUI_%2B_AppKit-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="UI: SwiftUI dan AppKit"></a>
@@ -34,9 +34,9 @@
 
 > [!IMPORTANT]
 >
-> ### Status Repositori: Bootstrap Fase 0 (Fondasi Pra-Implementasi)
+> ### Status Repositori: Full MVP Terealisasi (Swift 6 + macOS 13+)
 >
-> Repositori ini saat ini disiapkan dengan **spesifikasi arsitektur, ADR, kebijakan keamanan, pagar pengaman linter/CI, serta hasil audit kritis 14 pilar**. Modul kode sumber aplikasi (`App/`, `Packages/`, `Features/`, `Tests/`, `Tools/`) akan dibangun secara bertahap mulai Fase 01–02 sesuai [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
+> Seluruh modul SwiftPM (`Package.swift`, `App/`, `Packages/*`, `Features/`, `Tests/*`, `Tools/*`) telah diimplementasikan dan diverifikasi dengan `swift build` serta `swift test`. Lihat [`docs/TECHNICAL_SPECIFICATION.md`](docs/TECHNICAL_SPECIFICATION.md), [`DOCNOTE.md`](DOCNOTE.md), [`TODO.md`](TODO.md), dan [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 >
 > **Asal-Usul Proyek:** Awalnya dirancang dengan nama kerja `MacSFTP` dan distandardisasi menjadi **SparkleSFTP** dengan seluruh 55 temuan dari [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md) terintegrasi sebelum penulisan kode dimulai.
 
@@ -72,12 +72,12 @@
 | Lapisan | Teknologi Rencana | Tujuan & Standar Keamanan |
 | :--- | :--- | :--- |
 | **Bahasa** | Swift 6 | Strict concurrency, isolasi actor, penegakan `Sendable` |
-| **Antarmuka UI** | SwiftUI + AppKit (`NSTableView`) | HIG macOS native dengan reuse sel tabel untuk direktori besar |
-| **SSH & SFTP** | `Citadel` (`swift-nio-ssh >= 0.14.1`) | API async/await SFTP, PTY, Jump Host; mitigasi CVE-2026-43798 |
-| **FTP & FTPS** | `libcurl` (backend `libssh2`) | FTP dengan TLS explicit/implicit; menghindari `libssh` (CVE-2025-15224) |
-| **Terminal SSH** | `SwiftTerm` | Emulasi VT100/xterm via `NSViewRepresentable` + pembersihan PTY eksplisit |
-| **Rahasia & Trust** | Apple `Security.framework` | Keychain ACL native, Touch ID (`LAContext`), `SecTrustEvaluateWithError` |
-| **Persistensi** | JSON (`Codable`) + SwiftData | JSON ringan untuk profil koneksi + `TransferJournal` tahan crash |
+| **Antarmuka UI** | SwiftUI + AppKit (`NSTableView`) | HIG macOS native dengan reuse sel tabel (`ObservableObject` untuk macOS 13+) |
+| **SSH & SFTP** | `apple/swift-nio-ssh` (`0.15.1` >= `0.14.1`) + Codec SFTP v3 | SFTP v3 async/await, PTY, port forwarding; mitigasi CVE-2026-43798 & macOS 13+ |
+| **FTP & FTPS** | Sistem `libcurl` (`Clibcurl` + `SecTrust`) | FTP TLS explicit/implicit terkunci `ftp,ftps` (tanpa `libssh` / CVE-2025-15224) |
+| **Terminal SSH** | `SwiftTerm` (`1.20.0`) | Emulasi VT100/xterm via `NSViewRepresentable` + pembersihan PTY eksplisit |
+| **Rahasia & Trust** | Apple `Security.framework` | Keychain ACL native (`WhenUnlockedThisDeviceOnly`), Touch ID (`LAContext`), `SecTrustEvaluateWithError` |
+| **Persistensi** | JSON (`Codable`) + `SQLite3` WAL | JSON ringan untuk profil (`ConnectionStore`) + `TransferJournal` ACID (macOS 13+) |
 | **Pengujian** | Swift Testing + Docker Compose | Fixture deterministik OpenSSH, vsftpd, dan ProFTPD |
 | **Distribusi** | Universal 2 DMG + Sparkle | `arm64` + `x86_64`, notarized Developer ID, pembaruan bertanda Ed25519 |
 
