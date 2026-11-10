@@ -34,27 +34,27 @@ line_length:
 
 custom_rules:
   no_password_in_logs:
-    name: "No Secrets or Passwords in Logs (SEC-005 / CWE-532)"
+    name: No Secrets or Passwords in Logs (SEC-005 / CWE-532)
     regex: '(Logger\.[a-z]+|print)\(.*(password|passphrase|privateKey|secretData).*\)'
-    message: "Never log passwords, passphrases, or private keys. Use OSLog privacy labels with redacted placeholders."
+    message: Never log passwords, passphrases, or private keys. Use OSLog privacy labels with redacted placeholders.
     severity: error
 
   no_accept_any_host_key:
-    name: "No Disabled Host Key Verification (SEC / TOFU)"
+    name: No Disabled Host Key Verification (SEC / TOFU)
     regex: 'acceptAnything|acceptAnyHostKey'
-    message: "Never disable SSH host key verification in production code."
+    message: Never disable SSH host key verification in production code.
     severity: error
 
   no_unchecked_sendable_without_comment:
-    name: "Unchecked Sendable Requires Justification (LINT-002)"
+    name: Unchecked Sendable Requires Justification (LINT-002)
     regex: '@unchecked\s+Sendable(?!\s*//\s*JUSTIFICATION:)'
     message: "Add an inline '// JUSTIFICATION: <reason>' comment explaining thread safety on every @unchecked Sendable conformance."
     severity: warning
 
   no_icloud_keychain_sync:
-    name: "Disallow iCloud-Synced Keychain Accessibility (SEC-002 / CWE-522)"
+    name: Disallow iCloud-Synced Keychain Accessibility (SEC-002 / CWE-522)
     regex: 'kSecAttrAccessibleAfterFirstUnlock|kSecAttrAccessibleWhenUnlocked(?!ThisDeviceOnly)'
-    message: "Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly to prevent credential sync outside this Mac."
+    message: Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly to prevent credential sync outside this Mac.
     severity: error
 
-reporter: "emoji"
+reporter: emoji

@@ -4,9 +4,9 @@ extends: default
 rules:
   line-length: disable
   truthy: disable
-  quoted-strings:
-    required: only-when-needed
-    extra-allowed: ["{|}"]
+  comments-indentation: disable
+  comments:
+    min-spaces-from-content: 1
   key-duplicates: {}
   octal-values:
     forbid-implicit-octal: true

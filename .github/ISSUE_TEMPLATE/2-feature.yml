@@ -1,6 +1,6 @@
 name: Feature Request
 description: Propose a new feature or enhancement for SparkleSFTP
-labels: ["enhancement"]
+labels: [enhancement]
 body:
   - type: textarea
     id: summary
