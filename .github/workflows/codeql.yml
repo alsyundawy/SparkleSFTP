@@ -29,7 +29,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    timeout-minutes: 25
+    timeout-minutes: 60
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -101,7 +101,7 @@ jobs:
       - name: Run manual build steps
         if: matrix.build-mode == 'manual' && matrix.language == 'swift'
         shell: bash
-        run: swift build --skip-update --disable-sandbox -j 2
+        run: swift build --skip-update --disable-sandbox
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
