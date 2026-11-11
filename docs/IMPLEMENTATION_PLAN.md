@@ -277,7 +277,7 @@ struct SyncPlan: Sendable {
 ## 📋 Phased Roadmap (8 Fase)
 
 > [!IMPORTANT]
-> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori (diverifikasi `45 tests in 11 suites` & `94` file Swift bersih SwiftLint/SwiftFormat), sedangkan Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
+> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori (diverifikasi `57 tests in 15 suites` & `118` file Swift bersih SwiftLint/SwiftFormat), termasuk multi-tema SparkNotePad (`28` palet / `15` keluarga), pengaturan Auto-Update, JSON i18n (`263` kunci), FileZilla/WinSCP preview importer, Notepad2 Internal Editor, dan Bidirectional Sync (`TASK-108`), sedangkan Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
 
 ```mermaid
 flowchart LR
@@ -377,8 +377,8 @@ flowchart LR
   - `Sparkle`: **`2.10.1`** (`"2.10.1" ..< "3.0.0"`)
   - `KeychainService` native over Apple `Security.framework` + `LAContext` (`WhenUnlockedThisDeviceOnly`, supersedes `GlasSecretStore`)
   - `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`) over macOS `libcurl` (`libssh2`, zero `libssh` surface — mitigates **CVE-2025-15224**)
-- [x] **TASK-004** Configure SwiftLint (`swiftlint --strict`, `0` violations in 94 files) + SwiftFormat (`.swiftformat`, `--trailing-commas never`)
-- [x] **TASK-005** Configure unit & loopback integration testing (`Swift Testing` framework — 45 tests in 11 suites)
+- [x] **TASK-004** Configure SwiftLint (`swiftlint --strict`, `0` violations in 118 files) + SwiftFormat (`.swiftformat`, `--trailing-commas never`)
+- [x] **TASK-005** Configure unit & loopback integration testing (`Swift Testing` framework — 57 tests in 15 suites)
 - [x] **TASK-006** Configure CI/CD (GitHub Actions: `.github/workflows/ci.yml` + `release.yml`, verified by `actionlint`)
 - [ ] **TASK-007** Configure production Apple Developer ID code signing (`Tools/Release/notarize.sh` ready; local ad-hoc `codesign` verified)
 - [x] **TASK-008** Create architecture documentation (`README.md`, `README-id.md`, `docs/ADR/0001`–`0005`)
@@ -510,14 +510,14 @@ flowchart LR
 - [x] **TASK-104** Implement pure `SyncPlanner` (`expiresAt` 60s TTL tanpa mutasi)
 - [x] **TASK-105** Implement sync preview UI (`SyncPreviewSheet` create/update/delete terpisah)
 - [x] **TASK-106** Implement dry-run mode
-- [x] **TASK-107** Implement one-way synchronization (`SyncExecutor` via `TransferQueue`)
-- [ ] **TASK-108** Implement bidirectional sync (planned v1.5+)
+- [x] **TASK-107** Implement one-way synchronization (`SyncExecutor` via `TransferQueue` — `localToRemote` & `remoteToLocal`)
+- [x] **TASK-108** Implement bidirectional sync (`SyncDirection.bidirectional` in `SyncPlanner`, `SyncExecutor`, & `SyncPreviewSheet`)
 - [x] **TASK-109** Implement exclusion patterns (`.git`, `.DS_Store`, glob `*.ext`)
 - [x] **TASK-110** Implement deletion protection + explicit confirmation & pre-delete remote revalidation
 
 ### EPIC-10 — Quality Assurance & Release
 
-- [x] **TASK-111** Unit tests: state machine, path parser, conflict rules, SSH config & importers (`CoreTests`, `PersistenceTests`, `FileManagerTests`, `SynchronizationTests`)
+- [x] **TASK-111** Unit tests: state machine, path parser, conflict rules, SSH config & importers, themes, i18n, bidirectional sync, and Notepad2 editor (`CoreTests`, `PersistenceTests`, `FileManagerTests`, `SynchronizationTests`, `IntegrationTests` — 57 tests in 15 suites)
 - [ ] **TASK-112** Live Docker Compose integration test execution (`Tools/TestServers/` tersedia; butuh container runtime Docker)
 - [x] **TASK-113** SFTP interoperability tests via real encrypted `LoopbackSSHServer` (listing, upload, download, mkdir, rename, chmod, delete)
 - [ ] **TASK-114** Live Docker FTPS server interop run (TLS self-signed rejection & FTP CRLF sanitizer terverifikasi; live FTPS container deferred ke Docker env)

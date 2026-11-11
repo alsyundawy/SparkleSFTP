@@ -42,8 +42,9 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 ## Phase F: Release Tooling, Docs Sync & Final Verification (`WG-9`)
 
 - [x] Implement `Tools/TestServers/` & `Tools/Release/` scripts (`T-021`)
-- [x] Update `README.md`, `README-id.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, `CHANGELOG.md` (`T-022`)
-- [x] Verify 0 errors across `swift build -j 2`, `swift test -j 2` (45 tests in 11 suites incl. live encrypted loopback SSH/SFTP, `ProxyJump`, `SOCKS5`/`HTTP` SSH proxy, `DirectTCPIP` & remote `-R` forwarding, MITM block, TLS rejection, `UpdateConfigurationValidator`, destination symlink block, strict HTTP `200` proxy token check, 100MB SHA-256, upload conflict & pause/resume), `swiftlint lint --strict` (94 files), `swiftformat --lint .` (0/94), `yamllint -c .yamllint.yml .`, `shellcheck -s bash`, `shfmt -d -i 2 -ci`, `markdownlint-cli2`, and `actionlint` (`T-023`)
+- [x] Update `README.md`, `README-id.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, `CHANGELOG.md`, `DOCNOTE.md` (`T-022`)
+- [x] Implement SparkNotePad multi-themes (`28` palettes / `15` families + custom JSON store), Auto-Update settings & fallback check, JSON i18n catalog & maintenance UI (`263` keys), FileZilla/WinSCP BOM-safe preview importer, Notepad2 multi-tab internal editor (`Features/Editor/`), and Bidirectional Sync (`TASK-108`) (`T-025`)
+- [x] Verify 0 errors across `swift build -j 2`, `swift test -j 2` (`57 tests in 15 suites`), `swiftlint lint --strict` (`118` files), `swiftformat --lint .` (`0/118`), `yamllint -c .yamllint.yml .`, `shellcheck -s bash`, `shfmt -d -i 2 -ci`, `markdownlint-cli2`, and `actionlint` (`T-023`)
 - [x] Verify Universal 2 (`x86_64 arm64`) release `.app` bundle (with embedded `Sparkle.framework` & entitlements) + `SparkleSFTP-0.2.0-universal.dmg` + `.sha256` via `Tools/Release/build-universal.sh`, `create-dmg.sh`, and `.github/workflows/release.yml` (`T-024`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)

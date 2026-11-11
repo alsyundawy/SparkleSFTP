@@ -13,18 +13,18 @@ This document tracks the 8-phase delivery plan, Workground mapping, and mandator
 | **WG-4** | UI Shell & Dual-Pane Commander (`NavigationSplitView`, `HSplitView`, AppKit `NSTableView`, `QLPreviewPanel`) | Phase 05 | WG-1 | ✅ MVP Implemented |
 | **WG-6** | Actor Transfer Engine (`TransferQueue`, `TransferScheduler`, `ResumeValidator`, `SHA256Verifier`) | Phase 06 | WG-2, WG-3, WG-4 | ✅ MVP Implemented |
 | **WG-5** | Integrated SSH Terminal (`SwiftTerm` PTY, multi-tab, split panes, `PortForwardingManager`) | Phase 07 | WG-2, WG-4 | ✅ MVP Implemented |
-| **WG-8** | Directory Sync (`SyncPlanner` + 60s expiry), Remote Editor, Port Forwarding, EN/ID Localization | Phase 07 | WG-2, WG-5, WG-6 | ✅ MVP Implemented |
-| **WG-9** | Docker Interop Fixtures, Security Audit, Universal 2 Signing, CI/CD, Release Workflow & Sparkle DMG | Phase 08 | All | ✅ Local Tooling, CI & Release Workflow Ready; Notarization Requires Apple Developer ID |
+| **WG-8** | Directory Sync (`SyncPlanner` + Bidirectional Sync `TASK-108`), Notepad2 Internal Editor, Port Forwarding, Multi-Themes & JSON i18n | Phase 07 | WG-2, WG-5, WG-6 | ✅ MVP + Post-MVP Enhancements Implemented |
+| **WG-9** | Docker Interop Fixtures, Security Audit, Universal 2 Signing, CI/CD, Release Workflow & Sparkle DMG / Auto-Update UI | Phase 08 | All | ✅ Local Tooling, CI, Auto-Update Controls & Release Workflow Ready; Notarization Requires Apple Developer ID |
 
 ## Phased Delivery Timeline
 
 | Phase | Milestone | Focus & Status |
 | :--- | :--- | :--- |
 | **Phase 01–02** | Research, Architecture & Foundation | ✅ Audited dependencies ([ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md)), `Package.swift`, `SparkleCore`, `SparkleDesignSystem` |
-| **Phase 03–04** | Security, Persistence & Protocol Engines | ✅ `SparkleSecurity`, `SparklePersistence` (`SQLite3` + JSON), `SparkleNetworking` (`NIOSSH 0.15.1` + SFTP v3 + SCP + `Clibcurl` FTPS) |
-| **Phase 05–06** | Commander UI & Transfer Engine | ✅ Dual-pane `NSTableView`, Quick Look, drag-drop, actor `TransferQueue` + `TransferScheduler` + `SHA256Verifier` |
-| **Phase 07** | Terminal, Sync & Localization | ✅ `SwiftTerm` PTY tabs/splits, local port forwarding, `SyncPlanner`/`Executor`, EN/ID i18n |
-| **Phase 08** | QA & Release Tooling | ✅ `45 tests in 11 suites`, `94` Swift files pass SwiftLint/SwiftFormat, Universal 2 DMG (`release.yml`), Docker fixtures *(production notarization pending Developer ID)* |
+| **Phase 03–04** | Security, Persistence & Protocol Engines | ✅ `SparkleSecurity`, `SparklePersistence` (`SQLite3` + JSON + FileZilla/WinSCP Preview Importer), `SparkleNetworking` (`NIOSSH 0.15.1` + SFTP v3 + SCP + `Clibcurl` FTPS) |
+| **Phase 05–06** | Commander UI & Transfer Engine | ✅ Dual-pane `NSTableView`, Notepad2 Internal Editor (`Features/Editor/`), Quick Look, drag-drop, actor `TransferQueue` + `TransferScheduler` + `SHA256Verifier` |
+| **Phase 07** | Terminal, Sync & Localization | ✅ `SwiftTerm` PTY tabs/splits, local & `-R` port forwarding, One-Way & Bidirectional `SyncPlanner`/`Executor`, `28` SparkNotePad themes, `263`-key JSON i18n |
+| **Phase 08** | QA & Release Tooling | ✅ `57 tests in 15 suites`, `118` Swift files pass SwiftLint/SwiftFormat, Auto-Update Preferences + community fallback, Universal 2 DMG (`release.yml`), Docker fixtures *(production notarization pending Developer ID)* |
 
 ## Non-Negotiable MVP Release Gate
 

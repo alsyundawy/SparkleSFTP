@@ -64,7 +64,11 @@
 
 **SparkleSFTP** is a native macOS file transfer and SSH Commander application designed for engineers, sysadmins, and DevOps workflows who want WinSCP-style dual-pane productivity with first-class macOS ergonomics:
 
-- **Dual-Pane Commander Experience**: Local ↔ Remote and Remote ↔ Remote panes backed by AppKit `NSTableView` for smooth 100K+ file browsing, keyboard shortcuts (`Tab`, `F5`–`F8`), Quick Look (`QLPreviewPanel`), and Finder drag-and-drop.
+- **Dual-Pane Commander Experience**: Local ↔ Remote and Remote ↔ Remote panes backed by AppKit `NSTableView` for smooth 100K+ file browsing, keyboard shortcuts (`Tab`, `F5`–`F8`), Quick Look (`QLPreviewPanel`), Finder drag-and-drop, and built-in multi-tab editing.
+- **Minimalist Notepad2 Internal File Editor (`⌘E`)**: Embedded multi-tab AppKit `NSTextView` editor (`Features/Editor/`) with `NSRulerView` line numbers, active palette syntax highlighting, whitespace glyph overlay (`¶`), word wrap, zoom `+/-/%`, read-only lock, regex Find & Replace, Go-to-Line, text transforms (UPPER/lower/Title/Trim/Sort), `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` + `LF`/`CRLF` converters, and remote save + auto-upload.
+- **Multi-Theme Engine (`SparkNotePad` Palettes)**: `28` curated themes across `15` developer families (`NotepadNext`, `Catppuccin`, `Dracula`, `Tokyo Night`, `Nord`, `One Dark`, `Gruvbox`, `Solarized`, `GitHub`, `Monokai`, `Rosé Pine`, `Night Owl`, `SynthWave '84`, `Cobalt2`, `Tomorrow`) with `Auto / Light / Dark` mode, WCAG 2.1 contrast validation, and custom JSON theme directory import/export.
+- **Maintainable JSON i18n & Importers**: JSON locale catalogs (`en.json` & `id.json`, `263` synchronized keys) + runtime override directory (`~/Library/Application Support/SparkleSFTP/Locales/`), live coverage inspector, and preview-based FileZilla XML (`<Folder>`, `base64`, `crypt` protection) & WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxies, nested folders) importer (`ImportConnectionsSheet`).
+- **Auto-Update Controls & Bidirectional Sync**: Configurable `AutoUpdateSettings` (auto-check/download, `Hourly`/`Daily`/`Weekly`/`Manual` frequency, `Stable`/`Beta` channel, HTTPS feed validation, community GitHub Releases API fallback check) and full `SyncDirection` (`Local -> Remote`, `Remote -> Local`, `Bidirectional Newest Wins`).
 - **Complete Protocol Coverage**: SFTP, SSH Terminal (PTY), Explicit/Implicit FTPS, Plain FTP (with explicit security warnings), and isolated SCP fallback (`SCPCompatibilityAdapter`).
 - **Actor-Isolated Transfer Engine**: Bounded global and per-host concurrency, checkpointed pause/resume with remote metadata revalidation, durable `TransferJournal` crash recovery, and atomic temporary-write + SHA-256 verification.
 - **Security from Day One**: Device-locked Apple Keychain (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`), optional Touch ID unlock, strict TOFU host key state machine, `SecTrust` TLS validation, and zero-secret `OSLog` privacy redaction.
@@ -147,17 +151,17 @@ SparkleSFTP/
 ├── App/                       # Executable entry, AppDelegate, SparkleUpdaterService, Info.plist, Entitlements
 ├── Packages/
 │   ├── Clibcurl/              # Non-variadic C helper bridge over system libcurl
-│   ├── Core/                  # Domain models, RemotePath, AppError, Protocols, FeatureFlags
-│   ├── DesignSystem/          # Theme tokens, reusable components, EN/ID AppStrings
+│   ├── Core/                  # Domain models, RemotePath, AppError, Protocols, FeatureFlags, UpdateModels
+│   ├── DesignSystem/          # SparkNotePad theme palettes (28 themes / 15 families), components, EN/ID JSON Locales (263 keys)
 │   ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
 │   ├── Networking/            # SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService, Proxy
-│   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), Config Importers
+│   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), FileZilla/WinSCP & SSH Importers
 │   ├── Security/              # KeychainService, HostTrustStore, SecTrust, PathValidator, KeyParser, UpdateValidator
-│   ├── Synchronization/       # DirectoryScanner, SyncPlanner (60s TTL), SyncExecutor
+│   ├── Synchronization/       # DirectoryScanner, SyncPlanner (One-Way & Bidirectional, 60s TTL), SyncExecutor
 │   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, SessionManager, PortForwardingManager
 │   └── TransferEngine/        # TransferQueue actor, TransferScheduler, ResumeValidator, SHA256Verifier
-├── Features/                  # SwiftUI + AppKit Views (Commander, Connections, Terminal, Transfers, Sync, Settings) & AppState
-├── Tests/                     # 8 test targets (45 tests across 11 Swift Testing suites, incl. live loopback SSH/SFTP)
+├── Features/                  # SwiftUI + AppKit Views (Commander, Connections, Notepad2 Editor, Terminal, Transfers, Sync, Settings) & AppState
+├── Tests/                     # 8 test targets (57 tests across 15 Swift Testing suites, incl. live loopback SSH/SFTP)
 ├── Tools/
 │   ├── Release/               # Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
 │   └── TestServers/           # Docker Compose fixtures (OpenSSH, vsftpd, ProFTPD) & smoke runner
@@ -178,7 +182,7 @@ SparkleSFTP/
 | **Phase 05** | Commander UI | Dual-pane `NSTableView`, F5–F8 shortcuts, Quick Look, Finder drag-drop *(Done)* |
 | **Phase 06** | Transfer Engine | Actor `TransferQueue`, per-host throttling, `SQLite3` `TransferJournal`, SHA-256 atomic write *(Done)* |
 | **Phase 07** | Terminal & Sync | `SwiftTerm` multi-tab/split PTY, `-L`/`-R` port forwarding, dry-run sync, EN/ID *(Done)* |
-| **Phase 08** | QA & Release | 45 tests in 11 suites, Universal 2 DMG (`release.yml`), ci/lint green; production notarization pending Developer ID *(In Progress)* |
+| **Phase 08** | QA & Release | 57 tests in 15 suites (118 Swift files), Auto-Update controls + Multi-Themes + Notepad2 Editor + Bidirectional Sync, Universal 2 DMG (`release.yml`), CI/lint green; production notarization pending Developer ID *(In Progress)* |
 
 ---
 

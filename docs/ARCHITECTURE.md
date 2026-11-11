@@ -59,12 +59,12 @@ SparkleSFTP/
 │   ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService
 │   ├── TransferEngine/       # SparkleTransferEngine: TransferQueue, TransferScheduler, ResumeValidator, SHA256Verifier
 │   ├── FileManager/          # SparkleFileManager: LocalFileService, FileSortDescriptor, POSIXPermissions, DualPaneState
-│   ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator, PrivateKeyParser
+│   ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator, PrivateKeyParser, UpdateConfigurationValidator
 │   ├── Terminal/             # SparkleTerminal: SwiftTerm NSViewRepresentable, TerminalSessionManager, PortForwardingManager
-│   ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner, SyncExecutor
-│   ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP importers
-│   └── DesignSystem/         # SparkleDesignSystem: Semantic tokens, EN/ID AppStrings, reusable components
-├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views & AppState ObservableObject
+│   ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
+│   ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
+│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), WCAG contrast helpers, JSON i18n Locales (en.json / id.json, 263 keys)
+├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views (Commander, Connections + ImportConnectionsSheet, Notepad2 Editor, Terminal, Transfers, Sync, Settings Tabs) & AppState ObservableObject
 ├── Tests/                    # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                    # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
 └── docs/                     # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs

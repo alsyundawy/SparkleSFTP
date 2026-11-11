@@ -9,10 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (Post-MVP / External Infrastructure)
+### Added
 
-- Live Docker multi-server interop test execution (`Tools/TestServers/run-integration-tests.sh`).
-- Universal 2 (`arm64` + `x86_64`) Apple Developer ID signing, notarization, and signed Sparkle Ed25519 appcast publishing (`Tools/Release/notarize.sh`).
+- **Multi-Theme Engine Inspired by `SparkNotePad` (`SparkleDesignSystem` & `Features/Settings`)**:
+  - Added `SparkleThemePalette`, `ThemeAppearanceMode` (`auto`/`light`/`dark`), WCAG 2.1 relative luminance & contrast ratio calculation, `SparkleThemeCatalog` + `ThemeCatalogExtended` (`28` curated developer palettes across `15` families), and `SparkleThemeStore` for runtime custom JSON theme loading, import, and export.
+  - Added `PreferencesThemeTab` with live theme preview cards, family filter, appearance selector, WCAG contrast badge, and custom Themes JSON folder controls.
+- **Maintainable JSON i18n System (`Packages/DesignSystem/Resources/Locales/`)**:
+  - Replaced static localization tables with bundled `en.json` & `id.json` (`263` synchronized keys), `LocalizationCatalog` runtime override support (`~/Library/Application Support/SparkleSFTP/Locales/`), and `PreferencesLocalizationTab` showing translation coverage, missing keys, and JSON import/export tools.
+  - Localized remaining Commander, Connections, Sync, Terminal, Transfer Queue, and Settings views/context menus via `AppStrings.t(_:fallback:)`.
+- **Minimalist Notepad2 Internal File Editor (`Features/Editor/`)**:
+  - Added multi-tab AppKit `NSTextView` + `NSRulerView` editor (`NotepadTextView`, `NotepadLineNumberRuler`, `EditorSyntaxHighlighter`, `InternalEditorToolbar`, `InternalEditorBars`, `InternalEditorView`, `EditorWindowController`) accessible via `⌘E`, toolbar, double-click policy, and Commander context menu on both local and remote files.
+  - Features theme-linked regex syntax highlighting (`Swift`, `JSON`, `YAML`, `XML/HTML`, `Shell`, `Markdown`, `INI/Conf`, `SQL`, `Log`), whitespace/tab symbol overlay (`¶`), word wrap, zoom `+/-/%`, read-only lock, Find & Replace (`Aa` / `.*`), Go-to-Line, text case/trim/sort transforms, `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` & `LF`/`CRLF` converters, live cursor/selection/byte status bar, and automatic remote upload on save.
+- **Auto-Update Preferences & Fallback Feedback (`UpdateModels`, `App/SparkleUpdaterService`, `Features/Settings/PreferencesUpdatesTab`)**:
+  - Added persisted `AutoUpdateSettings` (`automaticallyChecks`, `automaticallyDownloads`, `Hourly`/`Daily`/`Weekly`/`Manual` cadence, `Stable`/`Beta` channel, validated HTTPS feed URL, overdue startup checks) plus semantic `UpdateConfigurationValidator.isNewerVersion(_:than:)` and a live TLS GitHub Releases check for community builds alongside signed Sparkle mode.
+- **FileZilla & WinSCP Reader & Preview Importer (`Packages/Persistence`, `Features/Connections/ImportConnectionsSheet`)**:
+  - Added `WinSCPAndFileReader.swift` with security-scoped file access, UTF-16LE/BE/UTF-8 BOM and Windows-1252/Latin-1 decoding, nested `Sessions\Folder%2FName` group preservation, `FSProtocol` (`0/1/2/5`) & proxy extraction, `skippedUnsupported` tracking, and interactive `ImportConnectionsSheet` selective import.
+- **Bidirectional & Reverse Directory Synchronization (`TASK-108`)**:
+  - Added `SyncDirection` (`.localToRemote`, `.remoteToLocal`, `.bidirectional`), `SyncActionDirection` (`.upload`, `.download`), and bidirectional merge planning/execution across `SyncPlanner`, `SyncExecutor`, and `SyncPreviewSheet`.
+
+### Fixed
+
+- Fixed `FileZillaImporter` nested `<Folder>` parsing where child `<Folder>` or `<Server>` elements cleared buffered parent folder names prior to commit (`flushPendingFolderName()`).
+- Fixed `WinSCPIniImporter` BOM (`\u{FEFF}`) handling on line 1, `\`-first path splitting prior to percent-decoding, macOS `.fileImporter` `.ini` `UTType` selection filter, and `Optional<ImportedSecretStatus>.none` compiler warning.
+- Fixed Solarized Light `primaryTextHex` contrast to satisfy strict WCAG AA (`>= 4.5:1`) readability across all `28` built-in themes.
+
+### Verification & Deferred Infrastructure
+
+- Verified `57 tests in 15 suites` passing via `swift test -j 2` (adding `ThemeAndLocalizationTests`, `ExternalImportersTests`, `BidirectionalSyncTests`, `EditorAndSyncTests`, and `UpdateConfigurationValidator` tests), `0` violations across `118` Swift files on `swiftlint lint --strict` & `swiftformat --lint .`.
+- External release/runtime tasks remain deferred to dedicated environments: Live Docker multi-server interop test execution (`Tools/TestServers/run-integration-tests.sh`) and Universal 2 (`arm64` + `x86_64`) Apple Developer ID notarization + signed Sparkle Ed25519 appcast publishing (`Tools/Release/notarize.sh`).
 
 ---
 
