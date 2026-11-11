@@ -149,16 +149,38 @@ struct ShellTabsAndWindowControlsTests {
     }
 
     @Test("1-tab = 1-shell binding, switcher restore, Quick Connect availability & v0.1 Shell icon")
-    @MainActor
     func oneTabOneShellBindingAndQuickConnectVisibility() async throws {
-        _ = NSApplication.shared
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleShellTab-\(UUID())")
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmp) }
 
-        let (server, profile) = try await startLoopbackServerAndProfile(root: tmp)
-        let state = makeState(root: tmp)
+        let vfs = try LoopbackSFTPVirtualFS(rootURL: tmp)
+        let server = try await LoopbackSSHServer.start(
+            hostKey: NIOSSHPrivateKey(ed25519Key: Curve25519.Signing.PrivateKey()),
+            username: "ops",
+            password: "pw",
+            authorizedPublicKeyFingerprint: nil,
+            virtualFS: vfs
+        )
+        try await verifyOneTabOneShell(root: tmp, port: server.port)
+        await server.stop()
+    }
+
+    @MainActor
+    private func verifyOneTabOneShell(root: URL, port: Int) async throws {
+        _ = NSApplication.shared
+        let state = makeState(root: root)
         state.selectLocale(code: "en")
+        let profile = ConnectionProfile(
+            name: "TabHost",
+            protocolType: .sftp,
+            host: "127.0.0.1",
+            port: port,
+            username: "ops",
+            authMethod: .password,
+            passwordRef: SecretReference(kind: .password),
+            defaultRemotePath: "/"
+        )
         await state.saveProfile(profile, secretString: "pw", passphraseString: nil)
         #expect(SparkleTheme.Symbols.terminal == "terminal.fill")
         #expect(state.strings.t("nav.terminal") == "SSH Shell")
@@ -199,7 +221,6 @@ struct ShellTabsAndWindowControlsTests {
         #expect(state.terminalManager.sessions.isEmpty && state.isQuickConnectAvailable)
         state.prepareFastShutdown()
         await state.shutdownAsyncResources()
-        await server.stop()
     }
 
     @MainActor
@@ -219,29 +240,6 @@ struct ShellTabsAndWindowControlsTests {
         await state.connect(profile: profile, openInNewTab: false)
         await trustTask.value
         return try #require(state.currentSession)
-    }
-
-    private func startLoopbackServerAndProfile(root: URL) async throws -> (LoopbackSSHServer, ConnectionProfile) {
-        let vfs = try LoopbackSFTPVirtualFS(rootURL: root)
-        let server = try await LoopbackSSHServer.start(
-            hostKey: NIOSSHPrivateKey(ed25519Key: Curve25519.Signing.PrivateKey()),
-            username: "ops",
-            password: "pw",
-            authorizedPublicKeyFingerprint: nil,
-            virtualFS: vfs
-        )
-        let passRef = SecretReference(kind: .password)
-        let profile = ConnectionProfile(
-            name: "TabHost",
-            protocolType: .sftp,
-            host: "127.0.0.1",
-            port: server.port,
-            username: "ops",
-            authMethod: .password,
-            passwordRef: passRef,
-            defaultRemotePath: "/"
-        )
-        return (server, profile)
     }
 
     @MainActor
