@@ -169,12 +169,12 @@ SparkleSFTP/
 │       ├── Synchronization/       # DirectoryScanner, SyncPlanner (One-Way & Bidirectional, 60s TTL), SyncExecutor
 │       ├── Terminal/              # SwiftTerm TerminalViewRepresentable, ExternalTerminalLauncher, PortForwardingManager
 │       └── TransferEngine/        # TransferQueue actor, TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
-├── Tests/                         # 8 test targets (81 tests across 22 Swift Testing suites, incl. multi-window, multi-tab, WinSCP, window controls & folder perms)
+├── Tests/                         # 8 test targets / 25 test files (81 tests across 22 Swift Testing suites, incl. multi-window, multi-tab, WinSCP, window controls & folder perms)
 ├── Tools/
 │   ├── Release/                   # Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
 │   └── TestServers/               # Docker Compose fixtures (OpenSSH, vsftpd, ProFTPD) & smoke runner
 ├── .github/workflows/             # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
-└── docs/                          # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, ADRs 0001–0007
+└── docs/                          # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, Long-Term Review, ADRs 0001–0008
 ```
 
 ---
@@ -213,6 +213,7 @@ SparkleSFTP/
 - **[ADR-005: macOS 13+ SQLite3 Journal & `ObservableObject`](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)**
 - **[ADR-006: Multi-Themes, JSON i18n, Notepad2 Editor & Auto-Update Fallback](docs/ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md)**
 - **[ADR-007: Third-Party Toolchain Bridge, Pipelined Transfers & FileZilla Conflict Flow](docs/ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md)**
+- **[ADR-008: Multi-Window State Isolation, AppKit Tab Chrome, 76-Theme Catalog & Permission-Preserving Transfers](docs/ADR/0008-multi-window-isolation-appkit-tab-chrome-76-themes-and-transfer-pipeline.md)**
 
 ---
 

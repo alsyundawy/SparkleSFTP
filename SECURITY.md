@@ -26,10 +26,10 @@ All contributions and future releases of SparkleSFTP must uphold these baseline 
 
 1. **SSH Host Key Verification (TOFU)**: Unknown host keys require explicit user confirmation; changed host keys must block connection (`acceptAnyHostKey` / `.acceptAnything()` is prohibited).
 2. **Keychain Isolation (CWE-312 / CWE-522)**: All secrets (passwords, passphrases, private keys) must be stored in Apple Keychain using `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — never synced to iCloud and never stored in plaintext databases.
-3. **TLS / FTPS Enforcement (CWE-295)**: Explicit `SecTrust` chain, hostname, expiry, and revocation validation via `SecTrustEvaluateWithError`, with TLS 1.2 minimum (TLS 1.3 preferred) and zero silent downgrade from FTPS to plain FTP.
+3. **TLS / FTPS Enforcement (CWE-295)**: Implicit FTPS (`port 990`) enforces explicit `SecTrust` chain, hostname, expiry, and OCSP revocation preflight via `SecTrustEvaluateWithError` with TLS 1.2 minimum; Explicit FTPS (`AUTH TLS`) enforces TLS 1.2+ and strict certificate/hostname verification via `libcurl` (`CURLOPT_USE_SSL`, `CURLOPT_SSL_VERIFYPEER=1`, `CURLOPT_SSL_VERIFYHOST=2`), with zero silent downgrade from FTPS to plain FTP. (SecTrust + OCSP preflight parity for Explicit FTPS is tracked under `TD-10`.)
 4. **Known Dependency CVE Baselines**:
-   - `swift-nio-ssh >= 0.14.1` (mitigates **CVE-2026-43798** pre-auth OOB stack write).
-   - `libcurl` built against `libssh2` (not `libssh`, mitigating **CVE-2025-15224** SSH agent auth bypass).
+   - `swift-nio-ssh >= 0.14.1` (`0.15.1` pinned — mitigates **CVE-2026-43798** pre-auth OOB stack write).
+   - `Clibcurl` locks `libcurl` protocols strictly to `"ftp,ftps"` (`CURLOPT_PROTOCOLS_STR`, zero `libssh` auth surface — mitigating **CVE-2025-15224**) alongside read-only `dlopen` `libssh2` capability inspection (`ClibcurlSystemLibs.c`).
 5. **Path & Symlink Containment (CWE-22 / CWE-59)**: Strict path canonicalization and symlink target/inode loop checks prior to local or remote file writes.
 6. **Zero Secret Leakage in Logs (CWE-532)**: Mandatory `OSLog` privacy annotations; passwords, passphrases, and private keys must never appear in logs or crash dumps.
 7. **Signed Updates**: Sparkle update feeds must use HTTPS with Ed25519 signature verification (`SUPublicEDKey`); unsigned updates must be rejected.

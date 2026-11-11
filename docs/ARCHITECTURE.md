@@ -72,7 +72,7 @@ SparkleSFTP/
 │       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator, sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 361 keys)
 ├── Tests/                        # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                        # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
-└── docs/                         # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs 0001–0007
+└── docs/                         # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, Long-Term Review, ADRs 0001–0008
 ```
 
 ## Concurrency & Memory Guarantees

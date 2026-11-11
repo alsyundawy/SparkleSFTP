@@ -169,12 +169,12 @@ SparkleSFTP/
 │       ├── Synchronization/       # DirectoryScanner, SyncPlanner (Satu Arah & Dua Arah, TTL 60 detik), SyncExecutor
 │       ├── Terminal/              # SwiftTerm TerminalViewRepresentable, ExternalTerminalLauncher, PortForwardingManager
 │       └── TransferEngine/        # TransferQueue actor, TransferScheduler (4/3), ConflictResolver FileZilla, ResumeValidator, SHA256Verifier
-├── Tests/                         # 8 target uji (81 test di 22 suite Swift Testing, termasuk multi-jendela, multi-tab, perintah WinSCP, kontrol jendela & izin folder)
+├── Tests/                         # 8 target uji / 25 berkas test (81 test di 22 suite Swift Testing, termasuk multi-jendela, multi-tab, perintah WinSCP, kontrol jendela & izin folder)
 ├── Tools/
 │   ├── Release/                   # Skrip Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
 │   └── TestServers/               # Fixture Docker Compose (OpenSSH, vsftpd, ProFTPD) & skrip smoke test
 ├── .github/workflows/             # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
-└── docs/                          # Arsitektur, Spesifikasi Teknis, Model Keamanan, Workground, Review 14 Pilar, ADR 0001–0007
+└── docs/                          # Arsitektur, Spesifikasi Teknis, Model Keamanan, Workground, Review 14 Pilar, Review Jangka Panjang, ADR 0001–0008
 ```
 
 ---
@@ -213,6 +213,7 @@ SparkleSFTP/
 - **[ADR-005: Jurnal SQLite3 & `ObservableObject` macOS 13+](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)**
 - **[ADR-006: Multi-Tema, i18n JSON, Editor Notepad2 & Fallback Auto-Update](docs/ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md)**
 - **[ADR-007: Pustaka Pihak Ketiga, Transfer Pipelined Multi-Thread & Konflik FileZilla](docs/ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md)**
+- **[ADR-008: Isolasi Multi-Jendela, Tab AppKit, Katalog 76 Tema & Transfer Berpelestarian Izin POSIX](docs/ADR/0008-multi-window-isolation-appkit-tab-chrome-76-themes-and-transfer-pipeline.md)**
 
 ---
 

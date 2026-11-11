@@ -3,7 +3,7 @@
 Thank you for your interest in contributing to **SparkleSFTP**!
 
 > [!NOTE]
-> SparkleSFTP has completed its **Full MVP** Swift 6 (`macOS 13+`) implementation. Before writing or modifying code, please read [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md), [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/ADR/`](docs/ADR/).
+> SparkleSFTP has completed its **Full MVP** Swift 6 (`macOS 13+`) implementation. Before writing or modifying code, please read [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md), [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md), [`docs/LONG_TERM_REVIEW_2026_11.md`](docs/LONG_TERM_REVIEW_2026_11.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/ADR/`](docs/ADR/).
 
 ## Development Workflow
 
@@ -56,9 +56,10 @@ shellcheck -s bash Tools/**/*.sh
 
 # Swift lint, formatting, build & tests
 swiftlint lint --strict
+swiftlint lint --reporter sonarqube --quiet > /dev/null
 swiftformat --lint .
 swift build -j 2
-swift test -j 2
+swift test -j 2 --no-parallel
 ```
 
 ## Security Disclosures
