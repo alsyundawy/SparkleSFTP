@@ -67,9 +67,17 @@ public struct SyncPlan: Sendable, Equatable {
         now > expiresAt
     }
 
-    public var createActions: [SyncAction] { actions.filter { $0.kind == .create } }
-    public var updateActions: [SyncAction] { actions.filter { $0.kind == .update } }
-    public var deleteActions: [SyncAction] { actions.filter { $0.kind == .delete } }
+    public var createActions: [SyncAction] {
+        actions.filter { $0.kind == .create }
+    }
+
+    public var updateActions: [SyncAction] {
+        actions.filter { $0.kind == .update }
+    }
+
+    public var deleteActions: [SyncAction] {
+        actions.filter { $0.kind == .delete }
+    }
 }
 
 /// Pure non-mutating comparison and sync planner (SCALE-003, LOG-003).
@@ -100,7 +108,7 @@ public enum SyncPlanner {
                 continue
             }
 
-            if !item.isDirectory && needsUpdate(source: item, target: target, mode: mode) {
+            if !item.isDirectory, needsUpdate(source: item, target: target, mode: mode) {
                 actions.append(
                     SyncAction(
                         relativePath: item.relativePath,

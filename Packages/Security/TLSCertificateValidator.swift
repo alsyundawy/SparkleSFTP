@@ -110,7 +110,7 @@ public struct TLSCertificateValidator: Sendable {
                     continuation.resume(throwing: err)
                 }
             }
-        case .failed(let nwError):
+        case let .failed(nwError):
             if box.claimResume() {
                 connection.cancel()
                 continuation.resume(throwing: AppError.tlsValidationFailed(reason: nwError.localizedDescription))
@@ -180,7 +180,9 @@ private final class TLSHandshakeBox: @unchecked Sendable { // JUSTIFICATION: NSL
     func claimResume() -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        if resumed { return false }
+        if resumed {
+            return false
+        }
         resumed = true
         return true
     }

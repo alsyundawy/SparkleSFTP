@@ -14,18 +14,17 @@ public enum PathValidator {
             throw AppError.pathTraversal(attempted: rawPath)
         }
 
-        let combined: String
-        if trimmed.hasPrefix("/") {
-            combined = trimmed
+        let combined: String = if trimmed.hasPrefix("/") {
+            trimmed
         } else if baseDir.isRoot {
-            combined = "/" + trimmed
+            "/" + trimmed
         } else {
-            combined = baseDir.rawValue + "/" + trimmed
+            baseDir.rawValue + "/" + trimmed
         }
 
         // Check raw traversal segments explicitly before normalization clamps at root.
         let rawSegments = trimmed.split(separator: "/", omittingEmptySubsequences: true)
-        if rawSegments.contains("..") && !trimmed.hasPrefix("/") {
+        if rawSegments.contains(".."), !trimmed.hasPrefix("/") {
             let resolved = resolveDotsCheckingEscape(base: baseDir.rawValue, segments: rawSegments)
             guard let safeResolved = resolved else {
                 throw AppError.pathTraversal(attempted: rawPath)
@@ -70,6 +69,11 @@ public enum PathValidator {
             throw AppError.symlinkTraversal(destination: standardizedCandidate.path)
         }
 
+        // Reject pre-existing symlinks at destination path to prevent overwriting outside baseDirectory (CWE-59).
+        if (try? FileManager.default.destinationOfSymbolicLink(atPath: standardizedCandidate.path)) != nil {
+            throw AppError.symlinkTraversal(destination: standardizedCandidate.path)
+        }
+
         // Ensure no intermediate symlink in local path escapes baseDirectory.
         let resolvedParent = standardizedCandidate.deletingLastPathComponent().resolvingSymlinksInPath()
         guard resolvedParent.path == standardizedBase.path || resolvedParent.path.hasPrefix(basePath) else {
@@ -83,7 +87,9 @@ public enum PathValidator {
         var stack = base.split(separator: "/", omittingEmptySubsequences: true)
         let minDepth = stack.count
         for segment in segments {
-            if segment == "." { continue }
+            if segment == "." {
+                continue
+            }
             if segment == ".." {
                 if stack.count <= minDepth {
                     return nil

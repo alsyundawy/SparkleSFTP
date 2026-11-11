@@ -80,7 +80,7 @@ struct PersistenceTests {
                 id: completedID,
                 metadata: completedMeta,
                 statusCode: "completed",
-                updatedAt: Date().addingTimeInterval(-40 * 86_400)
+                updatedAt: Date().addingTimeInterval(-40 * 86400)
             )
         )
 
@@ -89,7 +89,7 @@ struct PersistenceTests {
         #expect(reconciled.first?.id == activeID)
         #expect(reconciled.first?.statusCode == "interrupted")
 
-        try await journal.pruneOldEntries(maxEntries: 10_000, maxAgeDays: 30)
+        try await journal.pruneOldEntries(maxEntries: 10000, maxAgeDays: 30)
         let remaining = try await journal.fetchAll()
         #expect(remaining.count == 1)
         #expect(remaining.first?.id == activeID)

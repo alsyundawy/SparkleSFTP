@@ -3,8 +3,8 @@ import SparkleCore
 import SparklePersistence
 import SparkleSynchronization
 
-extension AppState {
-    public func openTerminalTab() async {
+public extension AppState {
+    func openTerminalTab() async {
         guard let session = currentSession else { return }
         isTerminalVisible = true
         do {
@@ -14,30 +14,35 @@ extension AppState {
         }
     }
 
-    public func startPortForwarding(_ rule: PortForwardingRule) async {
+    func startPortForwarding(_ rule: PortForwardingRule) async {
         guard let sshClient = currentSession?.sshClient else {
             lastError = .notConnected
             return
         }
         do {
-            _ = try await portForwardingManager.startLocalForward(rule: rule, sshClient: sshClient)
+            _ = try await portForwardingManager.startForward(rule: rule, sshClient: sshClient)
             activeTunnels = await portForwardingManager.activeTunnels()
         } catch {
             lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
         }
     }
 
-    public func stopPortForwarding(id: UUID) async {
+    func stopPortForwarding(id: UUID) async {
         await portForwardingManager.stopTunnel(id: id)
         activeTunnels = await portForwardingManager.activeTunnels()
     }
 
-    public func prepareSyncDryRun(exclusions: [String], deleteExtras: Bool) async {
+    func prepareSyncDryRun(
+        exclusions: [String],
+        deleteExtras: Bool,
+        mode: SyncComparisonMode = .sizeAndMtime
+    ) async {
         guard let session = currentSession else { return }
         do {
             let localScanned = try await DirectoryScanner.scanLocal(
                 rootURL: localCurrentURL,
-                exclusionGlobs: exclusions
+                exclusionGlobs: exclusions,
+                includeSHA256: mode == .sha256Strict
             )
             let remoteScanned = try await DirectoryScanner.scanRemote(
                 rootPath: session.currentRemotePath,
@@ -47,7 +52,7 @@ extension AppState {
             syncPlan = SyncPlanner.buildPlan(
                 source: localScanned,
                 destination: remoteScanned,
-                mode: .sizeAndMtime,
+                mode: mode,
                 deleteExtras: deleteExtras
             )
         } catch {
@@ -55,7 +60,7 @@ extension AppState {
         }
     }
 
-    public func executeSyncPlan(dryRun: Bool) async {
+    func executeSyncPlan(dryRun: Bool) async {
         guard let session = currentSession, let plan = syncPlan else { return }
         let executor = SyncExecutor(transferQueue: transferQueue)
         let target = SyncExecutionTarget(
@@ -71,12 +76,28 @@ extension AppState {
                 ? "Dry-run validated \(plan.actions.count) actions"
                 : "Dispatched \(report.appliedCount) sync actions"
             syncPlan = nil
+            if !dryRun {
+                await refreshRemoteDirectory(recordHistory: false)
+            }
         } catch {
             lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
         }
     }
 
-    public func importFromSSHConfig() async {
+    func addSnippet(title: String, command: String, category: String = "Custom") async {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCmd = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty, !trimmedCmd.isEmpty else { return }
+        snippets.append(CommandSnippet(title: trimmedTitle, command: trimmedCmd, category: category))
+        try? await snippetStore.saveSnippets(snippets)
+    }
+
+    func deleteSnippet(id: UUID) async {
+        snippets.removeAll { $0.id == id }
+        try? await snippetStore.saveSnippets(snippets)
+    }
+
+    func importFromSSHConfig() async {
         let sshConfigURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".ssh/config")
         guard let contents = try? String(contentsOf: sshConfigURL, encoding: .utf8) else {
             lastError = .fileNotFound(path: sshConfigURL.path)
@@ -88,7 +109,7 @@ extension AppState {
         }
     }
 
-    public func importExternalConnections(from url: URL) async {
+    func importExternalConnections(from url: URL) async {
         do {
             let data = try Data(contentsOf: url)
             let imported: [ImportedConnection]

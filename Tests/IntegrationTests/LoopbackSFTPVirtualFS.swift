@@ -38,21 +38,21 @@ final class LoopbackSFTPVirtualFS: @unchecked Sendable { // JUSTIFICATION: NSLoc
 
     private func dispatchPacket(_ packet: SFTPPacket, reqID: UInt32) throws -> SFTPPacket {
         switch packet {
-        case .opendir(_, let path):
+        case let .opendir(_, path):
             return try handleOpenDir(reqID: reqID, remotePath: path)
-        case .readdir(_, let handle):
+        case let .readdir(_, handle):
             return handleReadDir(reqID: reqID, handle: handle)
-        case .close(_, let handle):
+        case let .close(_, handle):
             return handleClose(reqID: reqID, handle: handle)
-        case .lstat(_, let path), .stat(_, let path):
+        case let .lstat(_, path), let .stat(_, path):
             return try handleStat(reqID: reqID, remotePath: path)
-        case .realpath(_, let path):
+        case let .realpath(_, path):
             return handleRealpath(reqID: reqID, remotePath: path)
-        case .open(_, let path, let flags, _):
+        case let .open(_, path, flags, _):
             return try handleOpen(reqID: reqID, remotePath: path, flags: flags)
-        case .read(_, let handle, let offset, let length):
+        case let .read(_, handle, offset, length):
             return try handleRead(reqID: reqID, handle: handle, offset: offset, length: length)
-        case .write(_, let handle, let offset, let data):
+        case let .write(_, handle, offset, data):
             return try handleWrite(reqID: reqID, handle: handle, offset: offset, data: data)
         default:
             return try dispatchMutation(packet, reqID: reqID)
@@ -61,17 +61,17 @@ final class LoopbackSFTPVirtualFS: @unchecked Sendable { // JUSTIFICATION: NSLoc
 
     private func dispatchMutation(_ packet: SFTPPacket, reqID: UInt32) throws -> SFTPPacket {
         switch packet {
-        case .mkdir(_, let path, _):
+        case let .mkdir(_, path, _):
             try FileManager.default.createDirectory(at: resolveURL(path), withIntermediateDirectories: true)
             return .status(requestID: reqID, code: .succeeded, message: "OK", languageTag: "")
-        case .rmdir(_, let path), .remove(_, let path):
+        case let .rmdir(_, path), let .remove(_, path):
             let url = resolveURL(path)
             guard FileManager.default.fileExists(atPath: url.path) else {
                 return .status(requestID: reqID, code: .noSuchFile, message: "Missing", languageTag: "")
             }
             try FileManager.default.removeItem(at: url)
             return .status(requestID: reqID, code: .succeeded, message: "OK", languageTag: "")
-        case .rename(_, let oldPath, let newPath):
+        case let .rename(_, oldPath, newPath):
             let src = resolveURL(oldPath)
             let dst = resolveURL(newPath)
             if FileManager.default.fileExists(atPath: dst.path) {
@@ -79,7 +79,7 @@ final class LoopbackSFTPVirtualFS: @unchecked Sendable { // JUSTIFICATION: NSLoc
             }
             try FileManager.default.moveItem(at: src, to: dst)
             return .status(requestID: reqID, code: .succeeded, message: "OK", languageTag: "")
-        case .setstat(_, let path, let attrs):
+        case let .setstat(_, path, attrs):
             if let perms = attrs.permissions {
                 let targetPath = resolveURL(path).path
                 try FileManager.default.setAttributes([.posixPermissions: Int(perms)], ofItemAtPath: targetPath)
@@ -109,9 +109,9 @@ final class LoopbackSFTPVirtualFS: @unchecked Sendable { // JUSTIFICATION: NSLoc
 
     private func handleReadDir(reqID: UInt32, handle: Data) -> SFTPPacket {
         lock.lock()
-        let pending = openDirs[handle].flatMap { $0 }
+        let pending = openDirs[handle].flatMap(\.self)
         if pending != nil {
-            openDirs[handle] = Optional<[SFTPNameEntry]>.none
+            openDirs[handle] = [SFTPNameEntry]?.none
         }
         lock.unlock()
         if let entries = pending {
@@ -126,7 +126,7 @@ final class LoopbackSFTPVirtualFS: @unchecked Sendable { // JUSTIFICATION: NSLoc
         try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
 
         let exists = FileManager.default.fileExists(atPath: fileURL.path)
-        if flags.contains(.create) && (!exists || flags.contains(.truncate)) {
+        if flags.contains(.create), !exists || flags.contains(.truncate) {
             FileManager.default.createFile(atPath: fileURL.path, contents: nil)
         }
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
@@ -182,7 +182,7 @@ final class LoopbackSFTPVirtualFS: @unchecked Sendable { // JUSTIFICATION: NSLoc
         guard FileManager.default.fileExists(atPath: url.path) else {
             return .status(requestID: reqID, code: .noSuchFile, message: "Missing", languageTag: "")
         }
-        return .attrs(requestID: reqID, attributes: try attributesForURL(url))
+        return try .attrs(requestID: reqID, attributes: attributesForURL(url))
     }
 
     private func handleRealpath(reqID: UInt32, remotePath: String) -> SFTPPacket {

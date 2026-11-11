@@ -32,8 +32,8 @@ public final class LocalDirectoryWatcher: @unchecked Sendable { // JUSTIFICATION
         }
 
         lock.lock()
-        self.fileDescriptor = fileDesc
-        self.source = dispatchSource
+        fileDescriptor = fileDesc
+        source = dispatchSource
         lock.unlock()
 
         dispatchSource.resume()

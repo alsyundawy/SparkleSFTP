@@ -78,7 +78,13 @@ public actor SyncExecutor {
             }
         case .update:
             try await verifyUnchangedRemote(action: action, remoteTarget: remoteTarget, remoteFS: target.remoteFS)
-            await enqueueUpload(localURL: localSource, remoteTarget: remoteTarget, target: target, size: action.size)
+            await enqueueUpload(
+                localURL: localSource,
+                remoteTarget: remoteTarget,
+                target: target,
+                size: action.size,
+                conflictPolicyOverride: .overwrite
+            )
         case .delete:
             try await verifyUnchangedRemote(action: action, remoteTarget: remoteTarget, remoteFS: target.remoteFS)
             try await target.remoteFS.delete(at: remoteTarget, isDirectory: action.isDirectory)
@@ -102,13 +108,15 @@ public actor SyncExecutor {
         localURL: URL,
         remoteTarget: RemotePath,
         target: SyncExecutionTarget,
-        size: Int64
+        size: Int64,
+        conflictPolicyOverride: TransferConflictPolicy? = nil
     ) async {
         let meta = TransferTaskMetadata(
             direction: .upload,
             source: .local(url: localURL),
             destination: .remote(profileID: target.profileID, host: target.host, path: remoteTarget),
-            totalBytes: size
+            totalBytes: size,
+            conflictPolicyOverride: conflictPolicyOverride
         )
         _ = await transferQueue.enqueue(meta)
     }

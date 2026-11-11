@@ -8,7 +8,9 @@ public enum AuthMethod: String, Sendable, Codable, CaseIterable, Identifiable {
     case keyboardInteractive
     case anonymous
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 }
 
 /// Structured, Sendable error taxonomy across networking, security, transfer, sync, and persistence layers.
@@ -59,63 +61,63 @@ public enum AppError: Error, Sendable, LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .connectionTimeout(let host, let seconds):
+        case let .connectionTimeout(host, seconds):
             return "Connection to \(host) timed out after \(seconds) seconds."
-        case .hostUnreachable(let host):
+        case let .hostUnreachable(host):
             return "Unable to reach host \(host)."
         case .notConnected:
             return "No active remote connection."
-        case .protocolError(let code, let message):
+        case let .protocolError(code, message):
             return "Protocol error (\(code)): \(message)"
-        case .unsupportedCapability(let capability):
+        case let .unsupportedCapability(capability):
             return "Remote server does not support \(capability)."
-        case .channelStalled(let reason):
+        case let .channelStalled(reason):
             return "SSH channel stalled: \(reason)"
-        case .hostKeyUnknown(let host, let port, let fingerprint):
+        case let .hostKeyUnknown(host, port, fingerprint):
             return "Host key for \(host):\(port) (\(fingerprint)) has not been verified."
-        case .hostKeyRejected(let host, let port):
+        case let .hostKeyRejected(host, port):
             return "Connection blocked: host key for \(host):\(port) was rejected."
-        case .hostKeyMismatch(let host, let expected, let got):
+        case let .hostKeyMismatch(host, expected, got):
             return "SECURITY ALERT: Host key changed for \(host). Expected \(expected), got \(got)."
-        case .hostTrustCorrupted(let host):
+        case let .hostTrustCorrupted(host):
             return "Stored host trust record for \(host) is corrupted and requires re-verification."
-        case .tlsValidationFailed(let reason):
+        case let .tlsValidationFailed(reason):
             return "TLS certificate validation failed: \(reason)"
-        case .pathTraversal(let attempted):
+        case let .pathTraversal(attempted):
             return "Blocked unsafe path traversal attempt: \(attempted)"
-        case .symlinkTraversal(let destination):
+        case let .symlinkTraversal(destination):
             return "Blocked destination escaping base directory: \(destination)"
-        case .maliciousSymlink(let target):
+        case let .maliciousSymlink(target):
             return "Blocked unsafe symlink target: \(target)"
-        case .authenticationFailed(let method):
+        case let .authenticationFailed(method):
             return "Authentication failed using \(method.rawValue)."
-        case .credentialNotFound(let service):
+        case let .credentialNotFound(service):
             return "Stored credential not found for \(service)."
-        case .keychainFailure(let status, let message):
+        case let .keychainFailure(status, message):
             return "Keychain error (\(status)): \(message)"
-        case .biometricAuthenticationFailed(let reason):
+        case let .biometricAuthenticationFailed(reason):
             return "Biometric verification failed: \(reason)"
-        case .invalidPrivateKey(let reason):
+        case let .invalidPrivateKey(reason):
             return "Invalid private key: \(reason)"
-        case .fileNotFound(let path):
+        case let .fileNotFound(path):
             return "File or directory not found: \(path)"
-        case .transferFailed(let reason):
+        case let .transferFailed(reason):
             return "Transfer failed: \(reason)"
-        case .diskFull(let required, let available):
+        case let .diskFull(required, available):
             return "Insufficient disk space (required \(required) bytes, available \(available) bytes)."
-        case .permissionDenied(let path):
+        case let .permissionDenied(path):
             return "Permission denied for \(path)."
-        case .checksumMismatch(let expected, let actual):
+        case let .checksumMismatch(expected, actual):
             return "Integrity check failed: expected SHA-256 \(expected), got \(actual)."
-        case .partialTransferCorrupted(let expected, let actual):
+        case let .partialTransferCorrupted(expected, actual):
             return "Partial file mismatch (expected \(expected) bytes, found \(actual) bytes)."
-        case .invalidConfiguration(let detail):
+        case let .invalidConfiguration(detail):
             return "Invalid configuration: \(detail)"
         case .planExpired:
             return "Synchronization preview expired. Re-scan before executing."
-        case .syncConflict(let path):
+        case let .syncConflict(path):
             return "Synchronization conflict detected at \(path)."
-        case .persistenceFailure(let reason):
+        case let .persistenceFailure(reason):
             return "Storage error: \(reason)"
         }
     }

@@ -104,6 +104,9 @@ public struct MainWindowView: View {
         .sheet(item: $appState.pendingHostChallenge) { challenge in
             HostKeyVerificationSheet(appState: appState, challenge: challenge)
         }
+        .sheet(item: $appState.pendingCredentialPrompt) { req in
+            CredentialPromptSheet(appState: appState, request: req)
+        }
         .sheet(item: $appState.pendingConflict) { conflict in
             ConflictResolutionSheet(appState: appState, conflict: conflict)
         }
@@ -111,7 +114,11 @@ public struct MainWindowView: View {
             appState.strings.hostKeyMismatchTitle,
             isPresented: Binding(
                 get: { appState.hostMismatchAlert != nil },
-                set: { if !$0 { appState.hostMismatchAlert = nil } }
+                set: {
+                    if !$0 {
+                        appState.hostMismatchAlert = nil
+                    }
+                }
             )
         ) {
             Button("OK", role: .cancel) { appState.hostMismatchAlert = nil }
@@ -122,7 +129,11 @@ public struct MainWindowView: View {
             "Error",
             isPresented: Binding(
                 get: { appState.lastError != nil },
-                set: { if !$0 { appState.lastError = nil } }
+                set: {
+                    if !$0 {
+                        appState.lastError = nil
+                    }
+                }
             )
         ) {
             Button("OK", role: .cancel) { appState.lastError = nil }

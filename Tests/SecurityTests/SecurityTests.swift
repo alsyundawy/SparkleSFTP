@@ -54,7 +54,7 @@ struct SecurityTests {
 
         try await store.trust(host: "prod.example.com", port: 22, fingerprint: "SHA256:abc123")
         let trusted = await store.evaluate(host: "prod.example.com", port: 22, fingerprint: "SHA256:abc123")
-        if case .trusted(let fingerprint, _) = trusted {
+        if case let .trusted(fingerprint, _) = trusted {
             #expect(fingerprint == "SHA256:abc123")
         } else {
             Issue.record("Expected trusted state")
@@ -185,5 +185,36 @@ struct SecurityTests {
             threwTLSFailure = true
         }
         #expect(threwTLSFailure)
+    }
+
+    @Test("PathValidator rejects pre-existing local symlink at destination (CWE-59)")
+    func pathValidatorRejectsExistingDestinationSymlink() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleSymDest-\(UUID())")
+        let outsideFile = FileManager.default.temporaryDirectory.appendingPathComponent("outside-\(UUID()).txt")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("sensitive".utf8).write(to: outsideFile)
+        defer {
+            try? FileManager.default.removeItem(at: dir)
+            try? FileManager.default.removeItem(at: outsideFile)
+        }
+
+        let linkDest = dir.appendingPathComponent("trap.txt")
+        try FileManager.default.createSymbolicLink(at: linkDest, withDestinationURL: outsideFile)
+        let expectedDest = dir.standardizedFileURL.resolvingSymlinksInPath()
+            .appendingPathComponent("trap.txt", isDirectory: false).path
+        #expect(throws: AppError.symlinkTraversal(destination: expectedDest)) {
+            _ = try PathValidator.safeLocalDestination(filename: "trap.txt", baseDirectory: dir)
+        }
+    }
+
+    @Test("UpdateConfigurationValidator rejects placeholder SUPublicEDKey and non-HTTPS feeds (SEC-006)")
+    func updateConfigurationValidatorEnforcesSignedHTTPS() {
+        #expect(!UpdateConfigurationValidator.isValidHTTPSFeed("http://example.com/appcast.xml"))
+        #expect(UpdateConfigurationValidator
+            .isValidHTTPSFeed("https://github.com/alsyundawy/SparkleSFTP/releases/latest/download/appcast.xml"))
+        #expect(!UpdateConfigurationValidator.isValidEd25519PublicKey("REPLACE_WITH_PRODUCTION_ED25519_PUBLIC_KEY"))
+        #expect(!UpdateConfigurationValidator.isValidEd25519PublicKey("short"))
+        let validKey = Data(repeating: 0xAB, count: 32).base64EncodedString()
+        #expect(UpdateConfigurationValidator.isValidEd25519PublicKey(validKey))
     }
 }

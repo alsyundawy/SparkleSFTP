@@ -83,7 +83,7 @@ final class SparkleSSHServerAuthDelegate:
             switch state {
             case .trusted:
                 validationCompletePromise.succeed(())
-            case .mismatch(let expected, let got):
+            case let .mismatch(expected, got):
                 let err = AppError.hostKeyMismatch(host: host, expected: expected, got: got)
                 handshakeBox.recordFailure(err)
                 validationCompletePromise.fail(err)
@@ -269,9 +269,9 @@ final class BufferedExecChannelHandler: ChannelInboundHandler {
         context.triggerUserOutboundEvent(request, promise: nil)
     }
 
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+    func channelRead(context _: ChannelHandlerContext, data: NIOAny) {
         let channelData = unwrapInboundIn(data)
-        guard case .byteBuffer(var buffer) = channelData.data,
+        guard case var .byteBuffer(buffer) = channelData.data,
               let bytes = buffer.readBytes(length: buffer.readableBytes)
         else { return }
         switch channelData.type {
@@ -292,7 +292,7 @@ final class BufferedExecChannelHandler: ChannelInboundHandler {
         }
     }
 
-    func channelInactive(context: ChannelHandlerContext) {
+    func channelInactive(context _: ChannelHandlerContext) {
         let stdout = String(data: stdoutBuffer, encoding: .utf8) ?? ""
         let stderr = String(data: stderrBuffer, encoding: .utf8) ?? ""
         stateBox.succeed(SSHCommandOutput(exitCode: exitCode, stdout: stdout, stderr: stderr))
@@ -333,19 +333,19 @@ final class SSHPTYChannelHandler: ChannelInboundHandler {
         context.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(wantReply: true), promise: nil)
     }
 
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+    func channelRead(context _: ChannelHandlerContext, data: NIOAny) {
         let channelData = unwrapInboundIn(data)
-        guard case .byteBuffer(var buffer) = channelData.data,
+        guard case var .byteBuffer(buffer) = channelData.data,
               let bytes = buffer.readBytes(length: buffer.readableBytes)
         else { return }
         continuation.yield(bytes)
     }
 
-    func channelInactive(context: ChannelHandlerContext) {
+    func channelInactive(context _: ChannelHandlerContext) {
         continuation.finish()
     }
 
-    func errorCaught(context: ChannelHandlerContext, error: Error) {
+    func errorCaught(context: ChannelHandlerContext, error _: Error) {
         continuation.finish()
         context.close(promise: nil)
     }

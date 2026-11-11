@@ -11,7 +11,7 @@ public struct TerminalWorkspaceView: View {
 
     public init(appState: AppState) {
         self.appState = appState
-        self.terminalManager = appState.terminalManager
+        terminalManager = appState.terminalManager
     }
 
     public var body: some View {
@@ -78,7 +78,7 @@ public struct TerminalWorkspaceView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if appState.splitTerminalMode && terminalManager.sessions.count >= 2 {
+            } else if appState.splitTerminalMode, terminalManager.sessions.count >= 2 {
                 HSplitView {
                     TerminalViewRepresentable(session: terminalManager.sessions[0])
                     TerminalViewRepresentable(session: terminalManager.sessions[1])
@@ -101,6 +101,8 @@ public struct TerminalWorkspaceView: View {
 public struct SnippetsSheet: View {
     @ObservedObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @State private var newTitle = ""
+    @State private var newCommand = ""
 
     public init(appState: AppState) {
         self.appState = appState
@@ -113,6 +115,20 @@ public struct SnippetsSheet: View {
                 Spacer()
                 Button("Close") { dismiss() }
             }
+
+            HStack {
+                TextField("Title", text: $newTitle)
+                TextField("Command", text: $newCommand)
+                Button("Add") {
+                    let title = newTitle
+                    let cmd = newCommand
+                    newTitle = ""
+                    newCommand = ""
+                    Task { await appState.addSnippet(title: title, command: cmd) }
+                }
+                .disabled(newTitle.isEmpty || newCommand.isEmpty)
+            }
+
             List(appState.snippets) { snippet in
                 HStack {
                     VStack(alignment: .leading) {
@@ -128,18 +144,25 @@ public struct SnippetsSheet: View {
                         dismiss()
                     }
                     .disabled(appState.terminalManager.sessions.isEmpty)
+                    Button(role: .destructive) {
+                        Task { await appState.deleteSnippet(id: snippet.id) }
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
                 }
             }
         }
         .padding()
-        .frame(width: 480, height: 360)
+        .frame(width: 540, height: 400)
     }
 }
 
 public struct PortForwardingSheet: View {
     @ObservedObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
-    @State private var name = "Local Forward"
+    @State private var name = "Tunnel Forward"
+    @State private var direction: PortForwardingRule.Direction = .local
     @State private var bindPort = "15432"
     @State private var targetHost = "127.0.0.1"
     @State private var targetPort = "5432"
@@ -158,18 +181,23 @@ public struct PortForwardingSheet: View {
             }
 
             HStack {
+                Picker("Mode", selection: $direction) {
+                    Text("Local (-L)").tag(PortForwardingRule.Direction.local)
+                    Text("Remote (-R)").tag(PortForwardingRule.Direction.remote)
+                }
+                .frame(width: 130)
                 TextField("Name", text: $name)
-                TextField("Local Port", text: $bindPort).frame(width: 80)
-                TextField("Remote Host", text: $targetHost)
-                TextField("Remote Port", text: $targetPort).frame(width: 80)
+                TextField("Bind Port", text: $bindPort).frame(width: 75)
+                TextField("Target Host", text: $targetHost)
+                TextField("Target Port", text: $targetPort).frame(width: 75)
                 Button("Start") {
                     let rule = PortForwardingRule(
                         name: name,
-                        direction: .local,
+                        direction: direction,
                         bindHost: "127.0.0.1",
-                        bindPort: Int(bindPort) ?? 15_432,
+                        bindPort: Int(bindPort) ?? 15432,
                         targetHost: targetHost,
-                        targetPort: Int(targetPort) ?? 5_432
+                        targetPort: Int(targetPort) ?? 5432
                     )
                     Task { await appState.startPortForwarding(rule) }
                 }
@@ -179,7 +207,8 @@ public struct PortForwardingSheet: View {
 
             List(appState.activeTunnels) { tunnel in
                 HStack {
-                    let forwardSummary = "\(tunnel.rule.name): "
+                    let arrow = tunnel.rule.direction == .local ? "-L" : "-R"
+                    let forwardSummary = "[\(arrow)] \(tunnel.rule.name): "
                         + "127.0.0.1:\(tunnel.listeningPort) -> "
                         + "\(tunnel.rule.targetHost):\(tunnel.rule.targetPort)"
                     Text(forwardSummary)
@@ -192,6 +221,6 @@ public struct PortForwardingSheet: View {
             }
         }
         .padding()
-        .frame(width: 600, height: 340)
+        .frame(width: 680, height: 360)
     }
 }

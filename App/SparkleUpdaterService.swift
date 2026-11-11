@@ -14,10 +14,10 @@ public final class SparkleUpdaterService {
         let publicEDKey = info["SUPublicEDKey"] as? String
         let isPackagedApp = Bundle.main.bundleURL.pathExtension == "app"
 
-        let hasValidFeed = feedURL.map { $0.lowercased().hasPrefix("https://") } ?? false
-        let hasValidKey = !(publicEDKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasValidFeed = UpdateConfigurationValidator.isValidHTTPSFeed(feedURL)
+        let hasValidKey = UpdateConfigurationValidator.isValidEd25519PublicKey(publicEDKey)
 
-        if isPackagedApp && hasValidFeed && hasValidKey {
+        if isPackagedApp, hasValidFeed, hasValidKey {
             isConfiguredForSignedUpdates = true
             controller = SPUStandardUpdaterController(
                 startingUpdater: true,

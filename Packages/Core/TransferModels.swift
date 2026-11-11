@@ -47,16 +47,16 @@ public enum TransferEndpoint: Sendable, Codable, Hashable {
         switch self {
         case .local:
             return "localhost"
-        case .remote(_, let host, _):
+        case let .remote(_, host, _):
             return host
         }
     }
 
     public var displayPath: String {
         switch self {
-        case .local(let url):
+        case let .local(url):
             return url.path
-        case .remote(_, let host, let path):
+        case let .remote(_, host, path):
             return "\(host):\(path.rawValue)"
         }
     }
@@ -71,6 +71,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
     public let totalBytes: Int64
     public let priority: TransferPriority
     public let expectedSHA256: String?
+    public let conflictPolicyOverride: TransferConflictPolicy?
     public let createdAt: Date
 
     public init(
@@ -81,6 +82,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
         totalBytes: Int64,
         priority: TransferPriority = .normal,
         expectedSHA256: String? = nil,
+        conflictPolicyOverride: TransferConflictPolicy? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -90,6 +92,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
         self.totalBytes = max(0, totalBytes)
         self.priority = priority
         self.expectedSHA256 = expectedSHA256
+        self.conflictPolicyOverride = conflictPolicyOverride
         self.createdAt = createdAt
     }
 
@@ -181,7 +184,9 @@ public struct TransferSnapshot: Identifiable, Sendable, Equatable {
     public let progress: TransferProgress
     public let checkpoint: TransferCheckpoint?
 
-    public var id: UUID { metadata.id }
+    public var id: UUID {
+        metadata.id
+    }
 
     public init(
         metadata: TransferTaskMetadata,

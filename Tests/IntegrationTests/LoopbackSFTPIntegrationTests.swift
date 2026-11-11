@@ -10,14 +10,14 @@ import SparkleTerminal
 import SparkleTransferEngine
 import Testing
 
-private actor TestMemoryCredentialStore: CredentialStoreProtocol {
+actor TestMemoryCredentialStore: CredentialStoreProtocol {
     private var storage: [String: Data] = [:]
 
-    func saveSecret(_ data: Data, for reference: SecretReference, requireTouchID: Bool) async throws {
+    func saveSecret(_ data: Data, for reference: SecretReference, requireTouchID _: Bool) async throws {
         storage[reference.accountKey] = data
     }
 
-    func loadSecret(for reference: SecretReference, prompt: String?) async throws -> Data {
+    func loadSecret(for reference: SecretReference, prompt _: String?) async throws -> Data {
         guard let data = storage[reference.accountKey] else {
             throw AppError.credentialNotFound(service: reference.accountKey)
         }
@@ -33,15 +33,22 @@ private actor TestMemoryCredentialStore: CredentialStoreProtocol {
     }
 }
 
-private actor TestMemoryHostTrustBacking: HostTrustBackingStore {
+actor TestMemoryHostTrustBacking: HostTrustBackingStore {
     private var blob: Data?
-    func loadTrustBlob() async throws -> Data? { blob }
-    func saveTrustBlob(_ data: Data) async throws { blob = data }
+    func loadTrustBlob() async throws -> Data? {
+        blob
+    }
+
+    func saveTrustBlob(_ data: Data) async throws {
+        blob = data
+    }
 }
 
-private actor PromptCounter {
+actor PromptCounter {
     private(set) var count = 0
-    func increment() { count += 1 }
+    func increment() {
+        count += 1
+    }
 }
 
 @Suite("SparkleSFTP Live Encrypted Loopback SSH/SFTP Tests")
@@ -281,7 +288,7 @@ private final class EchoCollectorHandler:
     private var expectedCount = 0
     private var continuation: CheckedContinuation<String, Error>?
 
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+    func channelRead(context _: ChannelHandlerContext, data: NIOAny) {
         var buffer = unwrapInboundIn(data)
         let bytes = buffer.readBytes(length: buffer.readableBytes) ?? []
         lock.lock()
@@ -289,7 +296,9 @@ private final class EchoCollectorHandler:
         let ready = expectedCount > 0 && accumulated.count >= expectedCount
         let cont = ready ? continuation : nil
         let result = ready ? (String(data: accumulated.prefix(expectedCount), encoding: .utf8) ?? "") : ""
-        if ready { continuation = nil }
+        if ready {
+            continuation = nil
+        }
         lock.unlock()
         cont?.resume(returning: result)
     }
@@ -316,7 +325,9 @@ private enum TestPEMBuilder {
             var len = UInt32(data.count).bigEndian
             return Data(bytes: &len, count: 4) + data
         }
-        func sshString(_ text: String) -> Data { sshString(Data(text.utf8)) }
+        func sshString(_ text: String) -> Data {
+            sshString(Data(text.utf8))
+        }
 
         let pub = signingKey.publicKey.rawRepresentation
         let pubBlob = sshString("ssh-ed25519") + sshString(pub)
@@ -325,7 +336,9 @@ private enum TestPEMBuilder {
         priv += sshString(pub)
         priv += sshString(signingKey.rawRepresentation + pub)
         priv += sshString("loopback")
-        while priv.count % 8 != 0 { priv.append(1) }
+        while priv.count % 8 != 0 {
+            priv.append(1)
+        }
 
         var container = Data("openssh-key-v1\0".utf8) + sshString("none") + sshString("none") + sshString(Data())
         var count = UInt32(1).bigEndian

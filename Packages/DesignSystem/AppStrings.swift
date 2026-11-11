@@ -5,7 +5,9 @@ public enum AppLanguage: String, Sendable, Codable, CaseIterable, Identifiable {
     case english = "en"
     case indonesian = "id"
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var displayName: String {
         switch self {
@@ -23,7 +25,9 @@ public struct AppStrings: Sendable {
         self.language = language
     }
 
-    public var appName: String { "SparkleSFTP" }
+    public var appName: String {
+        "SparkleSFTP"
+    }
 
     public var connectionsTitle: String {
         language == .indonesian ? "Koneksi" : "Connections"

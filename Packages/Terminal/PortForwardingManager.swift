@@ -5,7 +5,7 @@ import NIOSSH
 import SparkleCore
 import SparkleNetworking
 
-/// Manages active SSH local TCP port forwarding listeners (`DirectTCPIP` channels).
+/// Manages active SSH local (`DirectTCPIP`) and remote (`tcpip-forward`) TCP port forwarding listeners.
 public actor PortForwardingManager {
     public struct ActiveTunnel: Identifiable, Sendable {
         public let id: UUID
@@ -13,24 +13,55 @@ public actor PortForwardingManager {
         public let listeningPort: Int
     }
 
-    private struct RunningListener {
+    private struct RunningLocalListener {
         let rule: PortForwardingRule
         let serverChannel: Channel
         let group: MultiThreadedEventLoopGroup
         let registry: TunnelChannelRegistry
     }
 
-    private var listeners: [UUID: RunningListener] = [:]
+    private struct RunningRemoteForward {
+        let rule: PortForwardingRule
+        let sshClient: SSHClientService
+    }
+
+    private var localListeners: [UUID: RunningLocalListener] = [:]
+    private var remoteForwards: [UUID: RunningRemoteForward] = [:]
 
     public init() {}
 
     public func activeTunnels() -> [ActiveTunnel] {
-        listeners.map { ActiveTunnel(id: $0.key, rule: $0.value.rule, listeningPort: $0.value.rule.bindPort) }
+        let local = localListeners.map {
+            ActiveTunnel(id: $0.key, rule: $0.value.rule, listeningPort: $0.value.rule.bindPort)
+        }
+        let remote = remoteForwards.map {
+            ActiveTunnel(id: $0.key, rule: $0.value.rule, listeningPort: $0.value.rule.bindPort)
+        }
+        return (local + remote).sorted { $0.rule.name < $1.rule.name }
+    }
+
+    public func startForward(rule: PortForwardingRule, sshClient: SSHClientService) async throws -> ActiveTunnel {
+        switch rule.direction {
+        case .local:
+            return try await startLocalForward(rule: rule, sshClient: sshClient)
+        case .remote:
+            await stopTunnel(id: rule.id)
+            let actualPort = try await sshClient.startRemotePortForward(
+                bindHost: rule.bindHost,
+                bindPort: rule.bindPort,
+                targetHost: rule.targetHost,
+                targetPort: rule.targetPort
+            )
+            var updatedRule = rule
+            updatedRule.bindPort = actualPort
+            remoteForwards[rule.id] = RunningRemoteForward(rule: updatedRule, sshClient: sshClient)
+            return ActiveTunnel(id: rule.id, rule: updatedRule, listeningPort: actualPort)
+        }
     }
 
     public func startLocalForward(rule: PortForwardingRule, sshClient: SSHClientService) async throws -> ActiveTunnel {
         guard rule.direction == .local else {
-            throw AppError.unsupportedCapability("Remote tunnel initiation requires server global request negotiation")
+            return try await startForward(rule: rule, sshClient: sshClient)
         }
         await stopTunnel(id: rule.id)
 
@@ -41,7 +72,7 @@ public actor PortForwardingManager {
         let actualPort = serverChannel.localAddress?.port ?? rule.bindPort
         var updatedRule = rule
         updatedRule.bindPort = actualPort
-        listeners[rule.id] = RunningListener(
+        localListeners[rule.id] = RunningLocalListener(
             rule: updatedRule,
             serverChannel: serverChannel,
             group: group,
@@ -51,14 +82,21 @@ public actor PortForwardingManager {
     }
 
     public func stopTunnel(id: UUID) async {
-        guard let listener = listeners.removeValue(forKey: id) else { return }
-        try? await listener.serverChannel.close().get()
-        await listener.registry.closeAll()
-        try? await listener.group.shutdownGracefully()
+        if let listener = localListeners.removeValue(forKey: id) {
+            try? await listener.serverChannel.close().get()
+            await listener.registry.closeAll()
+            try? await listener.group.shutdownGracefully()
+        }
+        if let remote = remoteForwards.removeValue(forKey: id) {
+            await remote.sshClient.stopRemotePortForward(
+                bindHost: remote.rule.bindHost,
+                bindPort: remote.rule.bindPort
+            )
+        }
     }
 
     public func stopAll() async {
-        let ids = Array(listeners.keys)
+        let ids = Array(localListeners.keys) + Array(remoteForwards.keys)
         for id in ids {
             await stopTunnel(id: id)
         }
@@ -140,53 +178,5 @@ private final class TunnelChannelRegistry:
         lock.lock()
         defer { lock.unlock() }
         return Array(channels.values)
-    }
-}
-
-private final class SSHChannelByteWrapper: ChannelDuplexHandler {
-    typealias InboundIn = SSHChannelData
-    typealias InboundOut = ByteBuffer
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = SSHChannelData
-
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let sshData = unwrapInboundIn(data)
-        if case .byteBuffer(let buffer) = sshData.data {
-            context.fireChannelRead(wrapInboundOut(buffer))
-        }
-    }
-
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let buffer = unwrapOutboundIn(data)
-        context.write(wrapOutboundOut(SSHChannelData(type: .channel, data: .byteBuffer(buffer))), promise: promise)
-    }
-}
-
-private final class TunnelGlueHandler: ChannelInboundHandler {
-    typealias InboundIn = ByteBuffer
-
-    private let peerChannel: Channel
-
-    init(peerChannel: Channel) {
-        self.peerChannel = peerChannel
-    }
-
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let buffer = unwrapInboundIn(data)
-        guard peerChannel.isActive else { return }
-        peerChannel.writeAndFlush(buffer, promise: nil)
-    }
-
-    func channelInactive(context: ChannelHandlerContext) {
-        if peerChannel.isActive {
-            peerChannel.close(promise: nil)
-        }
-    }
-
-    func errorCaught(context: ChannelHandlerContext, error: Error) {
-        context.close(promise: nil)
-        if peerChannel.isActive {
-            peerChannel.close(promise: nil)
-        }
     }
 }

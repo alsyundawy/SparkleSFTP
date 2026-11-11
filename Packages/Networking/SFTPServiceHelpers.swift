@@ -40,14 +40,14 @@ extension SFTPService {
                 )
             )
             switch readResp {
-            case .data(_, let chunk) where !chunk.isEmpty:
+            case let .data(_, chunk) where !chunk.isEmpty:
                 try fileHandle.write(contentsOf: chunk)
                 currentOffset += UInt64(chunk.count)
                 emitProgress(ctx: ctx, currentOffset: currentOffset, startTime: startTime)
             case .data, .status(_, .eof, _, _):
                 emitProgress(ctx: ctx, currentOffset: currentOffset, startTime: startTime)
                 return
-            case .status(_, let code, let msg, _):
+            case let .status(_, code, msg, _):
                 throw Self.mapStatusError(code: code, message: msg, path: ctx.remotePath.rawValue)
             default:
                 throw AppError.protocolError(code: -1, message: "Unexpected SFTP READ response")
@@ -125,9 +125,9 @@ extension SFTPService {
 
     func extractHandle(from packet: SFTPPacket, path: String) throws -> Data {
         switch packet {
-        case .handle(_, let handle):
+        case let .handle(_, handle):
             return handle
-        case .status(_, let code, let message, _):
+        case let .status(_, code, message, _):
             throw Self.mapStatusError(code: code, message: message, path: path)
         default:
             throw AppError.protocolError(code: -1, message: "Expected SFTP handle")
@@ -136,9 +136,9 @@ extension SFTPService {
 
     func extractAttrs(from packet: SFTPPacket, path: String) throws -> SFTPAttributes {
         switch packet {
-        case .attrs(_, let attrs):
+        case let .attrs(_, attrs):
             return attrs
-        case .status(_, let code, let message, _):
+        case let .status(_, code, message, _):
             throw Self.mapStatusError(code: code, message: message, path: path)
         default:
             throw AppError.protocolError(code: -1, message: "Expected SFTP attributes")
@@ -146,7 +146,7 @@ extension SFTPService {
     }
 
     func verifyStatusOK(_ packet: SFTPPacket, path: String) throws {
-        guard case .status(_, let code, let message, _) = packet else {
+        guard case let .status(_, code, message, _) = packet else {
             throw AppError.protocolError(code: -1, message: "Expected SFTP status")
         }
         guard code == .succeeded else {

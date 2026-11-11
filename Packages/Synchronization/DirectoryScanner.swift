@@ -137,7 +137,7 @@ public enum DirectoryScanner {
             )
         } else {
             let size = Int64(values.fileSize ?? 0)
-            let hash: String? = context.includeSHA256 ? (try? await computeSHA256(url: item)) : nil
+            let hash: String? = await context.includeSHA256 ? (try? computeSHA256(url: item)) : nil
             results.append(
                 ScannedFileEntry(
                     relativePath: relPath,
@@ -162,7 +162,9 @@ public enum DirectoryScanner {
 
         for entry in entries {
             try Task.checkCancellation()
-            if isExcluded(name: entry.name, patterns: context.exclusionGlobs) { continue }
+            if isExcluded(name: entry.name, patterns: context.exclusionGlobs) {
+                continue
+            }
             let relPath = relativePrefix.isEmpty ? entry.name : "\(relativePrefix)/\(entry.name)"
 
             if entry.isSymlink {
@@ -208,7 +210,9 @@ public enum DirectoryScanner {
 
     public static func isExcluded(name: String, patterns: [String]) -> Bool {
         for pattern in patterns {
-            if pattern == name { return true }
+            if pattern == name {
+                return true
+            }
             if pattern.hasPrefix("*."), name.hasSuffix(String(pattern.dropFirst())) {
                 return true
             }
@@ -225,7 +229,9 @@ public enum DirectoryScanner {
             while true {
                 try Task.checkCancellation()
                 let chunk = try handle.read(upToCount: 1_048_576) ?? Data()
-                if chunk.isEmpty { break }
+                if chunk.isEmpty {
+                    break
+                }
                 hasher.update(data: chunk)
             }
             return hasher.finalize().map { String(format: "%02x", $0) }.joined()

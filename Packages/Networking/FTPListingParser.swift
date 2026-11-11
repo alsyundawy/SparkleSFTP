@@ -53,7 +53,9 @@ public enum FTPListingParser {
             switch key {
             case "type":
                 let lower = value.lowercased()
-                if lower == "cdir" || lower == "pdir" { return false }
+                if lower == "cdir" || lower == "pdir" {
+                    return false
+                }
                 isDirectory = lower == "dir"
             case "size":
                 size = Int64(value) ?? 0
@@ -69,7 +71,9 @@ public enum FTPListingParser {
     }
 
     private static func parseUnixListLine(_ line: String, directory: RemotePath) -> RemoteFile? {
-        if line.lowercased().hasPrefix("total ") { return nil }
+        if line.lowercased().hasPrefix("total ") {
+            return nil
+        }
         let tokens = line.split(maxSplits: 8, omittingEmptySubsequences: true) { $0 == " " || $0 == "\t" }
         guard tokens.count == 9 else { return nil }
 

@@ -26,11 +26,11 @@ public actor ConnectionStore: ConnectionStoreProtocol {
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
         enc.dateEncodingStrategy = .iso8601
-        self.encoder = enc
+        encoder = enc
 
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
-        self.decoder = dec
+        decoder = dec
     }
 
     public static func defaultStoreURL() -> URL {
@@ -108,7 +108,7 @@ public actor ConnectionStore: ConnectionStoreProtocol {
             .filter { $0.lastConnectedAt != nil }
             .sorted { ($0.lastConnectedAt ?? .distantPast) > ($1.lastConnectedAt ?? .distantPast) }
             .prefix(limit)
-            .map { $0 }
+            .map(\.self)
     }
 
     private func loadSnapshot() throws -> Snapshot {

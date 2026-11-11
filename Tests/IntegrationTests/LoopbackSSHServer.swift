@@ -45,17 +45,27 @@ final class LoopbackSSHServer {
             expectedPassword: password,
             expectedPublicKeyFingerprint: authorizedPublicKeyFingerprint
         )
+        let globalDelegate = LoopbackGlobalRequestDelegate()
 
         let bootstrap = ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
             .childChannelInitializer { channel in
                 channel.eventLoop.makeCompletedFuture {
-                    let config = SSHServerConfiguration(hostKeys: [hostKey], userAuthDelegate: authDelegate)
+                    let config = SSHServerConfiguration(
+                        hostKeys: [hostKey],
+                        userAuthDelegate: authDelegate,
+                        globalRequestDelegate: globalDelegate
+                    )
                     let sshHandler = NIOSSHHandler(
                         role: .server(config),
                         allocator: channel.allocator,
                         inboundChildChannelInitializer: { childChannel, channelType in
-                            Self.initializeChildChannel(childChannel, type: channelType, virtualFS: virtualFS)
+                            Self.initializeChildChannel(
+                                childChannel,
+                                type: channelType,
+                                virtualFS: virtualFS,
+                                group: group
+                            )
                         }
                     )
                     try channel.pipeline.syncOperations.addHandler(sshHandler)
@@ -70,13 +80,46 @@ final class LoopbackSSHServer {
     private static func initializeChildChannel(
         _ childChannel: Channel,
         type: SSHChannelType,
-        virtualFS: LoopbackSFTPVirtualFS
+        virtualFS: LoopbackSFTPVirtualFS,
+        group: MultiThreadedEventLoopGroup
     ) -> EventLoopFuture<Void> {
         switch type {
         case .session:
             return childChannel.eventLoop.makeCompletedFuture {
                 try childChannel.pipeline.syncOperations.addHandler(LoopbackSFTPChannelHandler(virtualFS: virtualFS))
             }
+        case let .directTCPIP(info) where info.targetPort != 9999:
+            let promise = childChannel.eventLoop.makePromise(of: Void.self)
+            let clientBootstrap = ClientBootstrap(group: group)
+                .channelOption(ChannelOptions.autoRead, value: false)
+                .channelInitializer { targetChannel in
+                    targetChannel.eventLoop.makeCompletedFuture {
+                        try targetChannel.pipeline.syncOperations.addHandler(
+                            TunnelGlueHandler(peerChannel: childChannel)
+                        )
+                    }
+                }
+            clientBootstrap.connect(host: info.targetHost, port: info.targetPort).whenComplete { result in
+                switch result {
+                case let .success(targetChannel):
+                    childChannel.eventLoop.execute {
+                        do {
+                            try childChannel.pipeline.syncOperations.addHandler(SSHChannelByteWrapper())
+                            try childChannel.pipeline.syncOperations.addHandler(
+                                TunnelGlueHandler(peerChannel: targetChannel)
+                            )
+                            promise.succeed(())
+                            _ = targetChannel.setOption(ChannelOptions.autoRead, value: true)
+                        } catch {
+                            targetChannel.close(promise: nil)
+                            promise.fail(error)
+                        }
+                    }
+                case let .failure(error):
+                    promise.fail(error)
+                }
+            }
+            return promise.futureResult
         case .directTCPIP:
             return childChannel.eventLoop.makeCompletedFuture {
                 try childChannel.pipeline.syncOperations.addHandler(LoopbackDirectTCPIPEchoHandler())
@@ -119,9 +162,9 @@ private final class LoopbackServerUserAuthDelegate:
             return
         }
         switch request.request {
-        case .password(let passwordAuth):
+        case let .password(passwordAuth):
             responsePromise.succeed(passwordAuth.password == expectedPassword ? .success : .failure)
-        case .publicKey(let publicKeyAuth):
+        case let .publicKey(publicKeyAuth):
             let actualFP = SSHKeyFingerprint.sha256(for: publicKeyAuth.publicKey)
             responsePromise.succeed(actualFP == expectedPublicKeyFingerprint ? .success : .failure)
         default:
@@ -153,7 +196,7 @@ private final class LoopbackSFTPChannelHandler: ChannelInboundHandler {
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         guard isSFTP else { return }
         let sshData = unwrapInboundIn(data)
-        guard sshData.type == .channel, case .byteBuffer(var buffer) = sshData.data else { return }
+        guard sshData.type == .channel, case var .byteBuffer(buffer) = sshData.data else { return }
         inboundBuffer.writeBuffer(&buffer)
 
         while let request = try? SFTPPacketCodec.decodeNext(from: &inboundBuffer) {
@@ -170,5 +213,29 @@ private final class LoopbackDirectTCPIPEchoHandler: ChannelInboundHandler {
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         context.writeAndFlush(data, promise: nil)
+    }
+}
+
+private final class LoopbackGlobalRequestDelegate:
+    GlobalRequestDelegate,
+    @unchecked Sendable { // JUSTIFICATION: Synchronizes mock remote forward bound-port allocation in test harness.
+    private let lock = NSLock()
+    private var nextEphemeralPort = 42100
+
+    func tcpForwardingRequest(
+        _ request: GlobalRequest.TCPForwardingRequest,
+        handler _: NIOSSHHandler,
+        promise: EventLoopPromise<GlobalRequest.TCPForwardingResponse>
+    ) {
+        switch request {
+        case let .listen(_, port):
+            lock.lock()
+            let bound = port == 0 ? nextEphemeralPort : port
+            nextEphemeralPort += 1
+            lock.unlock()
+            promise.succeed(GlobalRequest.TCPForwardingResponse(boundPort: bound))
+        case .cancel:
+            promise.succeed(GlobalRequest.TCPForwardingResponse(boundPort: nil))
+        }
     }
 }

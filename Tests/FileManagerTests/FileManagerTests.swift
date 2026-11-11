@@ -36,16 +36,16 @@ struct FileManagerTests {
 
     @Test("PaginatedFileWindow slices 10K+ entries incrementally without full allocation")
     func paginatedWindow() {
-        let items = (0 ..< 2_500).map { idx in
+        let items = (0 ..< 2500).map { idx in
             RemoteFile(name: "file_\(idx)", path: RemotePath(rawValue: "/file_\(idx)"), size: 1, isDirectory: false)
         }
-        var window = PaginatedFileWindow(allFiles: items, pageSize: 1_000)
-        #expect(window.visibleFiles.count == 1_000)
+        var window = PaginatedFileWindow(allFiles: items, pageSize: 1000)
+        #expect(window.visibleFiles.count == 1000)
         #expect(window.hasMorePages)
         window.loadNextPage()
-        #expect(window.visibleFiles.count == 2_000)
+        #expect(window.visibleFiles.count == 2000)
         window.loadNextPage()
-        #expect(window.visibleFiles.count == 2_500)
+        #expect(window.visibleFiles.count == 2500)
         #expect(!window.hasMorePages)
     }
 }

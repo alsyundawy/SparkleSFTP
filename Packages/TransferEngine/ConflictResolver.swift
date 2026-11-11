@@ -2,7 +2,10 @@ import Foundation
 import SparkleCore
 
 public struct ConflictContext: Identifiable, Sendable, Equatable {
-    public var id: UUID { taskID }
+    public var id: UUID {
+        taskID
+    }
+
     public let taskID: UUID
     public let destinationDisplayPath: String
     public let existingSize: Int64
@@ -13,7 +16,7 @@ public struct ConflictContext: Identifiable, Sendable, Equatable {
 public actor ConflictResolver {
     public typealias InteractivePrompt = @Sendable (ConflictContext) async -> TransferConflictResolution
 
-    private let defaultPolicy: TransferConflictPolicy
+    private var defaultPolicy: TransferConflictPolicy
     private let promptTimeoutSeconds: Int
     private let interactivePrompt: InteractivePrompt?
 
@@ -27,8 +30,16 @@ public actor ConflictResolver {
         self.interactivePrompt = interactivePrompt
     }
 
-    public func resolve(_ context: ConflictContext, originalFilename: String) async -> TransferConflictResolution {
-        switch defaultPolicy {
+    public func updateDefaultPolicy(_ policy: TransferConflictPolicy) {
+        defaultPolicy = policy
+    }
+
+    public func resolve(
+        _ context: ConflictContext,
+        originalFilename: String,
+        overridePolicy: TransferConflictPolicy? = nil
+    ) async -> TransferConflictResolution {
+        switch overridePolicy ?? defaultPolicy {
         case .skip:
             return .skip
         case .overwrite:

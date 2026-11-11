@@ -33,7 +33,9 @@ enum CurlClientHelper {
 
         if context.proxy.kind != .none, !context.proxy.host.isEmpty {
             let scheme = context.proxy.kind == .socks5 ? "socks5h" : "http"
-            let proxyURL = "\(scheme)://\(context.proxy.host):\(context.proxy.port)"
+            let rawHost = context.proxy.host.trimmingCharacters(in: .whitespacesAndNewlines)
+            let formattedHost = (rawHost.contains(":") && !rawHost.hasPrefix("[")) ? "[\(rawHost)]" : rawHost
+            let proxyURL = "\(scheme)://\(formattedHost):\(context.proxy.port)"
             sparklesftp_curl_setopt_string(handle, CURLOPT_PROXY, proxyURL)
         }
 
@@ -122,7 +124,8 @@ func curlWriteToMemoryCallback(
     userdata: UnsafeMutableRawPointer?
 ) -> Int {
     guard let ptr, let userdata else { return 0 }
-    let byteCount = size * nmemb
+    let (byteCount, overflow) = size.multipliedReportingOverflow(by: nmemb)
+    guard !overflow, byteCount >= 0 else { return 0 }
     let box = Unmanaged<CurlMemoryBox>.fromOpaque(userdata).takeUnretainedValue()
     let typedPtr = UnsafeRawPointer(ptr).assumingMemoryBound(to: UInt8.self)
     box.data.append(UnsafeBufferPointer(start: typedPtr, count: byteCount))
@@ -136,7 +139,8 @@ func curlWriteToFileCallback(
     userdata: UnsafeMutableRawPointer?
 ) -> Int {
     guard let ptr, let userdata else { return 0 }
-    let byteCount = size * nmemb
+    let (byteCount, overflow) = size.multipliedReportingOverflow(by: nmemb)
+    guard !overflow, byteCount >= 0 else { return 0 }
     let box = Unmanaged<CurlTransferBox>.fromOpaque(userdata).takeUnretainedValue()
     guard let handle = box.writeFileHandle else { return 0 }
     let chunk = Data(bytes: ptr, count: byteCount)
@@ -155,7 +159,8 @@ func curlReadFromFileCallback(
     userdata: UnsafeMutableRawPointer?
 ) -> Int {
     guard let buffer, let userdata else { return 0 }
-    let maxBytes = size * nitems
+    let (maxBytes, overflow) = size.multipliedReportingOverflow(by: nitems)
+    guard !overflow, maxBytes > 0 else { return 0 }
     let box = Unmanaged<CurlTransferBox>.fromOpaque(userdata).takeUnretainedValue()
     guard let handle = box.readFileHandle else { return 0 }
     do {

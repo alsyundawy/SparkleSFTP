@@ -17,10 +17,10 @@ public struct PaginatedFileWindow: Sendable, Equatable {
     public private(set) var allFiles: [RemoteFile]
     public private(set) var visibleCount: Int
 
-    public init(allFiles: [RemoteFile] = [], pageSize: Int = 1_000) {
+    public init(allFiles: [RemoteFile] = [], pageSize: Int = 1000) {
         self.pageSize = max(100, pageSize)
         self.allFiles = allFiles
-        self.visibleCount = min(allFiles.count, self.pageSize)
+        visibleCount = min(allFiles.count, self.pageSize)
     }
 
     public var visibleFiles: ArraySlice<RemoteFile> {
@@ -36,8 +36,8 @@ public struct PaginatedFileWindow: Sendable, Equatable {
     }
 
     public mutating func replaceFiles(_ newFiles: [RemoteFile]) {
-        self.allFiles = newFiles
-        self.visibleCount = min(newFiles.count, pageSize)
+        allFiles = newFiles
+        visibleCount = min(newFiles.count, pageSize)
     }
 }
 
@@ -48,11 +48,16 @@ public struct PaneNavigationHistory: Sendable, Equatable {
     public private(set) var currentPath: String
 
     public init(initialPath: String) {
-        self.currentPath = initialPath
+        currentPath = initialPath
     }
 
-    public var canGoBack: Bool { !backStack.isEmpty }
-    public var canGoForward: Bool { !forwardStack.isEmpty }
+    public var canGoBack: Bool {
+        !backStack.isEmpty
+    }
+
+    public var canGoForward: Bool {
+        !forwardStack.isEmpty
+    }
 
     public mutating func navigate(to newPath: String) {
         guard newPath != currentPath else { return }

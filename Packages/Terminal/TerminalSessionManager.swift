@@ -69,14 +69,16 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     }
 
     public func attachTerminalView(_ view: TerminalView) {
-        self.terminalView = view
+        terminalView = view
     }
 
     public func attachPTYChannel(_ channel: SSHPTYChannel) {
-        self.isActive = true
+        isActive = true
         let task = Task { [weak self, weak view = terminalView] in
             for await bytes in channel.outputStream {
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 await MainActor.run {
                     (self?.terminalView ?? view)?.feed(byteArray: bytes[...])
                 }
@@ -104,12 +106,12 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     public func updateTitle(_ newTitle: String) {
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
-            self.title = trimmed
+            title = trimmed
         }
     }
 
     public func updateRemoteWorkingDirectory(_ directory: String?) {
-        self.currentDirectory = directory
+        currentDirectory = directory
     }
 
     public func close() {

@@ -25,6 +25,13 @@ public struct TransferQueueView: View {
                 Text("\(appState.transferSnapshots.count) items")
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                if appState.transferSnapshots.contains(where: \.status.isTerminal) {
+                    Button("Clear Finished") {
+                        Task { await appState.transferQueue.clearFinished() }
+                    }
+                    .buttonStyle(.borderless)
+                    .font(SparkleTheme.Typography.caption)
+                }
             }
             .padding(.horizontal, SparkleTheme.Spacing.medium)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
@@ -75,7 +82,34 @@ public struct TransferQueueView: View {
                                     Image(systemName: "play.circle")
                                 }
                                 .buttonStyle(.borderless)
+                                Button {
+                                    Task { await appState.transferQueue.cancel(id: snapshot.id) }
+                                } label: {
+                                    Image(systemName: "xmark.circle")
+                                }
+                                .buttonStyle(.borderless)
+                            } else if case .failed = snapshot.status {
+                                Button {
+                                    Task { await appState.transferQueue.retry(id: snapshot.id) }
+                                } label: {
+                                    Image(systemName: "arrow.clockwise.circle")
+                                }
+                                .buttonStyle(.borderless)
+                            } else if snapshot.status == .cancelled {
+                                Button {
+                                    Task { await appState.transferQueue.retry(id: snapshot.id) }
+                                } label: {
+                                    Image(systemName: "arrow.clockwise.circle")
+                                }
+                                .buttonStyle(.borderless)
                             }
+                        }
+
+                        if case let .failed(error) = snapshot.status {
+                            Text(error.errorDescription ?? "Transfer failed")
+                                .font(SparkleTheme.Typography.caption)
+                                .foregroundStyle(SparkleTheme.Colors.danger)
+                                .lineLimit(2)
                         }
 
                         TransferProgressBar(fraction: snapshot.progress.percentage, tint: statusTint(snapshot.status))

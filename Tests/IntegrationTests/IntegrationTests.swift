@@ -1,5 +1,6 @@
 import Foundation
 import SparkleCore
+@testable import SparkleFeatures
 @testable import SparkleFileManager
 @testable import SparklePersistence
 @testable import SparkleSecurity
@@ -12,7 +13,7 @@ actor InMemorySyncRemoteFS: RemoteFileSystem {
     var uploaded: [String: Data] = [:]
     var remoteEntries: [RemoteFile] = []
 
-    func listDirectory(at path: RemotePath) async throws -> [RemoteFile] {
+    func listDirectory(at _: RemotePath) async throws -> [RemoteFile] {
         remoteEntries
     }
 
@@ -23,19 +24,21 @@ actor InMemorySyncRemoteFS: RemoteFileSystem {
         return RemoteFileMetadata(path: path, size: Int64(data.count), isDirectory: false)
     }
 
-    func resolveSymlink(at path: RemotePath) async throws -> RemotePath { path }
+    func resolveSymlink(at path: RemotePath) async throws -> RemotePath {
+        path
+    }
 
     func download(
-        from remotePath: RemotePath,
-        to localURL: URL,
-        offset: Int64,
-        onProgress: @escaping @Sendable (TransferProgress) -> Void
+        from _: RemotePath,
+        to _: URL,
+        offset _: Int64,
+        onProgress _: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {}
 
     func upload(
         from localURL: URL,
         to remotePath: RemotePath,
-        offset: Int64,
+        offset _: Int64,
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
         let data = try Data(contentsOf: localURL)
@@ -48,7 +51,7 @@ actor InMemorySyncRemoteFS: RemoteFileSystem {
         onProgress(progress)
     }
 
-    func delete(at path: RemotePath, isDirectory: Bool) async throws {
+    func delete(at path: RemotePath, isDirectory _: Bool) async throws {
         uploaded.removeValue(forKey: path.rawValue)
     }
 
@@ -59,8 +62,8 @@ actor InMemorySyncRemoteFS: RemoteFileSystem {
         uploaded[destination.rawValue] = data
     }
 
-    func createDirectory(at path: RemotePath) async throws {}
-    func setPermissions(_ permissions: UInt32, at path: RemotePath) async throws {}
+    func createDirectory(at _: RemotePath) async throws {}
+    func setPermissions(_: UInt32, at _: RemotePath) async throws {}
 }
 
 @Suite("SparkleSFTP End-to-End Integration Tests")
@@ -118,5 +121,48 @@ struct IntegrationTests {
         }
         #expect(manager.sessions.isEmpty)
         #expect(manager.selectedSessionID == nil)
+    }
+
+    @Test("AppState manages groups, pane back/forward navigation, and custom snippets cleanly")
+    @MainActor
+    func appStateNavigationGroupsAndSnippets() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleState-\(UUID())")
+        let subA = dir.appendingPathComponent("folderA", isDirectory: true)
+        let subB = dir.appendingPathComponent("folderB", isDirectory: true)
+        try FileManager.default.createDirectory(at: subA, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: subB, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let store = ConnectionStore(fileURL: dir.appendingPathComponent("conn.json"))
+        let snippetStore = CommandSnippetStore(fileURL: dir.appendingPathComponent("snippets.json"))
+        let appState = AppState(
+            connectionStore: store,
+            transferJournal: nil,
+            snippetStore: snippetStore
+        )
+
+        await appState.createGroup(named: "Production")
+        #expect(appState.groups.count == 1)
+        if let groupID = appState.groups.first?.id {
+            await appState.deleteGroup(id: groupID)
+            #expect(appState.groups.isEmpty)
+        }
+
+        await appState.refreshLocalDirectory(dir, recordHistory: false)
+        appState.localHistory = PaneNavigationHistory(initialPath: dir.path)
+        await appState.refreshLocalDirectory(subA)
+        await appState.refreshLocalDirectory(subB)
+        #expect(appState.localCurrentURL.standardizedFileURL == subB.standardizedFileURL)
+
+        await appState.goBackInActivePane()
+        #expect(appState.localCurrentURL.standardizedFileURL == subA.standardizedFileURL)
+        await appState.goForwardInActivePane()
+        #expect(appState.localCurrentURL.standardizedFileURL == subB.standardizedFileURL)
+
+        let baselineCount = appState.snippets.count
+        await appState.addSnippet(title: "Tail Nginx", command: "tail -f /var/log/nginx/error.log")
+        #expect(appState.snippets.count == baselineCount + 1)
+        let loaded = try await snippetStore.loadSnippets()
+        #expect(loaded.contains { $0.title == "Tail Nginx" })
     }
 }

@@ -27,12 +27,24 @@ public struct SyncPreviewSheet: View {
             HStack {
                 TextField("Exclusions (comma-separated)", text: $exclusionsText)
                     .textFieldStyle(.roundedBorder)
-                Toggle("Delete Remote Extras", isOn: $deleteExtras)
+                Picker("Compare", selection: $appState.syncComparisonMode) {
+                    Text("Size + Time").tag(SyncComparisonMode.sizeAndMtime)
+                    Text("Size Only").tag(SyncComparisonMode.sizeOnly)
+                    Text("SHA-256").tag(SyncComparisonMode.sha256Strict)
+                }
+                .frame(width: 130)
+                Toggle("Delete Extras", isOn: $deleteExtras)
                 Button(appState.strings.dryRunPreview) {
                     let patterns = exclusionsText
                         .split(separator: ",")
                         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    Task { await appState.prepareSyncDryRun(exclusions: patterns, deleteExtras: deleteExtras) }
+                    Task {
+                        await appState.prepareSyncDryRun(
+                            exclusions: patterns,
+                            deleteExtras: deleteExtras,
+                            mode: appState.syncComparisonMode
+                        )
+                    }
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -87,7 +99,7 @@ public struct SyncPreviewSheet: View {
                 .frame(minHeight: 200)
 
                 Toggle("Dry-Run Only (No Mutations)", isOn: $dryRunOnly)
-                if !dryRunOnly && (!plan.deleteActions.isEmpty || !plan.updateActions.isEmpty) {
+                if !dryRunOnly, !plan.deleteActions.isEmpty || !plan.updateActions.isEmpty {
                     Toggle("Confirm destructive updates/deletes against revalidated targets", isOn: $confirmDestructive)
                         .foregroundStyle(SparkleTheme.Colors.danger)
                 }

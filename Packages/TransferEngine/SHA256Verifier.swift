@@ -13,7 +13,9 @@ public enum SHA256Verifier {
             while true {
                 try Task.checkCancellation()
                 let chunk = try handle.read(upToCount: chunkSize) ?? Data()
-                if chunk.isEmpty { break }
+                if chunk.isEmpty {
+                    break
+                }
                 hasher.update(data: chunk)
             }
             let digest = hasher.finalize()

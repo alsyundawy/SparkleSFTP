@@ -9,8 +9,8 @@ struct SparkleSFTPApp: App {
 
     init() {
         let env = AppEnvironment()
-        self.environment = env
-        self._appState = StateObject(wrappedValue: env.appState)
+        environment = env
+        _appState = StateObject(wrappedValue: env.appState)
     }
 
     var body: some Scene {

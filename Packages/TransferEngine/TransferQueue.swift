@@ -29,11 +29,11 @@ public actor TransferQueue {
         conflictResolver: ConflictResolver = ConflictResolver(defaultPolicy: .overwrite),
         fileSystemResolver: @escaping FileSystemResolver
     ) {
-        self.scheduler = TransferScheduler(
+        scheduler = TransferScheduler(
             maxGlobalConcurrent: maxGlobalConcurrent,
             maxPerHostConcurrent: maxPerHostConcurrent
         )
-        self.throttler = ProgressThrottler()
+        throttler = ProgressThrottler()
         self.journal = journal
         self.conflictResolver = conflictResolver
         self.fileSystemResolver = fileSystemResolver
@@ -72,8 +72,18 @@ public actor TransferQueue {
         await scheduleNextIfAvailable()
     }
 
+    public func updateDefaultConflictPolicy(_ policy: TransferConflictPolicy) async {
+        await conflictResolver.updateDefaultPolicy(policy)
+    }
+
+    public func clearFinished() {
+        snapshots = snapshots.filter { !$0.value.status.isTerminal }
+        broadcastSnapshots()
+    }
+
     public func restoreInterruptedFromJournal() async throws -> [TransferSnapshot] {
         guard let journal else { return [] }
+        try? await journal.pruneOldEntries(maxEntries: 10000, maxAgeDays: 30)
         let interrupted = try await journal.reconcileInterruptedOnLaunch()
         for record in interrupted {
             let progress = TransferProgress(
@@ -135,13 +145,20 @@ public actor TransferQueue {
             task.cancel()
         }
         if let existing = snapshots[id] {
+            let diskBytes = Self.measureLocalPartialBytes(checkpoint: existing.checkpoint)
+            let recordedBytes = max(existing.progress.bytesTransferred, diskBytes)
+            let adjustedProgress = TransferProgress(
+                bytesTransferred: recordedBytes,
+                totalBytes: existing.progress.totalBytes,
+                bytesPerSecond: 0
+            )
             let updated = TransferSnapshot(
                 metadata: existing.metadata,
                 status: .paused,
-                progress: existing.progress,
+                progress: adjustedProgress,
                 checkpoint: TransferCheckpoint(
-                    bytesTransferred: existing.progress.bytesTransferred,
-                    remoteSize: existing.metadata.totalBytes,
+                    bytesTransferred: diskBytes > 0 ? diskBytes : existing.progress.bytesTransferred,
+                    remoteSize: existing.checkpoint?.remoteSize ?? existing.metadata.totalBytes,
                     remoteModificationTime: existing.checkpoint?.remoteModificationTime,
                     partialLocalPath: existing.checkpoint?.partialLocalPath
                 )
@@ -178,7 +195,7 @@ public actor TransferQueue {
             }
             let worker = Task { [weak self] in
                 guard let self else { return }
-                await self.executeTransfer(metadata: next)
+                await executeTransfer(metadata: next)
             }
             activeTasks[next.id] = worker
         }
@@ -242,28 +259,5 @@ public actor TransferQueue {
         await throttler.clear(taskID: taskID)
         await scheduler.releaseSlot(forHost: host)
         await scheduleNextIfAvailable()
-    }
-
-    func updateStatus(id: UUID, status: TransferStatus) async {
-        guard let existing = snapshots[id] else { return }
-        await updateSnapshot(id: id, status: status, progress: existing.progress)
-    }
-
-    func updateSnapshot(id: UUID, status: TransferStatus, progress: TransferProgress) async {
-        guard let existing = snapshots[id] else { return }
-        let updated = TransferSnapshot(
-            metadata: existing.metadata,
-            status: status,
-            progress: progress,
-            checkpoint: TransferCheckpoint(
-                bytesTransferred: progress.bytesTransferred,
-                remoteSize: max(existing.metadata.totalBytes, progress.totalBytes),
-                remoteModificationTime: existing.checkpoint?.remoteModificationTime,
-                partialLocalPath: existing.checkpoint?.partialLocalPath
-            )
-        )
-        snapshots[id] = updated
-        await persistSnapshot(updated)
-        broadcastSnapshots()
     }
 }

@@ -3,6 +3,18 @@ import SparkleCore
 import SparkleFileManager
 import SwiftUI
 
+public enum FilePaneContextAction: Int, Sendable {
+    case open = 1
+    case transfer = 2
+    case quickLook = 3
+    case edit = 4
+    case rename = 5
+    case permissions = 6
+    case inspect = 7
+    case newFolder = 8
+    case delete = 9
+}
+
 private struct TableColumnSpec {
     let identifier: String
     let title: String
@@ -13,22 +25,28 @@ private struct TableColumnSpec {
 public struct FilePaneTableView: NSViewRepresentable {
     public let files: [RemoteFile]
     @Binding public var selectedIDs: Set<String>
+    public let isLocalPane: Bool
     public let onActivateRow: (RemoteFile) -> Void
     public let onSortColumn: (FileSortField) -> Void
     public let onFocusPane: () -> Void
+    public let onContextAction: (FilePaneContextAction, RemoteFile?) -> Void
 
     public init(
         files: [RemoteFile],
         selectedIDs: Binding<Set<String>>,
+        isLocalPane: Bool = true,
         onActivateRow: @escaping (RemoteFile) -> Void,
         onSortColumn: @escaping (FileSortField) -> Void,
-        onFocusPane: @escaping () -> Void
+        onFocusPane: @escaping () -> Void,
+        onContextAction: @escaping (FilePaneContextAction, RemoteFile?) -> Void = { _, _ in }
     ) {
         self.files = files
-        self._selectedIDs = selectedIDs
+        _selectedIDs = selectedIDs
+        self.isLocalPane = isLocalPane
         self.onActivateRow = onActivateRow
         self.onSortColumn = onSortColumn
         self.onFocusPane = onFocusPane
+        self.onContextAction = onContextAction
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -66,16 +84,23 @@ public struct FilePaneTableView: NSViewRepresentable {
         }
 
         scrollView.documentView = tableView
+        tableView.menu = context.coordinator.buildContextMenu()
         context.coordinator.tableView = tableView
         return scrollView
     }
 
-    public func updateNSView(_ nsView: NSScrollView, context: Context) {
+    public func updateNSView(_: NSScrollView, context: Context) {
         context.coordinator.parent = self
         guard let tableView = context.coordinator.tableView else { return }
         if context.coordinator.cachedFiles != files {
             context.coordinator.cachedFiles = files
+            context.coordinator.isProgrammaticUpdate = true
             tableView.reloadData()
+            let matchingIndexes = IndexSet(
+                files.enumerated().compactMap { selectedIDs.contains($0.element.id) ? $0.offset : nil }
+            )
+            tableView.selectRowIndexes(matchingIndexes, byExtendingSelection: false)
+            context.coordinator.isProgrammaticUpdate = false
         }
     }
 
@@ -84,6 +109,7 @@ public struct FilePaneTableView: NSViewRepresentable {
         var parent: FilePaneTableView
         var cachedFiles: [RemoteFile] = []
         weak var tableView: NSTableView?
+        var isProgrammaticUpdate = false
 
         private static let byteFormatter: ByteCountFormatter = {
             let formatter = ByteCountFormatter()
@@ -100,10 +126,10 @@ public struct FilePaneTableView: NSViewRepresentable {
 
         init(parent: FilePaneTableView) {
             self.parent = parent
-            self.cachedFiles = parent.files
+            cachedFiles = parent.files
         }
 
-        public func numberOfRows(in tableView: NSTableView) -> Int {
+        public func numberOfRows(in _: NSTableView) -> Int {
             cachedFiles.count
         }
 
@@ -113,11 +139,13 @@ public struct FilePaneTableView: NSViewRepresentable {
             }
             let item = cachedFiles[row]
             let cellID = NSUserInterfaceItemIdentifier("Cell-\(columnID)")
-            let cell: NSTableCellView
-            if let reused = tableView.makeView(withIdentifier: cellID, owner: nil) as? NSTableCellView {
-                cell = reused
+            let cell: NSTableCellView = if let reused = tableView.makeView(
+                withIdentifier: cellID,
+                owner: nil
+            ) as? NSTableCellView {
+                reused
             } else {
-                cell = Self.buildReusableCell(identifier: cellID, includeIcon: columnID == "name")
+                Self.buildReusableCell(identifier: cellID, includeIcon: columnID == "name")
             }
 
             switch columnID {
@@ -141,17 +169,19 @@ public struct FilePaneTableView: NSViewRepresentable {
             return cell
         }
 
-        public func tableViewSelectionDidChange(_ notification: Notification) {
-            guard let tableView else { return }
+        public func tableViewSelectionDidChange(_: Notification) {
+            guard !isProgrammaticUpdate, let tableView else { return }
             parent.onFocusPane()
             var ids: Set<String> = []
             for row in tableView.selectedRowIndexes where row < cachedFiles.count {
                 ids.insert(cachedFiles[row].id)
             }
-            parent.selectedIDs = ids
+            if parent.selectedIDs != ids {
+                parent.selectedIDs = ids
+            }
         }
 
-        public func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {
+        public func tableView(_: NSTableView, didClick tableColumn: NSTableColumn) {
             switch tableColumn.identifier.rawValue {
             case "name": parent.onSortColumn(.name)
             case "size": parent.onSortColumn(.size)
@@ -165,6 +195,44 @@ public struct FilePaneTableView: NSViewRepresentable {
             let row = sender.clickedRow
             guard row >= 0, row < cachedFiles.count else { return }
             parent.onActivateRow(cachedFiles[row])
+        }
+
+        func buildContextMenu() -> NSMenu {
+            let menu = NSMenu(title: "Commander Actions")
+            let specs: [(String, FilePaneContextAction)] = [
+                ("Open", .open),
+                (parent.isLocalPane ? "Upload" : "Download", .transfer),
+                ("Quick Look", .quickLook),
+                ("Edit File", .edit),
+                ("Rename...", .rename),
+                ("Permissions (chmod)...", .permissions),
+                ("Get Info...", .inspect),
+                ("New Folder...", .newFolder),
+                ("Delete", .delete)
+            ]
+            for (title, action) in specs {
+                if action == .edit, parent.isLocalPane {
+                    continue
+                }
+                if action == .permissions, parent.isLocalPane {
+                    continue
+                }
+                let item = NSMenuItem(title: title, action: #selector(handleContextMenuClick(_:)), keyEquivalent: "")
+                item.target = self
+                item.tag = action.rawValue
+                menu.addItem(item)
+            }
+            return menu
+        }
+
+        @objc func handleContextMenuClick(_ sender: NSMenuItem) {
+            guard let action = FilePaneContextAction(rawValue: sender.tag) else { return }
+            parent.onFocusPane()
+            let clickedRow = tableView?.clickedRow ?? -1
+            let selectedRow = tableView?.selectedRow ?? -1
+            let targetIndex = clickedRow >= 0 ? clickedRow : selectedRow
+            let targetFile = (targetIndex >= 0 && targetIndex < cachedFiles.count) ? cachedFiles[targetIndex] : nil
+            parent.onContextAction(action, targetFile)
         }
 
         private static func buildReusableCell(

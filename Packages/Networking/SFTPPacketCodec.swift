@@ -49,38 +49,42 @@ public enum SFTPPacketCodec {
     }
 
     private static func encodeBody(_ packet: SFTPPacket, into payload: inout ByteBuffer) {
-        if encodeHandshakeOrResponse(packet, into: &payload) { return }
-        if encodeFileIOPacket(packet, into: &payload) { return }
+        if encodeHandshakeOrResponse(packet, into: &payload) {
+            return
+        }
+        if encodeFileIOPacket(packet, into: &payload) {
+            return
+        }
         encodePathMetadataPacket(packet, into: &payload)
     }
 
     private static func encodeHandshakeOrResponse(_ packet: SFTPPacket, into payload: inout ByteBuffer) -> Bool {
         switch packet {
-        case .initialize(let version):
+        case let .initialize(version):
             payload.writeInteger(SFTPPacketType.initialize.rawValue)
             payload.writeInteger(version)
-        case .version(let version, let extensions):
+        case let .version(version, extensions):
             payload.writeInteger(SFTPPacketType.version.rawValue)
             payload.writeInteger(version)
             for (key, value) in extensions {
                 writeSSHString(key, into: &payload)
                 writeSSHString(value, into: &payload)
             }
-        case .status(let requestID, let code, let message, let languageTag):
+        case let .status(requestID, code, message, languageTag):
             payload.writeInteger(SFTPPacketType.status.rawValue)
             payload.writeInteger(requestID)
             payload.writeInteger(code.rawValue)
             writeSSHString(message, into: &payload)
             writeSSHString(languageTag, into: &payload)
-        case .handle(let requestID, let handle):
+        case let .handle(requestID, handle):
             payload.writeInteger(SFTPPacketType.handle.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(handle, into: &payload)
-        case .data(let requestID, let data):
+        case let .data(requestID, data):
             payload.writeInteger(SFTPPacketType.data.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(data, into: &payload)
-        case .name(let requestID, let entries):
+        case let .name(requestID, entries):
             payload.writeInteger(SFTPPacketType.name.rawValue)
             payload.writeInteger(requestID)
             payload.writeInteger(UInt32(entries.count))
@@ -89,7 +93,7 @@ public enum SFTPPacketCodec {
                 writeSSHString(entry.longname, into: &payload)
                 writeAttributes(entry.attributes, into: &payload)
             }
-        case .attrs(let requestID, let attributes):
+        case let .attrs(requestID, attributes):
             payload.writeInteger(SFTPPacketType.attrs.rawValue)
             payload.writeInteger(requestID)
             writeAttributes(attributes, into: &payload)
@@ -101,37 +105,37 @@ public enum SFTPPacketCodec {
 
     private static func encodeFileIOPacket(_ packet: SFTPPacket, into payload: inout ByteBuffer) -> Bool {
         switch packet {
-        case .open(let requestID, let path, let flags, let attrs):
+        case let .open(requestID, path, flags, attrs):
             payload.writeInteger(SFTPPacketType.open.rawValue)
             payload.writeInteger(requestID)
             writeSSHString(path, into: &payload)
             payload.writeInteger(flags.rawValue)
             writeAttributes(attrs, into: &payload)
-        case .close(let requestID, let handle):
+        case let .close(requestID, handle):
             payload.writeInteger(SFTPPacketType.close.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(handle, into: &payload)
-        case .read(let requestID, let handle, let offset, let length):
+        case let .read(requestID, handle, offset, length):
             payload.writeInteger(SFTPPacketType.read.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(handle, into: &payload)
             payload.writeInteger(offset)
             payload.writeInteger(length)
-        case .write(let requestID, let handle, let offset, let data):
+        case let .write(requestID, handle, offset, data):
             payload.writeInteger(SFTPPacketType.write.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(handle, into: &payload)
             payload.writeInteger(offset)
             writeSSHData(data, into: &payload)
-        case .opendir(let requestID, let path):
+        case let .opendir(requestID, path):
             payload.writeInteger(SFTPPacketType.opendir.rawValue)
             payload.writeInteger(requestID)
             writeSSHString(path, into: &payload)
-        case .readdir(let requestID, let handle):
+        case let .readdir(requestID, handle):
             payload.writeInteger(SFTPPacketType.readdir.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(handle, into: &payload)
-        case .fstat(let requestID, let handle):
+        case let .fstat(requestID, handle):
             payload.writeInteger(SFTPPacketType.fstat.rawValue)
             payload.writeInteger(requestID)
             writeSSHData(handle, into: &payload)
@@ -143,29 +147,29 @@ public enum SFTPPacketCodec {
 
     private static func encodePathMetadataPacket(_ packet: SFTPPacket, into payload: inout ByteBuffer) {
         switch packet {
-        case .lstat(let requestID, let path):
+        case let .lstat(requestID, path):
             writePathOnly(.lstat, requestID: requestID, path: path, into: &payload)
-        case .stat(let requestID, let path):
+        case let .stat(requestID, path):
             writePathOnly(.stat, requestID: requestID, path: path, into: &payload)
-        case .remove(let requestID, let path):
+        case let .remove(requestID, path):
             writePathOnly(.remove, requestID: requestID, path: path, into: &payload)
-        case .rmdir(let requestID, let path):
+        case let .rmdir(requestID, path):
             writePathOnly(.rmdir, requestID: requestID, path: path, into: &payload)
-        case .realpath(let requestID, let path):
+        case let .realpath(requestID, path):
             writePathOnly(.realpath, requestID: requestID, path: path, into: &payload)
-        case .readlink(let requestID, let path):
+        case let .readlink(requestID, path):
             writePathOnly(.readlink, requestID: requestID, path: path, into: &payload)
-        case .setstat(let requestID, let path, let attrs):
+        case let .setstat(requestID, path, attrs):
             payload.writeInteger(SFTPPacketType.setstat.rawValue)
             payload.writeInteger(requestID)
             writeSSHString(path, into: &payload)
             writeAttributes(attrs, into: &payload)
-        case .mkdir(let requestID, let path, let attrs):
+        case let .mkdir(requestID, path, attrs):
             payload.writeInteger(SFTPPacketType.mkdir.rawValue)
             payload.writeInteger(requestID)
             writeSSHString(path, into: &payload)
             writeAttributes(attrs, into: &payload)
-        case .rename(let requestID, let oldPath, let newPath):
+        case let .rename(requestID, oldPath, newPath):
             payload.writeInteger(SFTPPacketType.rename.rawValue)
             payload.writeInteger(requestID)
             writeSSHString(oldPath, into: &payload)
@@ -197,17 +201,29 @@ public enum SFTPPacketCodec {
 
     private static func writeAttributes(_ attrs: SFTPAttributes, into buffer: inout ByteBuffer) {
         var flags = SFTPAttributes.Flags()
-        if attrs.size != nil { flags.insert(.size) }
-        if attrs.uid != nil && attrs.gid != nil { flags.insert(.uidgid) }
-        if attrs.permissions != nil { flags.insert(.permissions) }
-        if attrs.accessTime != nil && attrs.modificationTime != nil { flags.insert(.acmodtime) }
+        if attrs.size != nil {
+            flags.insert(.size)
+        }
+        if attrs.uid != nil, attrs.gid != nil {
+            flags.insert(.uidgid)
+        }
+        if attrs.permissions != nil {
+            flags.insert(.permissions)
+        }
+        if attrs.accessTime != nil, attrs.modificationTime != nil {
+            flags.insert(.acmodtime)
+        }
         buffer.writeInteger(flags.rawValue)
-        if let size = attrs.size { buffer.writeInteger(size) }
+        if let size = attrs.size {
+            buffer.writeInteger(size)
+        }
         if let uid = attrs.uid, let gid = attrs.gid {
             buffer.writeInteger(uid)
             buffer.writeInteger(gid)
         }
-        if let permissions = attrs.permissions { buffer.writeInteger(permissions) }
+        if let permissions = attrs.permissions {
+            buffer.writeInteger(permissions)
+        }
         if let atime = attrs.accessTime, let mtime = attrs.modificationTime {
             buffer.writeInteger(atime)
             buffer.writeInteger(mtime)

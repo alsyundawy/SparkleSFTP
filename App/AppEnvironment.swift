@@ -11,8 +11,8 @@ public final class AppEnvironment {
 
     public init() {
         let updater = SparkleUpdaterService()
-        self.updaterService = updater
-        self.appState = AppState(
+        updaterService = updater
+        appState = AppState(
             credentialStore: KeychainService(),
             hostTrustStore: HostTrustStore(),
             connectionStore: ConnectionStore(),

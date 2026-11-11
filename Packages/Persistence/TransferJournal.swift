@@ -19,7 +19,10 @@ private final class SQLiteDatabaseBox: @unchecked Sendable { // JUSTIFICATION: A
 /// Durable SQLite3 WAL-mode transfer journal with crash reconciliation and bounded retention (ADR-005, SCALE-002).
 public actor TransferJournal: TransferJournalProtocol {
     private let dbBox: SQLiteDatabaseBox
-    private var database: OpaquePointer { dbBox.handle }
+    private var database: OpaquePointer {
+        dbBox.handle
+    }
+
     private let databaseURL: URL
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -33,10 +36,12 @@ public actor TransferJournal: TransferJournalProtocol {
         let openResult = sqlite3_open_v2(databaseURL.path, &handle, flags, nil)
         guard openResult == SQLITE_OK, let opened = handle else {
             let message = handle.flatMap { String(cString: sqlite3_errmsg($0)) } ?? "sqlite3_open_v2 failed"
-            if let handle { sqlite3_close(handle) }
+            if let handle {
+                sqlite3_close(handle)
+            }
             throw AppError.persistenceFailure(reason: message)
         }
-        self.dbBox = SQLiteDatabaseBox(handle: opened)
+        dbBox = SQLiteDatabaseBox(handle: opened)
         try Self.executeSQL("PRAGMA journal_mode = WAL;", on: opened)
         try Self.executeSQL("PRAGMA synchronous = NORMAL;", on: opened)
         try Self.createSchemaIfNeeded(on: opened)
@@ -132,8 +137,8 @@ public actor TransferJournal: TransferJournalProtocol {
         return try await fetchAll().filter { $0.statusCode == "interrupted" }
     }
 
-    public func pruneOldEntries(maxEntries: Int = 10_000, maxAgeDays: Int = 30) async throws {
-        let cutoff = Date().addingTimeInterval(-Double(maxAgeDays) * 86_400).timeIntervalSince1970
+    public func pruneOldEntries(maxEntries: Int = 10000, maxAgeDays: Int = 30) async throws {
+        let cutoff = Date().addingTimeInterval(-Double(maxAgeDays) * 86400).timeIntervalSince1970
         let deleteAgeSQL = """
         DELETE FROM transfer_journal
         WHERE updated_at < ? AND status_code IN ('completed', 'cancelled', 'failed');
@@ -240,7 +245,9 @@ public actor TransferJournal: TransferJournalProtocol {
         var errMsg: UnsafeMutablePointer<CChar>?
         if sqlite3_exec(database, sql, nil, nil, &errMsg) != SQLITE_OK {
             let msg = errMsg.map { String(cString: $0) } ?? String(cString: sqlite3_errmsg(database))
-            if let errMsg { sqlite3_free(errMsg) }
+            if let errMsg {
+                sqlite3_free(errMsg)
+            }
             throw AppError.persistenceFailure(reason: msg)
         }
     }

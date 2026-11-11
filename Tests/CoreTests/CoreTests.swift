@@ -35,7 +35,7 @@ struct CoreTests {
     func transferProgressCalculations() {
         let progress = TransferProgress(
             bytesTransferred: 500,
-            totalBytes: 1_000,
+            totalBytes: 1000,
             bytesPerSecond: 100
         )
         #expect(progress.percentage == 0.5)

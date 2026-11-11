@@ -8,6 +8,7 @@ public final class SFTPChannelBridge:
     @unchecked Sendable { // JUSTIFICATION: NSLock guards request continuations & buffer; I/O runs on eventLoop.
     private let lock = NSLock()
     private let eventLoop: EventLoop
+    private let requestTimeoutSeconds: Int
     private var channel: Channel?
     private var nextRequestID: UInt32 = 1
     private var inboundBuffer = ByteBufferAllocator().buffer(capacity: 4096)
@@ -15,8 +16,9 @@ public final class SFTPChannelBridge:
     private var pendingRequests: [UInt32: CheckedContinuation<SFTPPacket, Error>] = [:]
     private var isClosed = false
 
-    init(eventLoop: EventLoop) {
+    init(eventLoop: EventLoop, requestTimeoutSeconds: Int = 30) {
         self.eventLoop = eventLoop
+        self.requestTimeoutSeconds = max(1, requestTimeoutSeconds)
     }
 
     func attach(channel: Channel) {
@@ -30,33 +32,53 @@ public final class SFTPChannelBridge:
         defer { lock.unlock() }
         let current = nextRequestID
         nextRequestID = nextRequestID &+ 1
-        if nextRequestID == 0 { nextRequestID = 1 }
+        if nextRequestID == 0 {
+            nextRequestID = 1
+        }
         return current
     }
 
     public func initializeSFTP() async throws -> UInt32 {
         let packet = SFTPPacket.initialize(version: 3)
         let bytes = SFTPPacketCodec.encode(packet)
+        let timeout = requestTimeoutSeconds
 
-        return try await withCheckedThrowingContinuation { continuation in
-            lock.lock()
-            if isClosed {
-                lock.unlock()
-                continuation.resume(throwing: AppError.notConnected)
-                return
-            }
-            self.versionContinuation = continuation
-            let activeChannel = self.channel
-            lock.unlock()
+        return try await withThrowingTaskGroup(of: UInt32.self) { group in
+            group.addTask {
+                try await withTaskCancellationHandler {
+                    try await withCheckedThrowingContinuation { continuation in
+                        self.lock.lock()
+                        if self.isClosed {
+                            self.lock.unlock()
+                            continuation.resume(throwing: AppError.notConnected)
+                            return
+                        }
+                        self.versionContinuation = continuation
+                        let activeChannel = self.channel
+                        self.lock.unlock()
 
-            guard let activeChannel else {
-                failAll(AppError.notConnected)
-                return
+                        guard let activeChannel else {
+                            self.failAll(AppError.notConnected)
+                            return
+                        }
+                        activeChannel.eventLoop.execute {
+                            let data = SSHChannelData(type: .channel, data: .byteBuffer(bytes))
+                            activeChannel.writeAndFlush(data, promise: nil)
+                        }
+                    }
+                } onCancel: {
+                    self.failVersion(error: CancellationError())
+                }
             }
-            activeChannel.eventLoop.execute {
-                let data = SSHChannelData(type: .channel, data: .byteBuffer(bytes))
-                activeChannel.writeAndFlush(data, promise: nil)
+            group.addTask {
+                try await Task.sleep(for: .seconds(timeout))
+                throw AppError.channelStalled(reason: "SFTP initialization timed out after \(timeout)s")
             }
+            guard let version = try await group.next() else {
+                throw AppError.channelStalled(reason: "SFTP initialization aborted")
+            }
+            group.cancelAll()
+            return version
         }
     }
 
@@ -65,25 +87,44 @@ public final class SFTPChannelBridge:
             throw AppError.protocolError(code: -1, message: "Missing SFTP request ID")
         }
         let encoded = SFTPPacketCodec.encode(packet)
-        return try await withCheckedThrowingContinuation { continuation in
-            lock.lock()
-            if isClosed {
-                lock.unlock()
-                continuation.resume(throwing: AppError.notConnected)
-                return
-            }
-            pendingRequests[requestID] = continuation
-            let activeChannel = self.channel
-            lock.unlock()
+        let timeout = requestTimeoutSeconds
 
-            guard let activeChannel else {
-                failPending(id: requestID, error: AppError.notConnected)
-                return
+        return try await withThrowingTaskGroup(of: SFTPPacket.self) { group in
+            group.addTask {
+                try await withTaskCancellationHandler {
+                    try await withCheckedThrowingContinuation { continuation in
+                        self.lock.lock()
+                        if self.isClosed {
+                            self.lock.unlock()
+                            continuation.resume(throwing: AppError.notConnected)
+                            return
+                        }
+                        self.pendingRequests[requestID] = continuation
+                        let activeChannel = self.channel
+                        self.lock.unlock()
+
+                        guard let activeChannel else {
+                            self.failPending(id: requestID, error: AppError.notConnected)
+                            return
+                        }
+                        activeChannel.eventLoop.execute {
+                            let data = SSHChannelData(type: .channel, data: .byteBuffer(encoded))
+                            activeChannel.writeAndFlush(data, promise: nil)
+                        }
+                    }
+                } onCancel: {
+                    self.failPending(id: requestID, error: CancellationError())
+                }
             }
-            activeChannel.eventLoop.execute {
-                let data = SSHChannelData(type: .channel, data: .byteBuffer(encoded))
-                activeChannel.writeAndFlush(data, promise: nil)
+            group.addTask {
+                try await Task.sleep(for: .seconds(timeout))
+                throw AppError.channelStalled(reason: "SFTP request timed out after \(timeout)s")
             }
+            guard let response = try await group.next() else {
+                throw AppError.channelStalled(reason: "SFTP request aborted")
+            }
+            group.cancelAll()
+            return response
         }
     }
 
@@ -136,6 +177,14 @@ public final class SFTPChannelBridge:
         }
     }
 
+    private func failVersion(error: Error) {
+        lock.lock()
+        let cont = versionContinuation
+        versionContinuation = nil
+        lock.unlock()
+        cont?.resume(throwing: error)
+    }
+
     private func failPending(id: UInt32, error: Error) {
         lock.lock()
         let cont = pendingRequests.removeValue(forKey: id)
@@ -144,7 +193,7 @@ public final class SFTPChannelBridge:
     }
 
     private func dispatchDecoded(_ packet: SFTPPacket) {
-        if case .version(let version, _) = packet {
+        if case let .version(version, _) = packet {
             lock.lock()
             let cont = versionContinuation
             versionContinuation = nil
@@ -174,15 +223,15 @@ final class SFTPSubsystemChannelHandler: ChannelInboundHandler {
         context.triggerUserOutboundEvent(req, promise: nil)
     }
 
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+    func channelRead(context _: ChannelHandlerContext, data: NIOAny) {
         let channelData = unwrapInboundIn(data)
-        guard channelData.type == .channel, case .byteBuffer(var buffer) = channelData.data else {
+        guard channelData.type == .channel, case var .byteBuffer(buffer) = channelData.data else {
             return
         }
         bridge.receive(buffer: &buffer)
     }
 
-    func channelInactive(context: ChannelHandlerContext) {
+    func channelInactive(context _: ChannelHandlerContext) {
         bridge.failAll(AppError.notConnected)
     }
 

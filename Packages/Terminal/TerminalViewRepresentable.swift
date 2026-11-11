@@ -39,7 +39,7 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     }
 
     @MainActor
-    public final class Coordinator: NSObject, @MainActor TerminalViewDelegate {
+    public final class Coordinator: NSObject, TerminalViewDelegate {
         private weak var session: TerminalTabSession?
 
         init(session: TerminalTabSession) {
@@ -50,51 +50,77 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
             session = nil
         }
 
-        public func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {
-            session?.resizePTY(cols: newCols, rows: newRows)
+        private nonisolated func runOnMain(_ work: @escaping @MainActor (Coordinator) -> Void) {
+            if Thread.isMainThread {
+                MainActor.assumeIsolated { work(self) }
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    MainActor.assumeIsolated { work(self) }
+                }
+            }
         }
 
-        public func setTerminalTitle(source: TerminalView, title: String) {
-            session?.updateTitle(title)
+        public nonisolated func sizeChanged(source _: TerminalView, newCols: Int, newRows: Int) {
+            runOnMain { coordinator in
+                coordinator.session?.resizePTY(cols: newCols, rows: newRows)
+            }
         }
 
-        public func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {
-            session?.updateRemoteWorkingDirectory(directory)
+        public nonisolated func setTerminalTitle(source _: TerminalView, title: String) {
+            runOnMain { coordinator in
+                coordinator.session?.updateTitle(title)
+            }
         }
 
-        public func send(source: TerminalView, data: ArraySlice<UInt8>) {
-            session?.sendInput(data)
+        public nonisolated func hostCurrentDirectoryUpdate(source _: TerminalView, directory: String?) {
+            runOnMain { coordinator in
+                coordinator.session?.updateRemoteWorkingDirectory(directory)
+            }
         }
 
-        public func scrolled(source: TerminalView, position: Double) {}
+        public nonisolated func send(source _: TerminalView, data: ArraySlice<UInt8>) {
+            let bytes = Array(data)
+            runOnMain { coordinator in
+                coordinator.session?.sendInput(bytes[...])
+            }
+        }
 
-        public func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {
+        public nonisolated func scrolled(source _: TerminalView, position _: Double) {}
+
+        public nonisolated func requestOpenLink(source _: TerminalView, link: String, params _: [String: String]) {
             guard let url = URL(string: link),
                   let scheme = url.scheme?.lowercased(),
                   scheme == "https" || scheme == "http"
             else {
                 return
             }
-            NSWorkspace.shared.open(url)
+            runOnMain { _ in
+                NSWorkspace.shared.open(url)
+            }
         }
 
-        public func bell(source: TerminalView) {
-            NSSound.beep()
+        public nonisolated func bell(source _: TerminalView) {
+            runOnMain { _ in
+                NSSound.beep()
+            }
         }
 
-        public func clipboardCopy(source: TerminalView, content: Data) {
+        public nonisolated func clipboardCopy(source _: TerminalView, content: Data) {
             guard let text = String(data: content, encoding: .utf8) else { return }
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
+            runOnMain { _ in
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+            }
         }
 
-        public func clipboardRead(source: TerminalView) -> Data? {
+        public nonisolated func clipboardRead(source _: TerminalView) -> Data? {
             // Security default: deny arbitrary OSC 52 clipboard reads from untrusted remote PTYs.
             nil
         }
 
-        public func iTermContent(source: TerminalView, content: ArraySlice<UInt8>) {}
+        public nonisolated func iTermContent(source _: TerminalView, content _: ArraySlice<UInt8>) {}
 
-        public func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
+        public nonisolated func rangeChanged(source _: TerminalView, startY _: Int, endY _: Int) {}
     }
 }

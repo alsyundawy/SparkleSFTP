@@ -148,8 +148,12 @@ let package = Package(
             ],
             path: "App",
             exclude: [
-                "Resources",
+                "Resources/Info.plist",
                 "SparkleSFTP.entitlements"
+            ],
+            resources: [
+                .copy("Resources/AppIcon.icns"),
+                .copy("Resources/AppIcon.png")
             ]
         ),
         .testTarget(
@@ -184,7 +188,8 @@ let package = Package(
                 "SparkleCore",
                 "SparkleNetworking",
                 "SparkleSecurity",
-                .product(name: "NIOCore", package: "swift-nio")
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOEmbedded", package: "swift-nio")
             ],
             path: "Tests/NetworkingTests"
         ),
@@ -217,6 +222,7 @@ let package = Package(
             name: "IntegrationTests",
             dependencies: [
                 "SparkleCore",
+                "SparkleFeatures",
                 "SparkleFileManager",
                 "SparkleNetworking",
                 "SparklePersistence",

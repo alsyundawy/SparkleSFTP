@@ -130,9 +130,9 @@ public enum PrivateKeyParser {
         _ = try reader.readSSHString()
         let scalar = try reader.readMPIntUnsigned(byteCount: byteCount)
         switch byteCount {
-        case 32: return NIOSSHPrivateKey(p256Key: try P256.Signing.PrivateKey(rawRepresentation: scalar))
-        case 48: return NIOSSHPrivateKey(p384Key: try P384.Signing.PrivateKey(rawRepresentation: scalar))
-        default: return NIOSSHPrivateKey(p521Key: try P521.Signing.PrivateKey(rawRepresentation: scalar))
+        case 32: return try NIOSSHPrivateKey(p256Key: P256.Signing.PrivateKey(rawRepresentation: scalar))
+        case 48: return try NIOSSHPrivateKey(p384Key: P384.Signing.PrivateKey(rawRepresentation: scalar))
+        default: return try NIOSSHPrivateKey(p521Key: P521.Signing.PrivateKey(rawRepresentation: scalar))
         }
     }
 }
@@ -142,7 +142,7 @@ private struct BinaryReader {
     private var offset = 0
 
     init(data: Data) {
-        self.bytes = Array(data)
+        bytes = Array(data)
     }
 
     mutating func readUInt32() throws -> UInt32 {
@@ -163,8 +163,8 @@ private struct BinaryReader {
     }
 
     mutating func readSSHString() throws -> Data {
-        let length = Int(try readUInt32())
-        return Data(try readBytes(count: length))
+        let length = try Int(readUInt32())
+        return try Data(readBytes(count: length))
     }
 
     mutating func readSSHStringAsString() throws -> String {

@@ -60,7 +60,9 @@ public struct SFTPOpenFlags: OptionSet, Sendable {
 public struct SFTPAttributes: Sendable, Equatable {
     public struct Flags: OptionSet, Sendable {
         public let rawValue: UInt32
-        public init(rawValue: UInt32) { self.rawValue = rawValue }
+        public init(rawValue: UInt32) {
+            self.rawValue = rawValue
+        }
 
         public static let size = Flags(rawValue: 0x0000_0001)
         public static let uidgid = Flags(rawValue: 0x0000_0002)
@@ -143,27 +145,27 @@ public enum SFTPPacket: Sendable, Equatable {
         switch self {
         case .initialize, .version:
             return nil
-        case .open(let id, _, _, _),
-             .close(let id, _),
-             .read(let id, _, _, _),
-             .write(let id, _, _, _),
-             .lstat(let id, _),
-             .fstat(let id, _),
-             .setstat(let id, _, _),
-             .opendir(let id, _),
-             .readdir(let id, _),
-             .remove(let id, _),
-             .mkdir(let id, _, _),
-             .rmdir(let id, _),
-             .realpath(let id, _),
-             .stat(let id, _),
-             .rename(let id, _, _),
-             .readlink(let id, _),
-             .status(let id, _, _, _),
-             .handle(let id, _),
-             .data(let id, _),
-             .name(let id, _),
-             .attrs(let id, _):
+        case let .open(id, _, _, _),
+             let .close(id, _),
+             let .read(id, _, _, _),
+             let .write(id, _, _, _),
+             let .lstat(id, _),
+             let .fstat(id, _),
+             let .setstat(id, _, _),
+             let .opendir(id, _),
+             let .readdir(id, _),
+             let .remove(id, _),
+             let .mkdir(id, _, _),
+             let .rmdir(id, _),
+             let .realpath(id, _),
+             let .stat(id, _),
+             let .rename(id, _, _),
+             let .readlink(id, _),
+             let .status(id, _, _, _),
+             let .handle(id, _),
+             let .data(id, _),
+             let .name(id, _),
+             let .attrs(id, _):
             return id
         }
     }

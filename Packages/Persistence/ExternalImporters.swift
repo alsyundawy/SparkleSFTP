@@ -35,11 +35,11 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
     private var fields: [String: String] = [:]
 
     func parser(
-        _ parser: XMLParser,
+        _: XMLParser,
         didStartElement elementName: String,
-        namespaceURI: String?,
-        qualifiedName qName: String?,
-        attributes attributeDict: [String: String] = [:]
+        namespaceURI _: String?,
+        qualifiedName _: String?,
+        attributes _: [String: String] = [:]
     ) {
         currentElement = elementName
         buffer = ""
@@ -49,17 +49,17 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
         }
     }
 
-    func parser(_ parser: XMLParser, foundCharacters string: String) {
+    func parser(_: XMLParser, foundCharacters string: String) {
         if inServer {
             buffer.append(string)
         }
     }
 
     func parser(
-        _ parser: XMLParser,
+        _: XMLParser,
         didEndElement elementName: String,
-        namespaceURI: String?,
-        qualifiedName qName: String?
+        namespaceURI _: String?,
+        qualifiedName _: String?
     ) {
         guard inServer else { return }
         if elementName == "Server" {
@@ -78,12 +78,11 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
     private func buildConnection(from dict: [String: String]) -> ImportedConnection? {
         guard let host = dict["Host"], !host.isEmpty else { return nil }
         let protoCode = dict["Protocol"] ?? "0"
-        let protocolType: ProtocolType
-        switch protoCode {
-        case "1": protocolType = .sftp
-        case "3": protocolType = .ftpsImplicit
-        case "4": protocolType = .ftpsExplicit
-        default: protocolType = .ftp
+        let protocolType: ProtocolType = switch protoCode {
+        case "1": .sftp
+        case "3": .ftpsImplicit
+        case "4": .ftpsExplicit
+        default: .ftp
         }
         let port = dict["Port"].flatMap(Int.init) ?? protocolType.defaultPort
         let user = dict["User"] ?? "anonymous"
@@ -93,11 +92,10 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
         let logonType = dict["Logontype"] ?? "1"
         let authMethod: AuthMethod = (logonType == "0") ? .anonymous : (logonType == "5" ? .publicKey : .password)
 
-        let secretData: Data?
-        if let pass = dict["Pass"], !pass.isEmpty {
-            secretData = Data(base64Encoded: pass) ?? pass.data(using: .utf8)
+        let secretData: Data? = if let pass = dict["Pass"], !pass.isEmpty {
+            Data(base64Encoded: pass) ?? pass.data(using: .utf8)
         } else {
-            secretData = nil
+            nil
         }
 
         let passwordRef = secretData != nil ? SecretReference(kind: .password) : nil

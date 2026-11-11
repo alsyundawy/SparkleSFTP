@@ -20,7 +20,7 @@ public struct PreferencesView: View {
                 .pickerStyle(.segmented)
             }
 
-            Section("Transfer Engine Concurrency") {
+            Section("Transfer Engine & Conflicts") {
                 Stepper(
                     "Max Simultaneous Transfers: \(appState.maxGlobalConcurrentTransfers)",
                     value: $appState.maxGlobalConcurrentTransfers,
@@ -36,6 +36,15 @@ public struct PreferencesView: View {
                 )
                 .onChange(of: appState.maxPerHostConcurrentTransfers) { _ in
                     Task { await appState.applyTransferConcurrencySettings() }
+                }
+                Picker("Default Conflict Action", selection: $appState.defaultConflictPolicy) {
+                    Text("Ask Every Time").tag(TransferConflictPolicy.ask)
+                    Text("Overwrite").tag(TransferConflictPolicy.overwrite)
+                    Text("Auto-Rename").tag(TransferConflictPolicy.rename)
+                    Text("Skip").tag(TransferConflictPolicy.skip)
+                }
+                .onChange(of: appState.defaultConflictPolicy) { _ in
+                    Task { await appState.applyConflictPolicySettings() }
                 }
             }
 

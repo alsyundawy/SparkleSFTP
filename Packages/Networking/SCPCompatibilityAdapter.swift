@@ -102,7 +102,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
             throw AppError.transferFailed(reason: "Corrupted base64 stream over SCP fallback")
         }
 
-        if offset > 0 && FileManager.default.fileExists(atPath: localURL.path) {
+        if offset > 0, FileManager.default.fileExists(atPath: localURL.path) {
             let handle = try FileHandle(forUpdating: localURL)
             defer { try? handle.close() }
             try handle.seek(toOffset: UInt64(offset))
@@ -127,22 +127,49 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
         let quoted = try Self.escapePOSIXSingleQuoted(remotePath.rawValue)
-        let data = try Data(contentsOf: localURL)
-        let slice = offset > 0 && offset < Int64(data.count) ? data.dropFirst(Int(offset)) : data[...]
-        let b64 = Data(slice).base64EncodedString()
-        let redirectOperator = offset > 0 ? ">>" : ">"
-        let command = "printf '%s' '\(b64)' | base64 -d \(redirectOperator) \(quoted)"
-        let result = try await sshService.executeCommand(command)
-        guard result.exitCode == 0 else {
-            throw AppError.transferFailed(reason: result.stderr)
+        let attrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
+        let totalSize = (attrs[.size] as? NSNumber)?.int64Value ?? 0
+        let handle = try FileHandle(forReadingFrom: localURL)
+        defer { try? handle.close() }
+
+        let clampedOffset = max(0, min(offset, totalSize))
+        try handle.seek(toOffset: UInt64(clampedOffset))
+
+        if totalSize == 0, clampedOffset == 0 {
+            let result = try await sshService.executeCommand(": > \(quoted)")
+            guard result.exitCode == 0 else {
+                throw AppError.transferFailed(reason: result.stderr)
+            }
+            onProgress(TransferProgress(bytesTransferred: 0, totalBytes: 0, bytesPerSecond: 0))
+            return
         }
-        onProgress(
-            TransferProgress(
-                bytesTransferred: Int64(data.count),
-                totalBytes: Int64(data.count),
-                bytesPerSecond: Int64(slice.count)
+
+        let chunkLimit = 24 * 1024
+        var sent = clampedOffset
+        var isFirstChunk = true
+        while true {
+            try Task.checkCancellation()
+            let chunk = try handle.read(upToCount: chunkLimit) ?? Data()
+            if chunk.isEmpty {
+                break
+            }
+            let b64 = chunk.base64EncodedString()
+            let redirectOperator = (isFirstChunk && clampedOffset == 0) ? ">" : ">>"
+            let command = "printf '%s' '\(b64)' | base64 -d \(redirectOperator) \(quoted)"
+            let result = try await sshService.executeCommand(command)
+            guard result.exitCode == 0 else {
+                throw AppError.transferFailed(reason: result.stderr)
+            }
+            isFirstChunk = false
+            sent += Int64(chunk.count)
+            onProgress(
+                TransferProgress(
+                    bytesTransferred: sent,
+                    totalBytes: totalSize,
+                    bytesPerSecond: Int64(chunk.count)
+                )
             )
-        )
+        }
     }
 
     public func delete(at path: RemotePath, isDirectory: Bool) async throws {

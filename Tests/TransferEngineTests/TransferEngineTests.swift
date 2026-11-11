@@ -10,6 +10,7 @@ actor MockRemoteFS: RemoteFileSystem {
     var downloadDelay: Duration = .zero
     var uploadDelay: Duration = .zero
     var failCountBeforeSuccess = 0
+    var recordedDownloadOffsets: [Int64] = []
     private var attempts = 0
 
     func setRemoteFile(path: String, data: Data, mtime: Date = Date()) {
@@ -17,7 +18,9 @@ actor MockRemoteFS: RemoteFileSystem {
         mtimes[path] = mtime
     }
 
-    func listDirectory(at path: RemotePath) async throws -> [RemoteFile] { [] }
+    func listDirectory(at _: RemotePath) async throws -> [RemoteFile] {
+        []
+    }
 
     func metadata(at path: RemotePath) async throws -> RemoteFileMetadata {
         guard let data = files[path.rawValue] else {
@@ -31,7 +34,9 @@ actor MockRemoteFS: RemoteFileSystem {
         )
     }
 
-    func resolveSymlink(at path: RemotePath) async throws -> RemotePath { path }
+    func resolveSymlink(at path: RemotePath) async throws -> RemotePath {
+        path
+    }
 
     func download(
         from remotePath: RemotePath,
@@ -39,6 +44,7 @@ actor MockRemoteFS: RemoteFileSystem {
         offset: Int64,
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
+        recordedDownloadOffsets.append(offset)
         attempts += 1
         if attempts <= failCountBeforeSuccess {
             throw AppError.connectionTimeout(host: "mock", seconds: 1)
@@ -51,7 +57,7 @@ actor MockRemoteFS: RemoteFileSystem {
             throw AppError.fileNotFound(path: remotePath.rawValue)
         }
         let slice = offset > 0 ? data.dropFirst(Int(offset)) : data[...]
-        if offset > 0 && FileManager.default.fileExists(atPath: localURL.path) {
+        if offset > 0, FileManager.default.fileExists(atPath: localURL.path) {
             let handle = try FileHandle(forUpdating: localURL)
             defer { try? handle.close() }
             try handle.seek(toOffset: UInt64(offset))
@@ -70,7 +76,7 @@ actor MockRemoteFS: RemoteFileSystem {
     func upload(
         from localURL: URL,
         to remotePath: RemotePath,
-        offset: Int64,
+        offset _: Int64,
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
         if uploadDelay > .zero {
@@ -88,7 +94,7 @@ actor MockRemoteFS: RemoteFileSystem {
         onProgress(progress)
     }
 
-    func delete(at path: RemotePath, isDirectory: Bool) async throws {
+    func delete(at path: RemotePath, isDirectory _: Bool) async throws {
         files.removeValue(forKey: path.rawValue)
     }
 
@@ -99,8 +105,8 @@ actor MockRemoteFS: RemoteFileSystem {
         files[destination.rawValue] = data
     }
 
-    func createDirectory(at path: RemotePath) async throws {}
-    func setPermissions(_ permissions: UInt32, at path: RemotePath) async throws {}
+    func createDirectory(at _: RemotePath) async throws {}
+    func setPermissions(_: UInt32, at _: RemotePath) async throws {}
 }
 
 @Suite("SparkleTransferEngine Tests")
@@ -293,11 +299,5 @@ struct TransferEngineTests {
         let mainActorLatency = ContinuousClock.now - start
         #expect(mainActorLatency < .milliseconds(100))
         try await verifyTask.value
-    }
-}
-
-private extension MockRemoteFS {
-    func setDownloadDelay(_ duration: Duration) {
-        downloadDelay = duration
     }
 }

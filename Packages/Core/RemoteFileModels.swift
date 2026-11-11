@@ -7,7 +7,9 @@ public enum ProtocolType: String, Sendable, Codable, CaseIterable, Identifiable 
     case ftp
     case scp
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var defaultPort: Int {
         switch self {
@@ -46,7 +48,10 @@ public enum RemoteCapability: String, Sendable, Hashable, CaseIterable {
 }
 
 public struct RemoteFile: Identifiable, Sendable, Hashable {
-    public var id: String { path.rawValue }
+    public var id: String {
+        path.rawValue
+    }
+
     public let name: String
     public let path: RemotePath
     public let size: Int64
@@ -122,7 +127,10 @@ public enum HostTrustState: Sendable, Equatable {
 }
 
 public struct HostKeyChallenge: Identifiable, Sendable, Equatable {
-    public var id: String { "\(host):\(port):\(fingerprintSHA256)" }
+    public var id: String {
+        "\(host):\(port):\(fingerprintSHA256)"
+    }
+
     public let host: String
     public let port: Int
     public let algorithm: String

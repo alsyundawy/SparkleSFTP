@@ -1,5 +1,6 @@
 import Foundation
 import NIOCore
+import NIOEmbedded
 import SparkleCore
 @testable import SparkleNetworking
 import Testing
@@ -17,7 +18,7 @@ struct NetworkingTests {
                 flags: [.read],
                 attributes: SFTPAttributes(permissions: 0o644)
             ),
-            .read(requestID: 43, handle: Data([0x01, 0x02]), offset: 4096, length: 65_536),
+            .read(requestID: 43, handle: Data([0x01, 0x02]), offset: 4096, length: 65536),
             .write(requestID: 44, handle: Data([0x01, 0x02]), offset: 0, data: Data("hello".utf8)),
             .name(
                 requestID: 45,
@@ -111,6 +112,33 @@ struct NetworkingTests {
         }
         #expect(throws: AppError.pathTraversal(attempted: "/tmp/a\0b")) {
             _ = try FTPService.sanitizeControlPath("/tmp/a\0b")
+        }
+    }
+
+    @Test("SFTPPacketCodec rejects forged huge NAME entry counts safely")
+    func sftpPacketCodecRejectsHugeNameCount() {
+        var buffer = ByteBufferAllocator().buffer(capacity: 16)
+        buffer.writeInteger(UInt32(9))
+        buffer.writeInteger(SFTPPacketType.name.rawValue)
+        buffer.writeInteger(UInt32(1))
+        buffer.writeInteger(UInt32.max)
+        #expect(throws: AppError.self) {
+            _ = try SFTPPacketCodec.decodeNext(from: &buffer)
+        }
+    }
+
+    @Test("SSHProxyChannelHandler strictly enforces HTTP 200 status line")
+    func sshProxyRejectsNon200StatusContaining200() throws {
+        let proxy = ProxyConfiguration(kind: .http, host: "127.0.0.1", port: 8080)
+        let handler = SSHProxyChannelHandler(proxy: proxy, targetHost: "target.internal", targetPort: 22)
+        let channel = EmbeddedChannel(handler: handler)
+        channel.pipeline.fireChannelActive()
+
+        var badReply = channel.allocator.buffer(capacity: 64)
+        badReply.writeString("HTTP/1.1 403 Forbidden (code 2001)\r\n\r\n")
+        #expect(throws: AppError.self) {
+            try channel.writeInbound(badReply)
+            try channel.throwIfErrorCaught()
         }
     }
 }

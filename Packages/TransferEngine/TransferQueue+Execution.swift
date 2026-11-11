@@ -40,14 +40,14 @@ extension TransferQueue {
         guard isStillActive(id: metadata.id) else { throw CancellationError() }
 
         switch (metadata.direction, metadata.source, metadata.destination) {
-        case (.download, .remote(let profileID, _, let remotePath), .local(let localURL)):
+        case let (.download, .remote(profileID, _, remotePath), .local(localURL)):
             try await performDownloadAttempt(
                 metadata: metadata,
                 profileID: profileID,
                 remotePath: remotePath,
                 localURL: localURL
             )
-        case (.upload, .local(let localURL), .remote(let profileID, _, let remotePath)):
+        case let (.upload, .local(localURL), .remote(profileID, _, remotePath)):
             try await performUploadAttempt(
                 metadata: metadata,
                 profileID: profileID,
@@ -75,11 +75,23 @@ extension TransferQueue {
         )
         let partialName = ".\(safeDest.lastPathComponent).sparklesftp.\(metadata.id.uuidString).part"
         let partialURL = baseDir.appendingPathComponent(partialName)
+
         let resumeOffset = try await resolveDownloadOffset(
             taskID: metadata.id,
             remotePath: remotePath,
             partialURL: partialURL,
             remoteFS: remoteFS
+        )
+        let remoteMeta = try? await remoteFS.metadata(at: remotePath)
+        if resumeOffset == 0 {
+            try? FileManager.default.removeItem(at: partialURL)
+            await resetCheckpointBytes(id: metadata.id)
+        }
+        await recordCheckpointContext(
+            id: metadata.id,
+            remoteSize: remoteMeta?.size ?? metadata.totalBytes,
+            remoteModificationTime: remoteMeta?.modificationTime,
+            partialLocalPath: partialURL.path
         )
 
         guard let finalDest = try await resolveConflictDestination(
@@ -114,7 +126,7 @@ extension TransferQueue {
             checkpoint: checkpoint,
             remoteFS: remoteFS
         )
-        if case .resume(let offset) = decision {
+        if case let .resume(offset) = decision {
             return offset
         }
         return 0
@@ -137,14 +149,15 @@ extension TransferQueue {
                 existingSize: existingSize,
                 incomingSize: metadata.totalBytes
             ),
-            originalFilename: safeDest.lastPathComponent
+            originalFilename: safeDest.lastPathComponent,
+            overridePolicy: metadata.conflictPolicyOverride
         )
         switch resolution {
         case .skip:
             return nil
         case .overwrite:
             return safeDest
-        case .rename(let newName):
+        case let .rename(newName):
             return try PathValidator.safeLocalDestination(filename: newName, baseDirectory: baseDir)
         }
     }
@@ -158,22 +171,43 @@ extension TransferQueue {
         let remoteFS = try await fileSystemResolver(profileID)
         guard isStillActive(id: metadata.id) else { throw CancellationError() }
 
-        let tempRemoteName = ".\(remotePath.filename).sparklesftp.\(metadata.id.uuidString).part"
-        let tempRemotePath = try remotePath.parent.appending(tempRemoteName)
+        guard let finalRemotePath = try await resolveRemoteUploadDestination(
+            metadata: metadata,
+            remotePath: remotePath,
+            remoteFS: remoteFS
+        ) else {
+            return
+        }
 
-        try await remoteFS.upload(from: localURL, to: tempRemotePath, offset: 0) { [weak self] progress in
+        let tempRemoteName = ".\(finalRemotePath.filename).sparklesftp.\(metadata.id.uuidString).part"
+        let tempRemotePath = try finalRemotePath.parent.appending(tempRemoteName)
+        let localAttrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
+        let localSize = (localAttrs[.size] as? NSNumber)?.int64Value ?? 0
+        let localModified = localAttrs[.modificationDate] as? Date
+        let uploadOffset = await resolveUploadResumeOffset(
+            taskID: metadata.id,
+            tempRemotePath: tempRemotePath,
+            localSize: localSize,
+            localModificationTime: localModified,
+            remoteFS: remoteFS
+        )
+        await recordCheckpointContext(
+            id: metadata.id,
+            remoteSize: localSize,
+            remoteModificationTime: localModified,
+            partialLocalPath: tempRemotePath.rawValue
+        )
+
+        try await remoteFS.upload(from: localURL, to: tempRemotePath, offset: uploadOffset) { [weak self] progress in
             Task { [weak self] in
                 await self?.handleProgress(id: metadata.id, progress: progress)
             }
         }
         guard isStillActive(id: metadata.id) else {
-            try? await remoteFS.delete(at: tempRemotePath, isDirectory: false)
             throw CancellationError()
         }
 
         await updateStatus(id: metadata.id, status: .verifying)
-        let localAttrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
-        let localSize = (localAttrs[.size] as? NSNumber)?.int64Value ?? 0
         let uploadedMeta = try await remoteFS.metadata(at: tempRemotePath)
         guard uploadedMeta.size == localSize else {
             try? await remoteFS.delete(at: tempRemotePath, isDirectory: false)
@@ -181,7 +215,62 @@ extension TransferQueue {
         }
 
         await updateStatus(id: metadata.id, status: .finalizing)
-        try await remoteFS.rename(from: tempRemotePath, to: remotePath)
+        try await remoteFS.rename(from: tempRemotePath, to: finalRemotePath)
+    }
+
+    private func resolveRemoteUploadDestination(
+        metadata: TransferTaskMetadata,
+        remotePath: RemotePath,
+        remoteFS: any RemoteFileSystem
+    ) async throws -> RemotePath? {
+        guard let existingMeta = try? await remoteFS.metadata(at: remotePath) else {
+            return remotePath
+        }
+        let resolution = await conflictResolver.resolve(
+            ConflictContext(
+                taskID: metadata.id,
+                destinationDisplayPath: remotePath.rawValue,
+                existingSize: existingMeta.size,
+                incomingSize: metadata.totalBytes
+            ),
+            originalFilename: remotePath.filename,
+            overridePolicy: metadata.conflictPolicyOverride
+        )
+        switch resolution {
+        case .skip:
+            return nil
+        case .overwrite:
+            return remotePath
+        case let .rename(newName):
+            return try PathValidator.canonicalizeRemote(newName, relativeTo: remotePath.parent)
+        }
+    }
+
+    private func resolveUploadResumeOffset(
+        taskID: UUID,
+        tempRemotePath: RemotePath,
+        localSize: Int64,
+        localModificationTime: Date?,
+        remoteFS: any RemoteFileSystem
+    ) async -> Int64 {
+        guard let checkpoint = snapshots[taskID]?.checkpoint,
+              checkpoint.bytesTransferred > 0,
+              checkpoint.remoteSize == localSize
+        else {
+            return 0
+        }
+        if let expectedTime = checkpoint.remoteModificationTime,
+           let actualTime = localModificationTime,
+           abs(expectedTime.timeIntervalSince(actualTime)) > 1.0 {
+            return 0
+        }
+        guard let remotePartial = try? await remoteFS.metadata(at: tempRemotePath),
+              remotePartial.size > 0,
+              remotePartial.size < localSize
+        else {
+            return 0
+        }
+        return remotePartial.size
     }
 
     private func executeDownloadFlow(_ request: DownloadFlowRequest) async throws {
@@ -210,41 +299,9 @@ extension TransferQueue {
         guard isStillActive(id: taskID) else { throw CancellationError() }
         await updateStatus(id: taskID, status: .finalizing)
         if FileManager.default.fileExists(atPath: request.finalDest.path) {
-            try FileManager.default.removeItem(at: request.finalDest)
-        }
-        try FileManager.default.moveItem(at: request.partialURL, to: request.finalDest)
-    }
-
-    func persistSnapshot(_ snapshot: TransferSnapshot) async {
-        guard let journal else { return }
-        let errorMsg: String?
-        if case .failed(let appError) = snapshot.status {
-            errorMsg = appError.errorDescription
+            _ = try FileManager.default.replaceItemAt(request.finalDest, withItemAt: request.partialURL)
         } else {
-            errorMsg = nil
+            try FileManager.default.moveItem(at: request.partialURL, to: request.finalDest)
         }
-        let record = TransferJournalRecord(
-            id: snapshot.id,
-            metadata: snapshot.metadata,
-            statusCode: snapshot.status.statusCode,
-            errorDescription: errorMsg,
-            checkpoint: snapshot.checkpoint
-        )
-        try? await journal.upsert(record)
-    }
-
-    func orderedSnapshots() -> [TransferSnapshot] {
-        snapshots.values.sorted { $0.metadata.createdAt > $1.metadata.createdAt }
-    }
-
-    func broadcastSnapshots() {
-        let ordered = orderedSnapshots()
-        for (_, cont) in streamContinuations {
-            cont.yield(ordered)
-        }
-    }
-
-    func removeContinuation(id: UUID) {
-        streamContinuations.removeValue(forKey: id)
     }
 }

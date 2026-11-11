@@ -13,13 +13,12 @@ public enum SecurityScopedBookmarkManager {
 
     public static func resolveBookmark(_ data: Data) throws -> URL {
         var isStale = false
-        let url = try URL(
+        return try URL(
             resolvingBookmarkData: data,
             options: [.withSecurityScope],
             relativeTo: nil,
             bookmarkDataIsStale: &isStale
         )
-        return url
     }
 
     public static func withScopedAccess<T>(to url: URL, perform: (URL) throws -> T) throws -> T {

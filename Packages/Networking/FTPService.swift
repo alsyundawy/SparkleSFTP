@@ -53,7 +53,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         connectionState = .connected(connectedAt: Date())
     }
 
-    public func disconnect(policy: DisconnectPolicy) async throws {
+    public func disconnect(policy _: DisconnectPolicy) async throws {
         cachedPassword = nil
         connectionState = .disconnected
     }
@@ -241,18 +241,26 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
             .split(separator: "/", omittingEmptySubsequences: true)
             .compactMap { String($0).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) }
             .joined(separator: "/")
-        let suffix: String
-        if trailingSlash {
-            suffix = encodedPath.isEmpty ? "/" : "/\(encodedPath)/"
+        let suffix: String = if trailingSlash {
+            encodedPath.isEmpty ? "/" : "/\(encodedPath)/"
         } else {
-            suffix = encodedPath.isEmpty ? "/" : "/\(encodedPath)"
+            encodedPath.isEmpty ? "/" : "/\(encodedPath)"
         }
+        let formattedHost = Self.formatURLHost(profile.host)
         return CurlRequestContext(
-            urlString: "\(scheme)://\(profile.host):\(profile.port)\(suffix)",
+            urlString: "\(scheme)://\(formattedHost):\(profile.port)\(suffix)",
             protocolType: profile.protocolType,
             username: profile.username,
             password: cachedPassword,
             proxy: profile.proxy
         )
+    }
+
+    private static func formatURLHost(_ rawHost: String) -> String {
+        let trimmed = rawHost.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.contains(":"), !trimmed.hasPrefix("[") {
+            return "[\(trimmed)]"
+        }
+        return trimmed
     }
 }

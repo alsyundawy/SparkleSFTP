@@ -30,7 +30,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             channelBridge.close()
             throw AppError.protocolError(code: Int(version), message: "Unsupported SFTP server version \(version)")
         }
-        self.bridge = channelBridge
+        bridge = channelBridge
     }
 
     public func disconnect(policy: DisconnectPolicy) async throws {
@@ -56,7 +56,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             try Task.checkCancellation()
             let readResp = try await sftp.send(.readdir(requestID: sftp.allocateRequestID(), handle: handle))
             switch readResp {
-            case .name(_, let entries):
+            case let .name(_, entries):
                 for entry in entries where entry.filename != "." && entry.filename != ".." {
                     guard let safeChild = try? PathValidator.canonicalizeRemote(entry.filename, relativeTo: path) else {
                         continue
@@ -79,7 +79,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
                 }
             case .status(_, .eof, _, _):
                 return items
-            case .status(_, let code, let msg, _):
+            case let .status(_, code, msg, _):
                 throw Self.mapStatusError(code: code, message: msg, path: path.rawValue)
             default:
                 throw AppError.protocolError(code: -1, message: "Unexpected READDIR response")
@@ -106,12 +106,12 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         let sftp = try requireBridge()
         let resp = try await sftp.send(.realpath(requestID: sftp.allocateRequestID(), path: path.rawValue))
         switch resp {
-        case .name(_, let entries):
+        case let .name(_, entries):
             guard let first = entries.first else {
                 throw AppError.fileNotFound(path: path.rawValue)
             }
             return RemotePath(rawValue: first.filename)
-        case .status(_, let code, let msg, _):
+        case let .status(_, code, msg, _):
             throw Self.mapStatusError(code: code, message: msg, path: path.rawValue)
         default:
             throw AppError.protocolError(code: -1, message: "Unexpected REALPATH response")

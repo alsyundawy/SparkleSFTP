@@ -23,7 +23,7 @@ public struct FileSortDescriptor: Sendable, Equatable {
     public static func sortRemoteFiles(_ files: [RemoteFile], by descriptor: FileSortDescriptor) async -> [RemoteFile] {
         await Task.detached(priority: .userInitiated) {
             files.sorted { lhs, rhs in
-                if descriptor.foldersFirst && lhs.isDirectory != rhs.isDirectory {
+                if descriptor.foldersFirst, lhs.isDirectory != rhs.isDirectory {
                     return lhs.isDirectory && !rhs.isDirectory
                 }
 

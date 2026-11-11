@@ -20,6 +20,29 @@ public struct ActiveSessionModel: Identifiable, Sendable {
     public var remoteFiles: PaginatedFileWindow
     public var sortDescriptor: FileSortDescriptor
     public var selectedRemoteFileIDs: Set<String>
+    public var history: PaneNavigationHistory
+
+    public init(
+        id: UUID,
+        profile: ConnectionProfile,
+        service: RemoteService,
+        sshClient: SSHClientService?,
+        currentRemotePath: RemotePath,
+        remoteFiles: PaginatedFileWindow,
+        sortDescriptor: FileSortDescriptor,
+        selectedRemoteFileIDs: Set<String>,
+        history: PaneNavigationHistory? = nil
+    ) {
+        self.id = id
+        self.profile = profile
+        self.service = service
+        self.sshClient = sshClient
+        self.currentRemotePath = currentRemotePath
+        self.remoteFiles = remoteFiles
+        self.sortDescriptor = sortDescriptor
+        self.selectedRemoteFileIDs = selectedRemoteFileIDs
+        self.history = history ?? PaneNavigationHistory(initialPath: currentRemotePath.rawValue)
+    }
 }
 
 /// Root presentation coordinator isolating Views from networking/Keychain internals (macOS 13+ ObservableObject).
@@ -34,9 +57,12 @@ public final class AppState: ObservableObject {
     @Published public var activeSessionID: UUID?
 
     @Published public var localCurrentURL: URL = FileManager.default.homeDirectoryForCurrentUser
-    @Published public var localFiles: PaginatedFileWindow = PaginatedFileWindow()
+    @Published public var localFiles: PaginatedFileWindow = .init()
     @Published public var localSortDescriptor = FileSortDescriptor()
     @Published public var selectedLocalFileIDs: Set<String> = []
+    @Published public var localHistory = PaneNavigationHistory(
+        initialPath: FileManager.default.homeDirectoryForCurrentUser.path
+    )
     @Published public var activePane: PaneSide = .left
 
     @Published public var transferSnapshots: [TransferSnapshot] = []
@@ -45,20 +71,37 @@ public final class AppState: ObservableObject {
     @Published public var activeTunnels: [PortForwardingManager.ActiveTunnel] = []
 
     @Published public var pendingHostChallenge: HostKeyChallenge?
+    @Published public var pendingCredentialPrompt: CredentialPromptRequest?
     @Published public var hostMismatchAlert: AppError?
     @Published public var pendingConflict: ConflictContext?
     @Published public var syncPlan: SyncPlan?
     @Published public var statusBannerMessage: String?
     @Published public var lastError: AppError?
 
-    @Published public var language: AppLanguage = .english
+    @Published public var language: AppLanguage = .english {
+        didSet { savePreferencesIfLoaded() }
+    }
+
     @Published public var isTerminalVisible: Bool = false
     @Published public var isTransferDrawerVisible: Bool = true
     @Published public var splitTerminalMode: Bool = false
-    @Published public var maxGlobalConcurrentTransfers: Int = 3
-    @Published public var maxPerHostConcurrentTransfers: Int = 2
+    @Published public var maxGlobalConcurrentTransfers: Int = 3 {
+        didSet { savePreferencesIfLoaded() }
+    }
 
-    public var strings: AppStrings { AppStrings(language: language) }
+    @Published public var maxPerHostConcurrentTransfers: Int = 2 {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var defaultConflictPolicy: TransferConflictPolicy = .ask {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var syncComparisonMode: SyncComparisonMode = .sizeAndMtime
+
+    public var strings: AppStrings {
+        AppStrings(language: language)
+    }
 
     public let credentialStore: KeychainService
     public let hostTrustStore: HostTrustStore
@@ -72,10 +115,13 @@ public final class AppState: ObservableObject {
     var transferQueueInstance: TransferQueue?
     var snapshotStreamTask: Task<Void, Never>?
     var localWatcher = LocalDirectoryWatcher()
+    var watchedLocalURL: URL?
     var hostChallengeContinuation: CheckedContinuation<Bool, Never>?
+    var credentialPromptContinuation: CheckedContinuation<String?, Never>?
     var conflictContinuation: CheckedContinuation<TransferConflictResolution, Never>?
-    var remoteEditWatchers: [LocalDirectoryWatcher] = []
+    var remoteEditWatches: [URL: LocalDirectoryWatcher] = [:]
     var notifiedTerminalTransferIDs: Set<UUID> = []
+    var didLoadPreferences = false
     let checkUpdatesAction: @MainActor () -> Void
     let transferJournal: TransferJournal?
 
@@ -83,9 +129,9 @@ public final class AppState: ObservableObject {
         if let existing = transferQueueInstance {
             return existing
         }
-        let resolver = ConflictResolver(defaultPolicy: .ask) { [weak self] context in
+        let resolver = ConflictResolver(defaultPolicy: defaultConflictPolicy) { [weak self] context in
             guard let self else { return .skip }
-            return await self.promptConflictResolution(context)
+            return await promptConflictResolution(context)
         }
         let created = TransferQueue(
             maxGlobalConcurrent: maxGlobalConcurrentTransfers,
@@ -94,7 +140,7 @@ public final class AppState: ObservableObject {
             conflictResolver: resolver
         ) { [weak self] profileID in
             guard let self else { throw AppError.notConnected }
-            return try await self.resolveRemoteFileSystem(for: profileID)
+            return try await resolveRemoteFileSystem(for: profileID)
         }
         transferQueueInstance = created
         return created
@@ -122,18 +168,26 @@ public final class AppState: ObservableObject {
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
         self.checkUpdatesAction = checkUpdatesAction
+        loadPersistedPreferences()
     }
 
     deinit {
         snapshotStreamTask?.cancel()
         localWatcher.stopWatching()
-        for watcher in remoteEditWatchers {
+        for (dirURL, watcher) in remoteEditWatches {
             watcher.stopWatching()
+            try? FileManager.default.removeItem(at: dirURL)
         }
     }
 
     public var currentSession: ActiveSessionModel? {
         activeSessions.first { $0.id == activeSessionID }
+    }
+
+    public var recentProfiles: [ConnectionProfile] {
+        profiles
+            .filter { $0.lastConnectedAt != nil }
+            .sorted { ($0.lastConnectedAt ?? .distantPast) > ($1.lastConnectedAt ?? .distantPast) }
     }
 
     public var filteredProfiles: [ConnectionProfile] {
@@ -150,6 +204,12 @@ public final class AppState: ObservableObject {
         pendingHostChallenge = nil
         hostChallengeContinuation?.resume(returning: trusted)
         hostChallengeContinuation = nil
+    }
+
+    public func resolveCredentialPrompt(_ secret: String?) {
+        pendingCredentialPrompt = nil
+        credentialPromptContinuation?.resume(returning: secret)
+        credentialPromptContinuation = nil
     }
 
     public func resolveConflict(_ resolution: TransferConflictResolution) {
@@ -169,50 +229,18 @@ public final class AppState: ObservableObject {
         return session.service.fileSystem
     }
 
-    func promptHostKeyChallenge(_ challenge: HostKeyChallenge) async -> Bool {
-        await withCheckedContinuation { continuation in
-            hostChallengeContinuation = continuation
-            pendingHostChallenge = challenge
-        }
-    }
-
-    func promptConflictResolution(_ context: ConflictContext) async -> TransferConflictResolution {
-        await withCheckedContinuation { continuation in
-            conflictContinuation = continuation
-            pendingConflict = context
-        }
-    }
-
     func startTransferObserver() {
         snapshotStreamTask?.cancel()
         snapshotStreamTask = Task { [weak self] in
             guard let self else { return }
-            let stream = await self.transferQueue.makeSnapshotsStream()
+            let stream = await transferQueue.makeSnapshotsStream()
             for await snapshots in stream {
-                if Task.isCancelled { break }
-                self.transferSnapshots = snapshots
-                self.notifyTerminalTransfersIfNeeded(snapshots)
+                if Task.isCancelled {
+                    break
+                }
+                transferSnapshots = snapshots
+                notifyTerminalTransfersIfNeeded(snapshots)
             }
-        }
-    }
-
-    private func notifyTerminalTransfersIfNeeded(_ snapshots: [TransferSnapshot]) {
-        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
-        for snap in snapshots where !notifiedTerminalTransferIDs.contains(snap.id) {
-            let content = UNMutableNotificationContent()
-            switch snap.status {
-            case .completed:
-                content.title = "Transfer Completed"
-                content.body = snap.metadata.destination.displayPath
-            case .failed(let error):
-                content.title = "Transfer Failed"
-                content.body = error.errorDescription ?? snap.metadata.destination.displayPath
-            default:
-                continue
-            }
-            notifiedTerminalTransferIDs.insert(snap.id)
-            let req = UNNotificationRequest(identifier: snap.id.uuidString, content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(req) { _ in }
         }
     }
 }
