@@ -228,8 +228,54 @@ struct PreferencesAndDialogSizeTests {
         )
     }
 
+    @Test("MainWindowView keeps Close/Minimize/Zoom and toolbar above NSHostingView in NSThemeFrame")
     @MainActor
-    private func assertTrafficLightsActive(in window: NSWindow) {
+    func mainWindowTitlebarNotObscuredByContent() async throws {
+        _ = NSApplication.shared
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleMWZOrder-\(UUID())")
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let state = makeState(root: tmp)
+        state.selectTheme(SparkleThemeCatalog.palette(id: "tomorrowNight", appearanceMode: .dark, systemIsDark: true))
+        let hosting = NSHostingController(rootView: MainWindowView(appState: state))
+        let window = NSWindow(
+            contentRect: NSRect(x: 80, y: 80, width: 1080, height: 680),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentViewController = hosting
+        window.makeKeyAndOrderFront(nil)
+        defer {
+            window.orderOut(nil)
+            window.contentViewController = nil
+            window.close()
+        }
+
+        for _ in 0 ..< 4 {
+            window.layoutIfNeeded()
+            hosting.view.layoutSubtreeIfNeeded()
+            try? await Task.sleep(for: .milliseconds(35))
+        }
+
+        assertTrafficLightsActive(in: window)
+        let contentView = try #require(window.contentView)
+        let themeFrame = try #require(contentView.superview)
+        let closeBtn = try #require(window.standardWindowButton(.closeButton))
+        let titlebarContainer = try #require(closeBtn.superview?.superview)
+        #expect(titlebarContainer.superview === themeFrame)
+        let contentIndex = try #require(themeFrame.subviews.firstIndex(of: contentView))
+        let titlebarIndex = try #require(themeFrame.subviews.firstIndex(of: titlebarContainer))
+        #expect(titlebarIndex > contentIndex)
+        #expect(!titlebarContainer.isHidden && titlebarContainer.alphaValue > 0.99)
+    }
+}
+
+@MainActor
+private extension PreferencesAndDialogSizeTests {
+    func assertTrafficLightsActive(in window: NSWindow) {
         let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
         #expect(window.styleMask.isSuperset(of: requiredMask))
         #expect(window.collectionBehavior.contains(.fullScreenPrimary))
@@ -242,8 +288,7 @@ struct PreferencesAndDialogSizeTests {
         }
     }
 
-    @MainActor
-    private func assertFixedFittingSize(
+    func assertFixedFittingSize(
         _ controller: NSViewController,
         width: CGFloat,
         height: CGFloat
@@ -254,8 +299,7 @@ struct PreferencesAndDialogSizeTests {
         #expect(abs(size.height - height) <= 2)
     }
 
-    @MainActor
-    private func firstTabView(in view: NSView?) -> NSTabView? {
+    func firstTabView(in view: NSView?) -> NSTabView? {
         guard let view else { return nil }
         if let tabView = view as? NSTabView {
             return tabView
@@ -268,8 +312,7 @@ struct PreferencesAndDialogSizeTests {
         return nil
     }
 
-    @MainActor
-    private func makeState(root: URL) -> AppState {
+    func makeState(root: URL) -> AppState {
         let state = AppState(
             credentialStore: DialogTestCredStore(),
             hostTrustStore: HostTrustStore(backingStore: DialogTestTrustBacking()),

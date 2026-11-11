@@ -94,7 +94,7 @@ public struct WorkspaceTabBar: View {
         .frame(minWidth: 0, maxWidth: .infinity)
         .frame(height: 36)
         .clipped()
-        .background(palette.windowColor)
+        .background(palette.windowColor, ignoresSafeAreaEdges: [])
         .overlay(alignment: .bottom) {
             palette.borderColor.frame(height: 1)
         }

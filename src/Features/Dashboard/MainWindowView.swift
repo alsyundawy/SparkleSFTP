@@ -49,7 +49,7 @@ public struct MainWindowView: View {
             }
             .navigationSplitViewColumnWidth(min: 520, ideal: 920)
             .clipped()
-            .background(palette.windowColor)
+            .background(palette.windowColor, ignoresSafeAreaEdges: [])
             .foregroundStyle(palette.primaryTextColor)
             .tint(palette.accentColor)
         }

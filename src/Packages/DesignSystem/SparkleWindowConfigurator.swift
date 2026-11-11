@@ -100,7 +100,20 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
                     return true
                 }
             }
-            return false
+            return isTitlebarCoveredByContent(in: window)
+        }
+
+        private static func isTitlebarCoveredByContent(in window: NSWindow) -> Bool {
+            guard let contentView = window.contentView,
+                  let themeFrame = contentView.superview,
+                  let titlebarContainer = window.standardWindowButton(.closeButton)?.superview?.superview,
+                  titlebarContainer.superview === themeFrame,
+                  let contentIndex = themeFrame.subviews.firstIndex(of: contentView),
+                  let titlebarIndex = themeFrame.subviews.firstIndex(of: titlebarContainer)
+            else {
+                return false
+            }
+            return titlebarIndex < contentIndex
         }
 
         public static func configure(
@@ -126,6 +139,11 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
                     button.isHidden = false
                     button.isEnabled = true
                 }
+            }
+            if isTitlebarCoveredByContent(in: window),
+               let themeFrame = window.contentView?.superview,
+               let titlebarContainer = window.standardWindowButton(.closeButton)?.superview?.superview {
+                themeFrame.addSubview(titlebarContainer, positioned: .above, relativeTo: nil)
             }
             window.backgroundColor = NSColor(hex: palette.windowHex)
             window.appearance = NSAppearance(named: palette.isDark ? .darkAqua : .aqua)

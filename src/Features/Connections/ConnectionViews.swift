@@ -55,7 +55,7 @@ public struct ConnectionManagerView: View {
 
             bottomControls(palette: palette)
         }
-        .background(palette.windowColor)
+        .background(palette.windowColor, ignoresSafeAreaEdges: [])
         .foregroundStyle(palette.primaryTextColor)
         .tint(palette.accentColor)
         .alert(appState.strings.t("nav.newGroupTitle"), isPresented: $isAddingGroup) {
@@ -159,7 +159,7 @@ private extension ConnectionManagerView {
         }
         .padding(.horizontal, SparkleTheme.Spacing.small)
         .padding(.bottom, SparkleTheme.Spacing.tiny)
-        .background(palette.windowColor)
+        .background(palette.windowColor, ignoresSafeAreaEdges: [])
     }
 
     @ViewBuilder
@@ -237,7 +237,7 @@ private extension ConnectionManagerView {
         }
         .padding(SparkleTheme.Spacing.small)
         .frame(maxWidth: .infinity)
-        .background(palette.windowColor)
+        .background(palette.windowColor, ignoresSafeAreaEdges: [])
         .overlay(alignment: .top) {
             palette.borderColor.frame(height: 1)
         }
