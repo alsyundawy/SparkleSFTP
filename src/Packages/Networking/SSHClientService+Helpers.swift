@@ -22,6 +22,30 @@ private final class ShutdownResumeOnceBox: @unchecked Sendable { // JUSTIFICATIO
     }
 }
 
+private final class ExecBoxHolder: @unchecked Sendable { // JUSTIFICATION: NSLock protects exec cancellation box.
+    private let lock = NSLock()
+    private var box: ExecContinuationBox?
+    private var cancelled = false
+
+    func setBox(_ target: ExecContinuationBox) {
+        lock.lock()
+        let shouldCancel = cancelled
+        box = target
+        lock.unlock()
+        if shouldCancel {
+            target.cancel()
+        }
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let target = box
+        lock.unlock()
+        target?.cancel()
+    }
+}
+
 extension SSHClientService {
     func makeBootstrap(
         group: MultiThreadedEventLoopGroup,
@@ -105,32 +129,45 @@ extension SSHClientService {
     }
 
     static func runExec(on rootChannel: Channel, command: String) async throws -> SSHCommandOutput {
-        try await withCheckedThrowingContinuation { continuation in
-            let eventLoop = rootChannel.eventLoop
-            let channelPromise = eventLoop.makePromise(of: Channel.self)
-            let stateBox = ExecContinuationBox(continuation: continuation)
+        let stateHolder = ExecBoxHolder()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let eventLoop = rootChannel.eventLoop
+                let channelPromise = eventLoop.makePromise(of: Channel.self)
+                let stateBox = ExecContinuationBox(continuation: continuation)
+                stateHolder.setBox(stateBox)
+                if Task.isCancelled {
+                    stateBox.cancel()
+                    return
+                }
 
-            eventLoop.execute {
-                do {
-                    let sshHandler = try rootChannel.pipeline.syncOperations.handler(type: NIOSSHHandler.self)
-                    sshHandler.createChannel(channelPromise, channelType: .session) { childChannel, channelType in
-                        guard channelType == .session else {
-                            return childChannel.eventLoop.makeFailedFuture(
-                                AppError.protocolError(code: -1, message: "Invalid channel type")
-                            )
+                eventLoop.execute {
+                    do {
+                        let sshHandler = try rootChannel.pipeline.syncOperations.handler(type: NIOSSHHandler.self)
+                        sshHandler.createChannel(channelPromise, channelType: .session) { childChannel, channelType in
+                            guard channelType == .session else {
+                                return childChannel.eventLoop.makeFailedFuture(
+                                    AppError.protocolError(code: -1, message: "Invalid channel type")
+                                )
+                            }
+                            return childChannel.eventLoop.makeCompletedFuture {
+                                let handler = BufferedExecChannelHandler(command: command, stateBox: stateBox)
+                                try childChannel.pipeline.syncOperations.addHandler(handler)
+                            }
                         }
-                        return childChannel.eventLoop.makeCompletedFuture {
-                            let handler = BufferedExecChannelHandler(command: command, stateBox: stateBox)
-                            try childChannel.pipeline.syncOperations.addHandler(handler)
+                        channelPromise.futureResult.whenSuccess { childChannel in
+                            stateBox.attachChannel(childChannel)
                         }
-                    }
-                    channelPromise.futureResult.whenFailure { error in
+                        channelPromise.futureResult.whenFailure { error in
+                            stateBox.fail(error)
+                        }
+                    } catch {
                         stateBox.fail(error)
                     }
-                } catch {
-                    stateBox.fail(error)
                 }
             }
+        } onCancel: {
+            stateHolder.cancel()
         }
     }
 

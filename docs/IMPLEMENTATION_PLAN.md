@@ -346,8 +346,8 @@ flowchart LR
 
 ### Phase 07 — Advanced Features (Minggu 18–21) _(Selesai)_
 
-- `SwiftTerm` integration: `TerminalViewRepresentable` (kompatibel Swift 6.0–6.2), PTY dari `SSHClientService`
-- Multi-tab terminal, horizontal/vertical split, explicit PTY resource cleanup
+- `SwiftTerm` integration: `TerminalViewRepresentable` (kompatibel Swift 6.0–6.2), PTY dari `SSHClientService`, serta `10,000`-line scrollback & pre-attach buffer
+- Model 1-Tab = 1-Shell terikat `WorkspaceTab` (menggantikan multi-tab/split terminal lama; pembersihan PTY eksplisit via `PTYResourceBox`)
 - Port forwarding: `-L` local / `-R` remote tunnel dengan bounded timeout
 - Directory comparison: `DirectoryScanner` + pure `SyncPlanner` (60s TTL) + dry-run preview & destructive confirmation
 - Remote file editor: temp workspace + hash guard + auto-upload on save
@@ -495,8 +495,8 @@ flowchart LR
 - [x] **TASK-090** Create `TerminalViewRepresentable` (`NSViewRepresentable` wrapping SwiftTerm `TerminalView` + cleanup + 100-tab test)
 - [x] **TASK-091** Implement PTY channel (`SSHClientService.openPTYChannel` ↔ `TerminalSessionManager`)
 - [x] **TASK-092** Implement `TerminalViewDelegate` (`sizeChanged` → `WindowChangeRequest`, `clipboardCopy`/`Read` → `NSPasteboard`)
-- [x] **TASK-093** Implement terminal tabs (`TerminalWorkspaceView`)
-- [x] **TASK-094** Implement split terminal (`HSplitView` split mode)
+- [x] **TASK-093** Implement terminal session workspace (`TerminalWorkspaceView`)
+- [x] **TASK-094** Implement split terminal (`HSplitView` split mode — _superseded in `T-039` / [ADR-008](ADR/0008-multi-window-isolation-appkit-tab-chrome-76-themes-and-transfer-pipeline.md) by 1-Tab = 1-Shell binding_)
 - [ ] **TASK-095** Implement SSH agent socket forwarding (deferred upstream: `apple/swift-nio-ssh 0.15.1` uses internal `BackingKey` without external agent signer hook)
 - [x] **TASK-096** Implement interactive credential / 2FA challenge prompt (`CredentialPromptRequest` + `CredentialPromptSheet` + loopback test)
 - [x] **TASK-097** Implement `ProxyJump` multi-hop bastion execution (`SSHClientService.openJumpTunnel` + Bastion UI picker + loopback test)

@@ -168,9 +168,10 @@ public enum DirectoryScanner {
             let relPath = relativePrefix.isEmpty ? entry.name : "\(relativePrefix)/\(entry.name)"
 
             if entry.isSymlink {
-                let resolved = try await context.remoteFS.resolveSymlink(at: entry.path)
-                guard !visitedTargets.contains(resolved.rawValue) else {
-                    continue // Break circular symlink loop (LOG-005)
+                guard let resolved = try? await context.remoteFS.resolveSymlink(at: entry.path),
+                      !visitedTargets.contains(resolved.rawValue)
+                else {
+                    continue // Skip dangling or circular symlink targets safely (LOG-005).
                 }
                 visitedTargets.insert(resolved.rawValue)
             }

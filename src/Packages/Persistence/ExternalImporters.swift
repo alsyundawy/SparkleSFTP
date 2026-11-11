@@ -227,25 +227,68 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
         guard let pass = rawPass, !pass.isEmpty else {
             return (nil, .none)
         }
-        if encoding == "crypt" {
-            return (nil, .encryptedUnavailable)
-        }
-        if encoding == "base64", let decoded = Data(base64Encoded: pass) {
+        if encoding == "base64" {
+            guard let decoded = Data(base64Encoded: pass) else {
+                return (nil, .encryptedUnavailable)
+            }
             return (decoded, .plaintextReady)
         }
-        return (pass.data(using: .utf8), .plaintextReady)
+        if encoding == nil || encoding == "plain" {
+            return (pass.data(using: .utf8), .plaintextReady)
+        }
+        return (nil, .encryptedUnavailable)
     }
 
     private func decodeFileZillaRemoteDir(_ raw: String) -> String? {
-        // FileZilla encodes remote paths like "1 0 3 var 3 www"
-        let parts = raw.split(separator: " ")
-        guard parts.count >= 2 else { return raw.hasPrefix("/") ? raw : nil }
+        if raw.hasPrefix("/") {
+            return raw
+        }
+        var cursor = raw.startIndex
+        guard readIntToken(in: raw, from: &cursor) != nil,
+              let prefixLen = readIntToken(in: raw, from: &cursor),
+              advance(in: raw, cursor: &cursor, count: prefixLen) else {
+            return nil
+        }
         var segments: [String] = []
-        var idx = 2
-        while idx + 1 < parts.count {
-            segments.append(String(parts[idx + 1]))
-            idx += 2
+        while cursor < raw.endIndex {
+            guard let segLen = readIntToken(in: raw, from: &cursor),
+                  let segment = takeChars(in: raw, cursor: &cursor, count: segLen) else {
+                break
+            }
+            segments.append(segment)
         }
         return segments.isEmpty ? "/" : "/" + segments.joined(separator: "/")
+    }
+
+    private func readIntToken(in text: String, from cursor: inout String.Index) -> Int? {
+        while cursor < text.endIndex, text[cursor] == " " {
+            cursor = text.index(after: cursor)
+        }
+        let start = cursor
+        while cursor < text.endIndex, text[cursor] != " " {
+            cursor = text.index(after: cursor)
+        }
+        guard let value = Int(text[start ..< cursor]) else { return nil }
+        if cursor < text.endIndex, text[cursor] == " " {
+            cursor = text.index(after: cursor)
+        }
+        return value
+    }
+
+    private func advance(in text: String, cursor: inout String.Index, count: Int) -> Bool {
+        guard count >= 0, let next = text.index(cursor, offsetBy: count, limitedBy: text.endIndex) else {
+            return false
+        }
+        cursor = next
+        return true
+    }
+
+    private func takeChars(in text: String, cursor: inout String.Index, count: Int) -> String? {
+        guard count >= 0, let end = text.index(cursor, offsetBy: count, limitedBy: text.endIndex) else {
+            return nil
+        }
+        let result = String(text[cursor ..< end])
+        cursor = end
+        return result
     }
 }

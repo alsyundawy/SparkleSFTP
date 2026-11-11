@@ -189,6 +189,19 @@ extension SFTPPacketCodec {
             attrs.accessTime = try readUInt32(&buffer)
             attrs.modificationTime = try readUInt32(&buffer)
         }
+        if (flags.rawValue & 0x8000_0000) != 0 {
+            let extendedCount = try readUInt32(&buffer)
+            guard extendedCount <= 1024 else {
+                throw AppError.protocolError(
+                    code: Int(SFTPStatusCode.badMessage.rawValue),
+                    message: "Excessive SFTP extended attributes (\(extendedCount))"
+                )
+            }
+            for _ in 0 ..< extendedCount {
+                _ = try readSSHData(&buffer)
+                _ = try readSSHData(&buffer)
+            }
+        }
         return attrs
     }
 }

@@ -20,9 +20,9 @@ SparkleSFTP aims to deliver a high-performance, native macOS dual-pane SFTP, FTP
 ## Decision
 
 1. **Language & UI**: **Swift 6** with **SwiftUI** for chrome/layouts (`NavigationSplitView`, `HSplitView`) bridged to AppKit **`NSTableView`** via `NSViewRepresentable` for high-volume directory listings (10K–100K+ entries).
-2. **SSH & SFTP**: **`orlandos-nl/Citadel`** on top of **`apple/swift-nio-ssh`** with an explicit minimum version pin of **`swift-nio-ssh >= 0.14.1`** (mitigates **CVE-2026-43798** pre-auth OOB stack write).
+2. **SSH & SFTP**: **`orlandos-nl/Citadel`** on top of **`apple/swift-nio-ssh`** with an explicit minimum version pin of **`swift-nio-ssh >= 0.14.1`** (mitigates **CVE-2026-43798** pre-auth OOB stack write; _superseded in implementation by direct `apple/swift-nio-ssh 0.15.1` + internal `SFTPPacketCodec` per [ADR-004](0004-direct-swift-nio-ssh-and-sftp-codec.md)_).
 3. **Terminal Emulation**: **`migueldeicaza/SwiftTerm`** integrated via `NSViewRepresentable` with explicit PTY lifecycle teardown.
-4. **FTP & FTPS (Explicit/Implicit)**: **`libcurl`** via C module map bridge compiled against **`libssh2`** (explicitly prohibiting `libssh` to avoid **CVE-2025-15224** SSH agent auth bypass).
+4. **FTP & FTPS (Explicit/Implicit)**: **`libcurl`** via C module map bridge (scoped strictly to `"ftp,ftps"` via `CURLOPT_PROTOCOLS_STR`, with optional `dlopen` version-only probe for `libssh2` and zero `libssh` linkage to avoid **CVE-2025-15224** SSH agent auth bypass).
 5. **SCP Compatibility**: Isolated in a dedicated `SCPCompatibilityAdapter` only activated when an SSH server lacks the SFTP subsystem, with strict POSIX single-quote shell escaping (`SEC-007`).
 
 ## Alternatives Considered

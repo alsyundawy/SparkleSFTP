@@ -125,13 +125,16 @@ public final class EditorSessionManager: ObservableObject {
         }
     }
 
-    public func updateActiveDocument(_ transform: (inout EditorDocument) -> Void) {
-        guard let activeID = activeDocument?.id,
-              let idx = documents.firstIndex(where: { $0.id == activeID })
-        else { return }
+    public func updateDocument(id: UUID, _ transform: (inout EditorDocument) -> Void) {
+        guard let idx = documents.firstIndex(where: { $0.id == id }) else { return }
         var copy = documents[idx]
         transform(&copy)
         documents[idx] = copy
+    }
+
+    public func updateActiveDocument(_ transform: (inout EditorDocument) -> Void) {
+        guard let activeID = activeDocument?.id else { return }
+        updateDocument(id: activeID, transform)
     }
 
     public func applyTextTransform(_ kind: EditorTextTransformKind) {

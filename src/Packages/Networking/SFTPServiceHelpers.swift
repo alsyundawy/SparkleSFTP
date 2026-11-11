@@ -162,6 +162,7 @@ private enum SFTPPipelinedTransfer {
                 }
             }
         }
+        try fileHandle.truncate(atOffset: state.nextWriteOffset)
         emitDownloadProgress(
             ctx: ctx,
             currentOffset: state.nextWriteOffset,
@@ -309,6 +310,7 @@ private enum SFTPPipelinedTransfer {
         ctx: SFTPUploadChunkContext,
         cursor: UploadChunkCursor
     ) throws -> Bool {
+        try Task.checkCancellation()
         guard let slice = try cursor.nextSlice() else { return false }
         let reqID = try ctx.bridge.submitPacket(
             .write(

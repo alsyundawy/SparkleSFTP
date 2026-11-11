@@ -110,14 +110,31 @@ public enum LocalizationCatalog {
         let data = try Data(contentsOf: sourceURL)
         let stem = sourceURL.deletingPathExtension().lastPathComponent
         guard let parsed = decodeLocaleData(data, fallbackCode: stem),
-              !parsed.strings.isEmpty
+              !parsed.strings.isEmpty,
+              isSafeLocaleCode(parsed.code)
         else {
             throw CocoaError(.fileReadCorruptFile)
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let destURL = directory.appendingPathComponent("\(parsed.code).json", isDirectory: false)
-        try exportLocaleDocument(parsed, to: destURL)
+        let resolvedDir = directory.standardizedFileURL.resolvingSymlinksInPath()
+        let resolvedDest = destURL.standardizedFileURL
+        let prefix = resolvedDir.path.hasSuffix("/") ? resolvedDir.path : resolvedDir.path + "/"
+        guard resolvedDest.path.hasPrefix(prefix) else {
+            throw CocoaError(.fileReadInvalidFileName)
+        }
+        try exportLocaleDocument(parsed, to: resolvedDest)
         return parsed
+    }
+
+    private static func isSafeLocaleCode(_ code: String) -> Bool {
+        !code.isEmpty
+            && code.count <= 32
+            && code != "."
+            && code != ".."
+            && code.unicodeScalars.allSatisfy { scalar in
+                CharacterSet.alphanumerics.contains(scalar) || scalar == "-" || scalar == "_"
+            }
     }
 
     public static func exportLocaleDocument(_ document: LocaleDocument, to destinationURL: URL) throws {

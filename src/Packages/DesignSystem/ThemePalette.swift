@@ -247,11 +247,24 @@ public enum SparkleThemeStore {
     }
 
     public static func isValidPalette(_ palette: SparkleThemePalette) -> Bool {
-        !palette.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !palette.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && SparkleThemePalette.rgbComponents(fromHex: palette.windowHex) != nil
-            && SparkleThemePalette.rgbComponents(fromHex: palette.canvasHex) != nil
-            && SparkleThemePalette.rgbComponents(fromHex: palette.primaryTextHex) != nil
-            && SparkleThemePalette.rgbComponents(fromHex: palette.accentHex) != nil
+        guard !palette.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !palette.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return false
+        }
+        let hexFields = [
+            palette.windowHex,
+            palette.canvasHex,
+            palette.borderHex,
+            palette.primaryTextHex,
+            palette.secondaryTextHex,
+            palette.accentHex,
+            palette.keywordHex,
+            palette.functionHex,
+            palette.stringHex,
+            palette.numberHex,
+            palette.operatorHex
+        ]
+        return hexFields.allSatisfy { SparkleThemePalette.rgbComponents(fromHex: $0) != nil }
     }
 }

@@ -115,7 +115,7 @@ public extension AppState {
         let updated = activePalette
         guard let app = NSApp else { return }
         let targetAppearance = NSAppearance(named: updated.isDark ? .darkAqua : .aqua)
-        app.appearance = targetAppearance
+        app.appearance = appearanceMode == .auto ? nil : targetAppearance
         let windowBg = NSColor(hex: updated.windowHex)
         for window in app.windows {
             window.appearance = targetAppearance

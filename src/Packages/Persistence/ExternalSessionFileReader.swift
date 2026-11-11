@@ -317,10 +317,10 @@ public enum WinSCPIniImporter {
 
     private static func resolveProtocol(fsProtocol: String, ftpsMode: String) -> ProtocolType? {
         switch fsProtocol {
-        case "0", "2":
-            return .sftp
-        case "1":
+        case "0":
             return .scp
+        case "1", "2":
+            return .sftp
         case "5":
             switch ftpsMode {
             case "1": return .ftpsImplicit

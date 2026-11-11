@@ -60,6 +60,11 @@ enum CurlClientHelper {
         if context.proxy.kind != .none, !context.proxy.host.isEmpty {
             let scheme = context.proxy.kind == .socks5 ? "socks5h" : "http"
             let rawHost = context.proxy.host.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !rawHost.contains("@"),
+                  !rawHost.contains("/"),
+                  !rawHost.contains(where: \.isWhitespace) else {
+                throw AppError.invalidConfiguration("Invalid proxy host")
+            }
             let formattedHost = (rawHost.contains(":") && !rawHost.hasPrefix("[")) ? "[\(rawHost)]" : rawHost
             let proxyURL = "\(scheme)://\(formattedHost):\(context.proxy.port)"
             sparklesftp_curl_setopt_string(handle, CURLOPT_PROXY, proxyURL)

@@ -113,7 +113,8 @@ public enum EditorTextEncoding: String, Sendable, CaseIterable, Identifiable {
     }
 
     public static func decode(_ data: Data) -> (text: String, encoding: EditorTextEncoding) {
-        if data.starts(with: [0xFF, 0xFE]), let utf16 = String(bytes: data, encoding: .utf16LittleEndian) {
+        if data.starts(with: [0xFF, 0xFE]),
+           let utf16 = String(bytes: Data(data.dropFirst(2)), encoding: .utf16LittleEndian) {
             return (utf16, .utf16LE)
         }
         if data.starts(with: [0xEF, 0xBB, 0xBF]),

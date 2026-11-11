@@ -80,7 +80,11 @@ public extension AppState {
             let tempDir = try SecureTempDirectory.createIsolatedWorkingDirectory(prefix: "SparkleGz")
             defer { try? FileManager.default.removeItem(at: tempDir) }
 
-            let archiveSpec = try buildCompressedUploadArtifact(files: files, in: tempDir)
+            let archiveSpec = try await buildCompressedUploadArtifact(
+                files: files,
+                in: tempDir,
+                localRootPath: localCurrentURL.path
+            )
             let remoteDest = try session.currentRemotePath.appending(archiveSpec.archiveName)
             try await session.service.fileSystem.upload(from: archiveSpec.archiveURL, to: remoteDest) { _ in }
             await refreshRemoteDirectory(recordHistory: false)
@@ -92,32 +96,38 @@ public extension AppState {
 
     private func buildCompressedUploadArtifact(
         files: [RemoteFile],
-        in tempDir: URL
-    ) throws -> (archiveName: String, archiveURL: URL) {
+        in tempDir: URL,
+        localRootPath: String
+    ) async throws -> (archiveName: String, archiveURL: URL) {
         if files.count == 1, let single = files.first, !single.isDirectory {
             let sourceURL = URL(fileURLWithPath: single.path.rawValue)
-            let plainData = try Data(contentsOf: sourceURL)
-            let gzData = try ZlibCompressionCodec.compress(plainData, level: 6, format: .gzip)
             let archiveName = "\(single.name).gz"
             let archiveURL = try PathValidator.safeLocalDestination(filename: archiveName, baseDirectory: tempDir)
-            try gzData.write(to: archiveURL, options: [.atomic])
+            try await Task.detached(priority: .userInitiated) {
+                let plainData = try Data(contentsOf: sourceURL)
+                let gzData = try ZlibCompressionCodec.compress(plainData, level: 6, format: .gzip)
+                try gzData.write(to: archiveURL, options: [.atomic])
+            }.value
             return (archiveName, archiveURL)
         }
 
         let baseName = files.first?.name ?? "archive"
         let archiveName = "\(baseName).tar.gz"
         let archiveURL = try PathValidator.safeLocalDestination(filename: archiveName, baseDirectory: tempDir)
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-        process.arguments = ["-czf", archiveURL.path, "-C", localCurrentURL.path] + files.map(\.name)
-        let pipe = Pipe()
-        process.standardError = pipe
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            let errText = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            throw AppError.transferFailed(reason: "tar failed (\(process.terminationStatus)): \(errText)")
-        }
+        let fileNames = files.map(\.name)
+        try await Task.detached(priority: .userInitiated) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
+            process.arguments = ["-czf", archiveURL.path, "-C", localRootPath, "--"] + fileNames
+            let pipe = Pipe()
+            process.standardError = pipe
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                let errText = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                throw AppError.transferFailed(reason: "tar failed (\(process.terminationStatus)): \(errText)")
+            }
+        }.value
         return (archiveName, archiveURL)
     }
 

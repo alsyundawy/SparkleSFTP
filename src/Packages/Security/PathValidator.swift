@@ -31,14 +31,22 @@ public enum PathValidator {
             baseDir.rawValue + "/" + trimmed
         }
 
-        // Check raw traversal segments explicitly before normalization clamps at root.
+        // Reject explicit traversal segments that attempt to climb past baseDir (or past root).
         let rawSegments = trimmed.split(separator: "/", omittingEmptySubsequences: true)
-        if rawSegments.contains(".."), !trimmed.hasPrefix("/") {
-            let resolved = resolveDotsCheckingEscape(base: baseDir.rawValue, segments: rawSegments)
-            guard let safeResolved = resolved else {
+        if rawSegments.contains("..") {
+            let basePathForDots = trimmed.hasPrefix("/") ? "/" : baseDir.rawValue
+            guard let safeResolved = resolveDotsCheckingEscape(base: basePathForDots, segments: rawSegments) else {
                 throw AppError.pathTraversal(attempted: rawPath)
             }
-            return RemotePath(rawValue: safeResolved)
+            let normalizedResolved = RemotePath(rawValue: safeResolved)
+            if !baseDir.isRoot {
+                let basePrefix = baseDir.rawValue + "/"
+                guard normalizedResolved.rawValue == baseDir.rawValue
+                    || normalizedResolved.rawValue.hasPrefix(basePrefix) else {
+                    throw AppError.pathTraversal(attempted: rawPath)
+                }
+            }
+            return normalizedResolved
         }
 
         let normalized = RemotePath(rawValue: combined)

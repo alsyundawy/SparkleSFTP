@@ -15,7 +15,7 @@
 
 ## 14-Pillar & Security Checklist
 
-- [ ] **Architecture**: Strict dependency boundaries preserved (`src/Packages/` does not import `src/Features/`, Views do not call Citadel/libcurl/Keychain directly).
+- [ ] **Architecture**: Strict dependency boundaries preserved (`src/Packages/` does not import `src/Features/`, Views do not call `NIOSSH`/`Clibcurl`/Keychain directly).
 - [ ] **Concurrency**: Swift 6 strict concurrency clean; no unverified `@unchecked Sendable` or `Task.detached` retain cycles.
 - [ ] **Security**: No credentials/keys logged (`OSLog` privacy labels applied); host key TOFU and TLS `SecTrust` validation remain enforced.
 - [ ] **Path Safety**: Remote/local paths canonicalized and symlinks validated before file writes.

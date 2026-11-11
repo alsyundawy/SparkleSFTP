@@ -76,7 +76,7 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     }
 
     public func makeNSView(context: Context) -> TerminalView {
-        let view = TerminalView(frame: .zero)
+        let view = TerminalView(frame: .zero, options: TerminalOptions(scrollback: 10000))
         view.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         applyTheme(themeColors, to: view)
         context.coordinator.cachedThemeColors = themeColors
@@ -88,6 +88,9 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     }
 
     public func updateNSView(_ nsView: TerminalView, context: Context) {
+        if context.coordinator.boundSession !== session {
+            context.coordinator.rebind(to: session, terminalView: nsView)
+        }
         if nsView.terminalDelegate !== context.coordinator {
             nsView.terminalDelegate = context.coordinator
         }
@@ -111,8 +114,17 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         private weak var session: TerminalTabSession?
         var cachedThemeColors: TerminalThemeColors?
 
+        var boundSession: TerminalTabSession? {
+            session
+        }
+
         init(session: TerminalTabSession) {
             self.session = session
+        }
+
+        func rebind(to newSession: TerminalTabSession, terminalView: TerminalView) {
+            session = newSession
+            newSession.attachTerminalView(terminalView)
         }
 
         func teardown() {

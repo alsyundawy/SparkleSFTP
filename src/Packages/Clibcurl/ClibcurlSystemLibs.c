@@ -58,6 +58,10 @@ int sparklesftp_zlib_deflate(const uint8_t *input, size_t input_len, int level, 
     }
 
     uLong bound = deflateBound(&stream, (uLong)input_len);
+    if (bound > (uLong)UINT32_MAX) {
+        deflateEnd(&stream);
+        return -1;
+    }
     if (bound == 0) {
         bound = 16;
     }
@@ -117,6 +121,18 @@ int sparklesftp_zlib_inflate(const uint8_t *input, size_t input_len, size_t max_
 
     for (;;) {
         if (stream.total_out >= max_output_bytes) {
+            if (stream.avail_in > 0) {
+                uint8_t trailer_probe = 0;
+                stream.next_out = (Bytef *)&trailer_probe;
+                stream.avail_out = 0;
+                int probe_status = inflate(&stream, Z_NO_FLUSH);
+                if (probe_status == Z_STREAM_END) {
+                    *out_data = buffer;
+                    *out_len = (size_t)stream.total_out;
+                    inflateEnd(&stream);
+                    return 0;
+                }
+            }
             free(buffer);
             inflateEnd(&stream);
             return -5;
@@ -183,8 +199,6 @@ int sparklesftp_probe_libssh2(char *out_version, size_t capacity, char *out_path
         "/usr/local/opt/libssh2/lib/libssh2.1.dylib",
         "/opt/homebrew/lib/libssh2.1.dylib",
         "/usr/local/lib/libssh2.1.dylib",
-        "@rpath/libssh2.1.dylib",
-        "libssh2.1.dylib",
     };
 
     const size_t count = sizeof(kCandidatePaths) / sizeof(kCandidatePaths[0]);

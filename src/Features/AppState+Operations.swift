@@ -99,17 +99,20 @@ public extension AppState {
     }
 
     func refreshRemoteDirectory(at path: RemotePath? = nil, recordHistory: Bool = true) async {
-        guard let idx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
-        let targetPath = path ?? activeSessions[idx].currentRemotePath
-        let sort = activeSessions[idx].sortDescriptor
+        guard let initialIdx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
+        let sessionID = activeSessions[initialIdx].id
+        let fileSystem = activeSessions[initialIdx].service.fileSystem
+        let targetPath = path ?? activeSessions[initialIdx].currentRemotePath
+        let sort = activeSessions[initialIdx].sortDescriptor
         do {
-            let items = try await activeSessions[idx].service.fileSystem.listDirectory(at: targetPath)
+            let items = try await fileSystem.listDirectory(at: targetPath)
             let sorted = await FileSortDescriptor.sortRemoteFiles(items, by: sort)
-            activeSessions[idx].currentRemotePath = targetPath
+            guard let refreshedIdx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+            activeSessions[refreshedIdx].currentRemotePath = targetPath
             if recordHistory {
-                activeSessions[idx].history.navigate(to: targetPath.rawValue)
+                activeSessions[refreshedIdx].history.navigate(to: targetPath.rawValue)
             }
-            activeSessions[idx].remoteFiles = PaginatedFileWindow(allFiles: sorted)
+            activeSessions[refreshedIdx].remoteFiles = PaginatedFileWindow(allFiles: sorted)
         } catch {
             lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
         }
@@ -146,17 +149,18 @@ public extension AppState {
     }
 
     func sortRemoteFiles(by field: FileSortField) async {
-        guard let idx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
-        if activeSessions[idx].sortDescriptor.field == field {
-            activeSessions[idx].sortDescriptor.ascending.toggle()
+        guard let initialIdx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
+        let sessionID = activeSessions[initialIdx].id
+        if activeSessions[initialIdx].sortDescriptor.field == field {
+            activeSessions[initialIdx].sortDescriptor.ascending.toggle()
         } else {
-            activeSessions[idx].sortDescriptor = FileSortDescriptor(field: field, ascending: true)
+            activeSessions[initialIdx].sortDescriptor = FileSortDescriptor(field: field, ascending: true)
         }
-        let sorted = await FileSortDescriptor.sortRemoteFiles(
-            activeSessions[idx].remoteFiles.allFiles,
-            by: activeSessions[idx].sortDescriptor
-        )
-        activeSessions[idx].remoteFiles.replaceFiles(sorted)
+        let sortDescriptor = activeSessions[initialIdx].sortDescriptor
+        let snapshotFiles = activeSessions[initialIdx].remoteFiles.allFiles
+        let sorted = await FileSortDescriptor.sortRemoteFiles(snapshotFiles, by: sortDescriptor)
+        guard let refreshedIdx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        activeSessions[refreshedIdx].remoteFiles.replaceFiles(sorted)
     }
 
     func enqueueSelectedTransfer() async {

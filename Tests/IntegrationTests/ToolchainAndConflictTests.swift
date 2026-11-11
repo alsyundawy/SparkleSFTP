@@ -57,7 +57,7 @@ struct ToolchainAndConflictTests {
         )
         #expect(args == [
             "/usr/bin/ssh", "-p", "2222", "-o", "ServerAliveInterval=30",
-            "-J", "jump@bastion.example.com:2200", "deploy@app.example.com"
+            "-J", "jump@bastion.example.com:2200", "--", "deploy@app.example.com"
         ])
         #expect(try ExternalTerminalLauncher.escapePOSIXSingleQuoted("a'b") == "'a'\\''b'")
         #expect(throws: AppError.self) {

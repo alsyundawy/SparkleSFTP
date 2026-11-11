@@ -107,6 +107,7 @@ public struct TerminalWorkspaceView: View {
 
     private func terminalSessionView(session: TerminalTabSession, themeColors: TerminalThemeColors) -> some View {
         TerminalViewRepresentable(session: session, themeColors: themeColors)
+            .id(session.id)
     }
 }
 

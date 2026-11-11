@@ -187,6 +187,7 @@ public extension AppState {
         let trimmedUser = quickConnectUsername.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedUser = trimmedUser.isEmpty ? "root" : trimmedUser
         let enteredSecret = quickConnectPassword
+        quickConnectPassword = ""
         let profile = ConnectionProfile(
             name: trimmedHost,
             protocolType: quickConnectProtocol,

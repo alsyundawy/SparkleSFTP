@@ -7,6 +7,8 @@ import SwiftUI
 public struct CopyMoveItemSheet: View {
     let request: CopyMoveRequest
     let hasActiveSession: Bool
+    let oppositeDefaultPath: String
+    let sameSideDefaultPath: String
     let strings: AppStrings
     let onConfirm: (String, Bool) -> Void
 
@@ -25,6 +27,8 @@ public struct CopyMoveItemSheet: View {
     ) {
         self.request = request
         self.hasActiveSession = hasActiveSession
+        self.oppositeDefaultPath = oppositeDefaultPath
+        self.sameSideDefaultPath = sameSideDefaultPath
         self.strings = strings
         self.onConfirm = onConfirm
         let crossPane = hasActiveSession && !request.isMove
@@ -42,6 +46,9 @@ public struct CopyMoveItemSheet: View {
 
             if hasActiveSession {
                 Toggle(strings.t("pane.targetOppositePane"), isOn: $transferToOppositePane)
+                    .onChange(of: transferToOppositePane) { useOpposite in
+                        destinationPath = useOpposite ? oppositeDefaultPath : sameSideDefaultPath
+                    }
             }
 
             VStack(alignment: .leading, spacing: 4) {

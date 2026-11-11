@@ -122,7 +122,7 @@ public actor TransferJournal: TransferJournalProtocol {
     }
 
     public func reconcileInterruptedOnLaunch() async throws -> [TransferJournalRecord] {
-        let activeCodes = ["preparing", "connecting", "transferring", "verifying", "finalizing"]
+        let activeCodes = ["preparing", "connecting", "transferring", "verifying", "finalizing", "queued"]
         let placeholders = activeCodes.map { "'\($0)'" }.joined(separator: ",")
         try executeSQL("BEGIN IMMEDIATE TRANSACTION;")
         do {
@@ -198,6 +198,7 @@ public actor TransferJournal: TransferJournalProtocol {
         );
         CREATE INDEX IF NOT EXISTS idx_transfer_journal_updated ON transfer_journal (updated_at DESC);
         CREATE INDEX IF NOT EXISTS idx_transfer_journal_status ON transfer_journal (status_code);
+        PRAGMA user_version = 1;
         """
         try executeSQL(schemaSQL, on: database)
     }

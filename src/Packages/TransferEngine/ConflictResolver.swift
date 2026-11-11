@@ -159,7 +159,8 @@ public actor ConflictResolver {
         let url = URL(fileURLWithPath: filename)
         let base = url.deletingPathExtension().lastPathComponent
         let ext = url.pathExtension
-        let suffix = "copy-\(Int(Date().timeIntervalSince1970))"
+        let shortNonce = UUID().uuidString.prefix(4).lowercased()
+        let suffix = "copy-\(Int(Date().timeIntervalSince1970))-\(shortNonce)"
         return ext.isEmpty ? "\(base)-\(suffix)" : "\(base)-\(suffix).\(ext)"
     }
 }

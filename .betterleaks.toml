@@ -3,10 +3,11 @@ title = "SparkleSFTP Betterleaks Secret Scanning Policy"
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Allowlist non-secret OpenSSH PEM delimiter constants and runtime-generated test keys"
+condition = "AND"
 paths = [
-  '''^Packages/Security/PrivateKeyParser\.swift$''',
+  '''^src/Packages/Security/PrivateKeyParser\.swift$''',
   '''^Tests/SecurityTests/SecurityTests\.swift$''',
   '''^Tests/IntegrationTests/LoopbackSFTPIntegrationTests\.swift$'''
 ]

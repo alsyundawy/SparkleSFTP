@@ -114,6 +114,7 @@ public actor PortForwardingManager {
         ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.backlog, value: 128)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+            .childChannelOption(ChannelOptions.autoRead, value: false)
             .childChannelInitializer { inboundChannel in
                 guard let remoteAddress = inboundChannel.remoteAddress else {
                     return inboundChannel.eventLoop.makeFailedFuture(AppError.notConnected)
@@ -140,6 +141,7 @@ public actor PortForwardingManager {
                                 TunnelGlueHandler(peerChannel: sshChild)
                             )
                         }.get()
+                        _ = try? await inboundChannel.setOption(ChannelOptions.autoRead, value: true).get()
                         promise.succeed(())
                     } catch {
                         promise.fail(error)

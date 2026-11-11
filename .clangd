@@ -5,6 +5,6 @@ CompileFlags:
   Add:
     - "-xc"
     - "-std=c11"
-    - "-I/Users/alsyundawy/Downloads/GitHub/SparkleSFTP/src/Packages/Clibcurl/include"
+    - "-Isrc/Packages/Clibcurl/include"
     - "-isysroot"
     - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"

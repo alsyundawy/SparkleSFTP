@@ -122,6 +122,7 @@
     "conn.importKeyFile": "Impor Berkas Kunci...",
     "conn.keyPassphrase": "Frasa Sandi Kunci (Keychain, Opsional)",
     "conn.otpPlaceholder": "Kata Sandi / Kode Verifikasi (2FA OTP)",
+    "conn.password": "Kata Sandi",
     "conn.passwordKeychain": "Kata Sandi (Disimpan di Apple Keychain)",
     "conn.plaintextFTPWarning": "PERINGATAN: FTP tanpa enkripsi mengirimkan kredensial dan berkas dalam teks biasa.",
     "conn.port": "Port",

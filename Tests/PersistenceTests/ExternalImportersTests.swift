@@ -60,12 +60,17 @@ struct ExternalImportersTests {
         HostName=app.example.org
         PortNumber=2200
         UserName=ubuntu
-        FSProtocol=1
+        FSProtocol=0
         ProxyMethod=2
         ProxyHost=127.0.0.1
         ProxyPort=1080
         RemoteDirectory=/srv/app
         Password=A34F8910
+
+        [Sessions\\Default%20SFTP]
+        HostName=sftp.example.org
+        UserName=ubuntu
+        FSProtocol=1
 
         [Sessions\\Legacy%20FTPS]
         HostName=ftp.example.org
@@ -85,7 +90,7 @@ struct ExternalImportersTests {
         }
         let report = try ExternalConnectionFileReader.inspect(data: bomData, fileExtension: "ini")
         #expect(report.format == .winSCPINI)
-        #expect(report.connections.count == 2)
+        #expect(report.connections.count == 3)
         #expect(report.skippedUnsupported == 1)
 
         let scp = try #require(report.connections.first)
@@ -95,7 +100,10 @@ struct ExternalImportersTests {
         #expect(scp.profile.proxy.kind == .socks5)
         #expect(scp.secretStatus == .encryptedUnavailable)
 
-        let ftps = try #require(report.connections.dropFirst().first)
+        let defaultSFTP = try #require(report.connections.dropFirst().first)
+        #expect(defaultSFTP.profile.protocolType == .sftp)
+
+        let ftps = try #require(report.connections.dropFirst(2).first)
         #expect(ftps.profile.protocolType == .ftpsImplicit)
         #expect(ftps.secretStatus == .none)
     }

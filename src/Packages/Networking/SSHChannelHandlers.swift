@@ -228,15 +228,30 @@ final class SSHErrorTrackerHandler: ChannelInboundHandler {
 final class ExecContinuationBox: @unchecked Sendable { // JUSTIFICATION: NSLock guards single-shot completion.
     private let lock = NSLock()
     private var continuation: CheckedContinuation<SSHCommandOutput, Error>?
+    private var attachedChannel: Channel?
+    private var cancelled = false
 
     init(continuation: CheckedContinuation<SSHCommandOutput, Error>) {
         self.continuation = continuation
+    }
+
+    func attachChannel(_ channel: Channel) {
+        lock.lock()
+        let alreadyCancelled = cancelled
+        if !alreadyCancelled {
+            attachedChannel = channel
+        }
+        lock.unlock()
+        if alreadyCancelled {
+            channel.close(promise: nil)
+        }
     }
 
     func succeed(_ output: SSHCommandOutput) {
         lock.lock()
         let cont = continuation
         continuation = nil
+        attachedChannel = nil
         lock.unlock()
         cont?.resume(returning: output)
     }
@@ -245,8 +260,21 @@ final class ExecContinuationBox: @unchecked Sendable { // JUSTIFICATION: NSLock 
         lock.lock()
         let cont = continuation
         continuation = nil
+        attachedChannel = nil
         lock.unlock()
         cont?.resume(throwing: error)
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let cont = continuation
+        continuation = nil
+        let channel = attachedChannel
+        attachedChannel = nil
+        lock.unlock()
+        cont?.resume(throwing: CancellationError())
+        channel?.close(promise: nil)
     }
 }
 

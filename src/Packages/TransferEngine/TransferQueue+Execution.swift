@@ -107,14 +107,17 @@ extension TransferQueue {
                 partialURL: prep.partialURL,
                 baseDir: prep.baseDir,
                 remoteMeta: prep.remoteMeta
-            )
+            ),
+            preparedPartialOffset: prep.existingOffset
         ) else {
             try? FileManager.default.removeItem(at: prep.partialURL)
             skippedIDs.insert(metadata.id)
             return
         }
 
-        let effectiveOffset = prep.existingOffset > 0 ? prep.existingOffset : plan.resumeOffset
+        let effectiveOffset = plan.allowPreparedPartial
+            ? max(prep.existingOffset, plan.resumeOffset)
+            : plan.resumeOffset
         let resolvedPerms = metadata.sourcePermissions ?? prep.remoteMeta?.permissions
         let request = DownloadFlowRequest(
             metadata: metadata,
@@ -312,7 +315,8 @@ extension TransferQueue {
         else {
             return 0
         }
-        return remotePartial.size
+        let verifiedOffset = min(checkpoint.bytesTransferred, remotePartial.size)
+        return verifiedOffset > 0 ? verifiedOffset : remotePartial.size
     }
 
     private func executeDownloadFlow(_ request: DownloadFlowRequest) async throws {

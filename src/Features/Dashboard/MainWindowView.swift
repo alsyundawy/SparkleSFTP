@@ -192,15 +192,27 @@ public struct MainWindowView: View {
         .sheet(isPresented: $appState.isShowingSyncSheet) {
             SyncPreviewSheet(appState: appState)
         }
-        .sheet(item: $appState.pendingHostChallenge) { challenge in
-            HostKeyVerificationSheet(appState: appState, challenge: challenge)
-        }
-        .sheet(item: $appState.pendingCredentialPrompt) { req in
-            CredentialPromptSheet(appState: appState, request: req)
-        }
-        .sheet(item: $appState.pendingConflict) { conflict in
-            ConflictResolutionSheet(appState: appState, conflict: conflict)
-        }
+        .sheet(
+            item: $appState.pendingHostChallenge,
+            onDismiss: { appState.cancelPendingHostChallengeIfNeeded() },
+            content: { challenge in
+                HostKeyVerificationSheet(appState: appState, challenge: challenge)
+            }
+        )
+        .sheet(
+            item: $appState.pendingCredentialPrompt,
+            onDismiss: { appState.cancelPendingCredentialPromptIfNeeded() },
+            content: { req in
+                CredentialPromptSheet(appState: appState, request: req)
+            }
+        )
+        .sheet(
+            item: $appState.pendingConflict,
+            onDismiss: { appState.cancelPendingConflictIfNeeded() },
+            content: { conflict in
+                ConflictResolutionSheet(appState: appState, conflict: conflict)
+            }
+        )
         .alert(
             appState.strings.hostKeyMismatchTitle,
             isPresented: Binding(

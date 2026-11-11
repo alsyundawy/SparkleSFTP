@@ -326,35 +326,8 @@ public final class AppState: ObservableObject {
     }
 }
 
-public extension AppState {
-    func resolveHostChallenge(trusted: Bool) {
-        pendingHostChallenge = nil
-        hostChallengeContinuation?.resume(returning: trusted)
-        hostChallengeContinuation = nil
-    }
-
-    func resolveCredentialPrompt(_ secret: String?, remember: Bool = false) {
-        pendingPromptedSecretToRemember = (remember && !(secret ?? "").isEmpty) ? secret : nil
-        pendingCredentialPrompt = nil
-        credentialPromptContinuation?.resume(returning: secret)
-        credentialPromptContinuation = nil
-    }
-
-    func resolveConflict(
-        _ resolution: TransferConflictResolution,
-        applyToQueue: Bool = false,
-        queuePolicy: TransferConflictPolicy? = nil,
-        scope: TransferConflictScope = .all
-    ) {
-        handleConflictResolution(
-            resolution,
-            applyToQueue: applyToQueue,
-            queuePolicy: queuePolicy,
-            scope: scope
-        )
-    }
-
-    internal func resolveRemoteFileSystem(for profileID: UUID) throws -> any RemoteFileSystem {
+extension AppState {
+    func resolveRemoteFileSystem(for profileID: UUID) throws -> any RemoteFileSystem {
         if let current = currentSession, current.profile.id == profileID {
             return current.service.fileSystem
         }
@@ -364,13 +337,13 @@ public extension AppState {
         return session.service.fileSystem
     }
 
-    internal func ensureTransferObserverStarted() {
+    func ensureTransferObserverStarted() {
         if snapshotStreamTask == nil {
             startTransferObserver()
         }
     }
 
-    internal func startTransferObserver() {
+    func startTransferObserver() {
         snapshotStreamTask?.cancel()
         snapshotStreamTask = Task { [weak self] in
             guard let self else { return }

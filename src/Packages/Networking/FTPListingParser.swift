@@ -106,12 +106,24 @@ public enum FTPListingParser {
         )
     }
 
-    private static func parseMLSDTimestamp(_ value: String) -> Date? {
+    private static let mlsdSecondFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = value.contains(".") ? "yyyyMMddHHmmss.SSS" : "yyyyMMddHHmmss"
-        return formatter.date(from: value)
+        formatter.dateFormat = "yyyyMMddHHmmss"
+        return formatter
+    }()
+
+    private static let mlsdMillisFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyyMMddHHmmss.SSS"
+        return formatter
+    }()
+
+    private static func parseMLSDTimestamp(_ value: String) -> Date? {
+        (value.contains(".") ? mlsdMillisFormatter : mlsdSecondFormatter).date(from: value)
     }
 
     private static func parseSymbolicPermissions(_ perm: String) -> UInt32 {
@@ -119,8 +131,17 @@ public enum FTPListingParser {
         guard chars.count == 9 else { return 0o644 }
         var mode: UInt32 = 0
         let bits: [UInt32] = [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001]
-        for (idx, char) in chars.enumerated() where char != "-" {
+        for (idx, char) in chars.enumerated() where char != "-" && char != "S" && char != "T" {
             mode |= bits[idx]
+        }
+        if chars[2] == "s" || chars[2] == "S" {
+            mode |= 0o4000
+        }
+        if chars[5] == "s" || chars[5] == "S" {
+            mode |= 0o2000
+        }
+        if chars[8] == "t" || chars[8] == "T" {
+            mode |= 0o1000
         }
         return mode
     }

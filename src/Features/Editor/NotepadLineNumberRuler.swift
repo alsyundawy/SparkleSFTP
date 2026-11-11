@@ -76,9 +76,10 @@ final class NotepadLineNumberRulerView: NSRulerView {
             return
         }
 
-        while index <= maxIndex {
+        while index <= maxIndex, index < nsText.length {
             let lineRange = nsText.lineRange(for: NSRange(location: min(index, nsText.length), length: 0))
             let glyphIndex = layoutManager.glyphIndexForCharacter(at: lineRange.location)
+            guard glyphIndex < layoutManager.numberOfGlyphs else { break }
             var lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
             lineRect.origin.y += textView.textContainerOrigin.y
             drawLabel("\(lineNumber)", atY: lineRect.origin.y + 1, attrs: attrs, scrollOffset: visibleRect.origin.y)

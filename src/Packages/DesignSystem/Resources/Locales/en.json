@@ -122,6 +122,7 @@
     "conn.importKeyFile": "Import Key File...",
     "conn.keyPassphrase": "Optional Key Passphrase (Keychain)",
     "conn.otpPlaceholder": "Password / Verification Code (2FA OTP)",
+    "conn.password": "Password",
     "conn.passwordKeychain": "Password (Stored in Apple Keychain)",
     "conn.plaintextFTPWarning": "WARNING: Plain FTP transmits credentials and files unencrypted.",
     "conn.port": "Port",

@@ -7,95 +7,6 @@ import SparkleTransferEngine
 import UserNotifications
 
 public extension AppState {
-    internal func promptHostKeyChallenge(_ challenge: HostKeyChallenge) async -> Bool {
-        await withCheckedContinuation { continuation in
-            hostChallengeContinuation = continuation
-            pendingHostChallenge = challenge
-        }
-    }
-
-    internal func promptCredential(_ request: CredentialPromptRequest) async -> String? {
-        let key = "\(request.host):\(request.port):\(request.username)"
-        if let transient = transientQuickConnectSecrets.removeValue(forKey: key),
-           !transient.isEmpty {
-            return transient
-        }
-        return await withCheckedContinuation { continuation in
-            credentialPromptContinuation = continuation
-            pendingCredentialPrompt = request
-        }
-    }
-
-    internal func promptConflictResolution(_ context: ConflictContext) async -> TransferConflictResolution {
-        await withCheckedContinuation { continuation in
-            enqueueConflictPrompt(context, continuation: continuation)
-        }
-    }
-
-    internal func enqueueConflictPrompt(
-        _ context: ConflictContext,
-        continuation: CheckedContinuation<TransferConflictResolution, Never>
-    ) {
-        if let stickyPolicy = activeConflictRule(for: context.direction) {
-            let name = URL(fileURLWithPath: context.destinationDisplayPath).lastPathComponent
-            let auto = ConflictResolver.evaluateNonInteractivePolicy(
-                stickyPolicy,
-                context: context,
-                originalFilename: name
-            )
-            continuation.resume(returning: auto)
-            return
-        }
-        pendingConflictQueue.append(ConflictPromptEntry(context: context, continuation: continuation))
-        if pendingConflict == nil {
-            pendingConflict = pendingConflictQueue.first?.context
-        }
-    }
-
-    internal func handleConflictResolution(
-        _ resolution: TransferConflictResolution,
-        applyToQueue: Bool,
-        queuePolicy: TransferConflictPolicy?,
-        scope: TransferConflictScope
-    ) {
-        if applyToQueue, let policy = queuePolicy {
-            activeQueueConflictRules[scope] = policy
-            hasActiveConflictQueueRules = true
-            Task { await transferQueue.applyConflictRule(policy, scope: scope) }
-        }
-        guard !pendingConflictQueue.isEmpty else {
-            pendingConflict = nil
-            return
-        }
-        let first = pendingConflictQueue.removeFirst()
-        first.continuation.resume(returning: resolution)
-        drainAutoResolvedConflictsIfNeeded()
-    }
-
-    private func drainAutoResolvedConflictsIfNeeded() {
-        var remaining: [ConflictPromptEntry] = []
-        for entry in pendingConflictQueue {
-            if let stickyPolicy = activeConflictRule(for: entry.context.direction) {
-                let name = URL(fileURLWithPath: entry.context.destinationDisplayPath).lastPathComponent
-                let auto = ConflictResolver.evaluateNonInteractivePolicy(
-                    stickyPolicy,
-                    context: entry.context,
-                    originalFilename: name
-                )
-                entry.continuation.resume(returning: auto)
-            } else {
-                remaining.append(entry)
-            }
-        }
-        pendingConflictQueue = remaining
-        pendingConflict = pendingConflictQueue.first?.context
-    }
-
-    private func activeConflictRule(for direction: TransferDirection) -> TransferConflictPolicy? {
-        let dirScope: TransferConflictScope = direction == .upload ? .uploadsOnly : .downloadsOnly
-        return activeQueueConflictRules[dirScope] ?? activeQueueConflictRules[.all]
-    }
-
     internal func notifyTerminalTransfersIfNeeded(_ snapshots: [TransferSnapshot]) {
         guard Bundle.main.bundleURL.pathExtension == "app" else { return }
         for snap in snapshots where !notifiedTerminalTransferIDs.contains(snap.id) {
@@ -244,19 +155,29 @@ public extension AppState {
         guard await authenticateBiometricsIfNeeded(for: profile) else { return }
         let created = buildRemoteService(for: profile)
 
+        var didConnectTransport = false
+        var committedSession = false
         do {
             try await created.service.connection.connect()
+            didConnectTransport = true
             try await finalizeSuccessfulConnection(
                 profile: profile,
                 created: created,
                 openInNewTab: openInNewTab
             )
+            committedSession = true
         } catch let appError as AppError {
+            if didConnectTransport, !committedSession {
+                try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
+            }
             if case .hostKeyMismatch = appError {
                 hostMismatchAlert = appError
             }
             lastError = appError
         } catch {
+            if didConnectTransport, !committedSession {
+                try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
+            }
             lastError = .transferFailed(reason: error.localizedDescription)
         }
     }
@@ -367,7 +288,7 @@ public extension AppState {
             workspaceTabs[tabIdx].isTerminalVisible = false
         }
         if activeSessionID == sessionID {
-            activeSessionID = currentTab?.sessionID ?? activeSessions.last?.id
+            activeSessionID = currentTab?.sessionID
             if currentTab?.sessionID == nil {
                 isTerminalVisible = false
                 terminalManager.selectedSessionID = nil

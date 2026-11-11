@@ -152,9 +152,18 @@ public actor SyncExecutor {
         guard !parts.isEmpty else {
             throw AppError.pathTraversal(attempted: relativePath)
         }
-        var currentDir = localRoot.standardizedFileURL.resolvingSymlinksInPath()
+        let resolvedRoot = localRoot.standardizedFileURL.resolvingSymlinksInPath()
+        let rootPrefix = resolvedRoot.path.hasSuffix("/") ? resolvedRoot.path : resolvedRoot.path + "/"
+        var currentDir = resolvedRoot
         for segment in parts.dropLast() {
+            if segment == "." || segment == ".." || segment.contains("\0") {
+                throw AppError.pathTraversal(attempted: relativePath)
+            }
             currentDir = currentDir.appendingPathComponent(segment, isDirectory: true)
+            let resolvedParent = currentDir.resolvingSymlinksInPath()
+            guard resolvedParent.path == resolvedRoot.path || resolvedParent.path.hasPrefix(rootPrefix) else {
+                throw AppError.symlinkTraversal(destination: resolvedParent.path)
+            }
         }
         return try PathValidator.safeLocalDestination(filename: parts[parts.count - 1], baseDirectory: currentDir)
     }

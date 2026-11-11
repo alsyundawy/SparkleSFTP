@@ -37,12 +37,21 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         sparklesftp_curl_global_init_once()
         connectionState = .connecting
 
-        if let passwordRef = profile.passwordRef,
-           let data = try? await credentialStore.loadSecret(
-               for: passwordRef,
-               prompt: profile.requireTouchID ? "Unlock FTP password for \(profile.name)" : nil
-           ) {
-            cachedPassword = String(data: data, encoding: .utf8)
+        if let passwordRef = profile.passwordRef {
+            do {
+                let data = try await credentialStore.loadSecret(
+                    for: passwordRef,
+                    prompt: profile.requireTouchID ? "Unlock FTP password for \(profile.name)" : nil
+                )
+                cachedPassword = String(data: data, encoding: .utf8)
+            } catch let appError as AppError {
+                if case .credentialNotFound = appError {
+                    cachedPassword = nil
+                } else {
+                    connectionState = .failed(appError)
+                    throw appError
+                }
+            }
         } else if profile.authMethod == .password, let credentialPrompt {
             let req = CredentialPromptRequest(
                 host: profile.host,
@@ -57,15 +66,20 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
             cachedPassword = nil
         }
 
-        if profile.protocolType == .ftpsImplicit {
-            lastVerifiedCertificate = try await tlsValidator.preflightVerifyTLS(
-                host: profile.host,
-                port: profile.port
-            )
+        do {
+            if profile.protocolType == .ftpsImplicit {
+                lastVerifiedCertificate = try await tlsValidator.preflightVerifyTLS(
+                    host: profile.host,
+                    port: profile.port
+                )
+            }
+            _ = try await performListing(path: profile.defaultRemotePath, useMLSD: false)
+            connectionState = .connected(connectedAt: Date())
+        } catch {
+            let mapped = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            connectionState = .failed(mapped)
+            throw error
         }
-
-        _ = try await performListing(path: profile.defaultRemotePath, useMLSD: false)
-        connectionState = .connected(connectedAt: Date())
     }
 
     public func disconnect(policy _: DisconnectPolicy) async throws {
@@ -76,13 +90,13 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
     public func listDirectory(at path: RemotePath) async throws -> [RemoteFile] {
         do {
             let mlsdOutput = try await performListing(path: path, useMLSD: true)
-            let parsed = FTPListingParser.parse(listing: mlsdOutput, directory: path)
-            if !parsed.isEmpty {
-                return parsed
-            }
-        } catch {
-            if case AppError.tlsValidationFailed = error {
-                throw error
+            return FTPListingParser.parse(listing: mlsdOutput, directory: path)
+        } catch let appError as AppError {
+            switch appError {
+            case .tlsValidationFailed, .authenticationFailed, .connectionTimeout:
+                throw appError
+            default:
+                break
             }
         }
 
@@ -116,7 +130,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
         let token = CurlCancellationToken()
-        let ctx = makeRequestContext(path: remotePath, trailingSlash: false)
+        let ctx = try makeRequestContext(path: remotePath, trailingSlash: false)
         try await withTaskCancellationHandler {
             try await CurlClientHelper.runOffCooperativePool {
                 if offset == 0 || !FileManager.default.fileExists(atPath: localURL.path) {
@@ -132,13 +146,23 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     onProgress: onProgress,
                     resumeOffset: offset
                 )
-                try CurlClientHelper.executeCurl(context: ctx) { handle in
-                    if offset > 0 {
-                        sparklesftp_curl_setopt_off_t(handle, CURLOPT_RESUME_FROM_LARGE, curl_off_t(offset))
+                try withExtendedLifetime(box) {
+                    try CurlClientHelper.executeCurl(context: ctx) { handle in
+                        if offset > 0 {
+                            sparklesftp_curl_setopt_off_t(handle, CURLOPT_RESUME_FROM_LARGE, curl_off_t(offset))
+                        }
+                        let ptr = Unmanaged.passUnretained(box).toOpaque()
+                        sparklesftp_curl_setopt_write_cb(handle, curlWriteToFileCallback, ptr)
+                        sparklesftp_curl_setopt_xfer_cb(handle, curlProgressCallback, ptr)
                     }
-                    let ptr = Unmanaged.passUnretained(box).toOpaque()
-                    sparklesftp_curl_setopt_write_cb(handle, curlWriteToFileCallback, ptr)
-                    sparklesftp_curl_setopt_xfer_cb(handle, curlProgressCallback, ptr)
+                    let finalOffset = (try? fileHandle.seekToEnd()).map { Int64($0) } ?? offset
+                    if let doneProgress = box.speedMeter.record(
+                        absoluteBytes: finalOffset,
+                        totalOverride: max(finalOffset, offset),
+                        force: true
+                    ) {
+                        onProgress(doneProgress)
+                    }
                 }
             }
         } onCancel: {
@@ -153,7 +177,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
         let token = CurlCancellationToken()
-        let ctx = makeRequestContext(path: remotePath, trailingSlash: false)
+        let ctx = try makeRequestContext(path: remotePath, trailingSlash: false)
         try await withTaskCancellationHandler {
             try await CurlClientHelper.runOffCooperativePool {
                 let attrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
@@ -169,16 +193,18 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     resumeOffset: offset,
                     expectedTotalBytes: fileSize
                 )
-                try CurlClientHelper.executeCurl(context: ctx) { handle in
-                    sparklesftp_curl_setopt_long(handle, CURLOPT_UPLOAD, 1)
-                    let remaining = curl_off_t(max(0, fileSize - offset))
-                    sparklesftp_curl_setopt_off_t(handle, CURLOPT_INFILESIZE_LARGE, remaining)
-                    if offset > 0 {
-                        sparklesftp_curl_setopt_long(handle, CURLOPT_APPEND, 1)
+                try withExtendedLifetime(box) {
+                    try CurlClientHelper.executeCurl(context: ctx) { handle in
+                        sparklesftp_curl_setopt_long(handle, CURLOPT_UPLOAD, 1)
+                        let remaining = curl_off_t(max(0, fileSize - offset))
+                        sparklesftp_curl_setopt_off_t(handle, CURLOPT_INFILESIZE_LARGE, remaining)
+                        if offset > 0 {
+                            sparklesftp_curl_setopt_long(handle, CURLOPT_APPEND, 1)
+                        }
+                        let ptr = Unmanaged.passUnretained(box).toOpaque()
+                        sparklesftp_curl_setopt_read_cb(handle, curlReadFromFileCallback, ptr)
+                        sparklesftp_curl_setopt_xfer_cb(handle, curlProgressCallback, ptr)
                     }
-                    let ptr = Unmanaged.passUnretained(box).toOpaque()
-                    sparklesftp_curl_setopt_read_cb(handle, curlReadFromFileCallback, ptr)
-                    sparklesftp_curl_setopt_xfer_cb(handle, curlProgressCallback, ptr)
                 }
             }
         } onCancel: {
@@ -216,31 +242,38 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         }
         return raw
     }
+}
 
-    private func performListing(path: RemotePath, useMLSD: Bool) async throws -> String {
-        let ctx = makeRequestContext(path: path, trailingSlash: true)
+private extension FTPService {
+    func performListing(path: RemotePath, useMLSD: Bool) async throws -> String {
+        let ctx = try makeRequestContext(path: path, trailingSlash: true)
         return try await CurlClientHelper.runOffCooperativePool {
             let box = CurlMemoryBox()
-            try CurlClientHelper.executeCurl(context: ctx) { handle in
-                if useMLSD {
-                    sparklesftp_curl_setopt_string(handle, CURLOPT_CUSTOMREQUEST, "MLSD")
+            try withExtendedLifetime(box) {
+                try CurlClientHelper.executeCurl(context: ctx) { handle in
+                    if useMLSD {
+                        sparklesftp_curl_setopt_string(handle, CURLOPT_CUSTOMREQUEST, "MLSD")
+                    }
+                    let ptr = Unmanaged.passUnretained(box).toOpaque()
+                    sparklesftp_curl_setopt_write_cb(handle, curlWriteToMemoryCallback, ptr)
                 }
-                let ptr = Unmanaged.passUnretained(box).toOpaque()
-                sparklesftp_curl_setopt_write_cb(handle, curlWriteToMemoryCallback, ptr)
             }
             return String(data: box.data, encoding: .utf8) ?? ""
         }
     }
 
-    private func executeQuoteCommands(_ commands: [String]) async throws {
-        let ctx = makeRequestContext(path: "/", trailingSlash: true)
+    func executeQuoteCommands(_ commands: [String]) async throws {
+        let ctx = try makeRequestContext(path: "/", trailingSlash: true)
         try await CurlClientHelper.runOffCooperativePool {
             try CurlClientHelper.executeCurl(context: ctx, performAutomatically: false) { handle in
                 var slist: UnsafeMutablePointer<curl_slist>?
-                for cmd in commands {
-                    slist = curl_slist_append(slist, cmd)
-                }
                 defer { curl_slist_free_all(slist) }
+                for cmd in commands {
+                    guard let appended = curl_slist_append(slist, cmd) else {
+                        throw AppError.transferFailed(reason: "Failed allocating libcurl FTP command list")
+                    }
+                    slist = appended
+                }
                 sparklesftp_curl_setopt_slist(handle, CURLOPT_QUOTE, slist)
                 sparklesftp_curl_setopt_long(handle, CURLOPT_NOBODY, 1)
                 let perf = curl_easy_perform(handle)
@@ -251,7 +284,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         }
     }
 
-    private func makeRequestContext(path: RemotePath, trailingSlash: Bool) -> CurlRequestContext {
+    func makeRequestContext(path: RemotePath, trailingSlash: Bool) throws -> CurlRequestContext {
         let scheme = profile.protocolType == .ftpsImplicit ? "ftps" : "ftp"
         let encodedPath = path.rawValue
             .split(separator: "/", omittingEmptySubsequences: true)
@@ -262,7 +295,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         } else {
             encodedPath.isEmpty ? "/" : "/\(encodedPath)"
         }
-        let formattedHost = Self.formatURLHost(profile.host)
+        let formattedHost = try Self.formatURLHost(profile.host)
         return CurlRequestContext(
             urlString: "\(scheme)://\(formattedHost):\(profile.port)\(suffix)",
             protocolType: profile.protocolType,
@@ -272,8 +305,16 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         )
     }
 
-    private static func formatURLHost(_ rawHost: String) -> String {
+    static func formatURLHost(_ rawHost: String) throws -> String {
         let trimmed = rawHost.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              !trimmed.contains("@"),
+              !trimmed.contains("/"),
+              !trimmed.contains("?"),
+              !trimmed.contains("#"),
+              !trimmed.contains(where: \.isWhitespace) else {
+            throw AppError.invalidConfiguration("Invalid FTP hostname")
+        }
         if trimmed.contains(":"), !trimmed.hasPrefix("[") {
             return "[\(trimmed)]"
         }

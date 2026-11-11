@@ -148,7 +148,7 @@ struct PersistenceTests {
         HostName=sftp.example.net
         PortNumber=2200
         UserName=deploy
-        FSProtocol=0
+        FSProtocol=2
         RemoteDirectory=/srv/app
         """
         let winscp = WinSCPIniImporter.parse(iniContents: ini)
@@ -156,5 +156,15 @@ struct PersistenceTests {
         #expect(winscp[0].profile.name == "Prod SFTP")
         #expect(winscp[0].profile.port == 2200)
         #expect(winscp[0].profile.protocolType == .sftp)
+
+        let scpIni = """
+        [Sessions\\Legacy%20SCP]
+        HostName=scp.example.net
+        UserName=deploy
+        FSProtocol=0
+        """
+        let scpSessions = WinSCPIniImporter.parse(iniContents: scpIni)
+        #expect(scpSessions.count == 1)
+        #expect(scpSessions[0].profile.protocolType == .scp)
     }
 }

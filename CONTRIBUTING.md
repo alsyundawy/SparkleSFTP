@@ -52,7 +52,7 @@ yamllint -c .yamllint.yml .
 
 # GitHub Actions & shell script validation
 actionlint
-shellcheck -s bash Tools/**/*.sh
+find Tools -name '*.sh' -exec shellcheck -s bash {} +
 
 # Swift lint, formatting, build & tests
 swiftlint lint --strict

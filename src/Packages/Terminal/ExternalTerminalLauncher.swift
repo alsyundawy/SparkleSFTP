@@ -32,21 +32,29 @@ public enum ExternalTerminalLauncher {
         return url
     }
 
+    public static func validateNoLeadingHyphen(_ raw: String, field: String) throws -> String {
+        let safe = try validateNoControlCharacters(raw)
+        guard !safe.hasPrefix("-") else {
+            throw AppError.invalidConfiguration("Unsupported leading hyphen in SSH \(field)")
+        }
+        return safe
+    }
+
     public static func buildOpenSSHCommandParts(
         for profile: ConnectionProfile,
         jumpProfile: ConnectionProfile? = nil,
         sshBinaryPath: String? = nil
     ) throws -> [String] {
         let sshExe = sshBinaryPath ?? "/usr/bin/ssh"
-        let safeUser = try validateNoControlCharacters(profile.username)
-        let safeHost = try validateNoControlCharacters(profile.host)
+        let safeUser = try validateNoLeadingHyphen(profile.username, field: "username")
+        let safeHost = try validateNoLeadingHyphen(profile.host, field: "host")
         var args = [sshExe, "-p", "\(profile.port)", "-o", "ServerAliveInterval=30"]
         if let jumpProfile {
-            let jumpUser = try validateNoControlCharacters(jumpProfile.username)
-            let jumpHost = try validateNoControlCharacters(jumpProfile.host)
+            let jumpUser = try validateNoLeadingHyphen(jumpProfile.username, field: "jump username")
+            let jumpHost = try validateNoLeadingHyphen(jumpProfile.host, field: "jump host")
             args += ["-J", "\(jumpUser)@\(jumpHost):\(jumpProfile.port)"]
         }
-        args.append("\(safeUser)@\(safeHost)")
+        args += ["--", "\(safeUser)@\(safeHost)"]
         return args
     }
 

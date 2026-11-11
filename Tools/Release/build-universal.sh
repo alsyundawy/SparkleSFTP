@@ -11,7 +11,40 @@ MACOS_DIR="${CONTENTS_DIR}/MacOS"
 FRAMEWORKS_DIR="${CONTENTS_DIR}/Frameworks"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
-BUILD_JOBS="${SPARKLE_BUILD_JOBS:-4}"
+BUILD_JOBS="${SPARKLE_BUILD_JOBS:-2}"
+if [[ -z "${CC:-}" ]] || ! "${CC}" --version >/dev/null 2>&1; then
+  export CC="/usr/bin/clang"
+fi
+if [[ -z "${CXX:-}" ]] || ! "${CXX}" --version >/dev/null 2>&1; then
+  export CXX="/usr/bin/clang++"
+fi
+
+sign_embedded_frameworks() {
+  local identity="$1"
+  local fw_dir="$2"
+  local runtime_flags=("$3")
+  if [[ ! -d "${fw_dir}/Sparkle.framework" ]]; then
+    return 0
+  fi
+  local sparkle_fw="${fw_dir}/Sparkle.framework"
+  local versions_b="${sparkle_fw}/Versions/B"
+  local -a targets=()
+  if [[ -d "${versions_b}" ]]; then
+    for xpc in "${versions_b}"/XPCServices/*.xpc; do
+      [[ -e "${xpc}" ]] && targets+=("${xpc}")
+    done
+    [[ -e "${versions_b}/Updater.app" ]] && targets+=("${versions_b}/Updater.app")
+    [[ -e "${versions_b}/Autoupdate" ]] && targets+=("${versions_b}/Autoupdate")
+  fi
+  targets+=("${sparkle_fw}")
+  for target in "${targets[@]}"; do
+    if [[ -n "${runtime_flags[0]}" ]]; then
+      codesign --force --timestamp --options runtime --sign "${identity}" "${target}"
+    else
+      codesign --force --sign "${identity}" "${target}"
+    fi
+  done
+}
 
 cd "${REPO_ROOT}"
 
@@ -51,12 +84,21 @@ for bundle_path in "${REPO_ROOT}/.build/arm64-apple-macosx/release/"SparkleSFTP_
 done
 
 SPARKLE_FW="$(find "${REPO_ROOT}/.build/artifacts" -path "*/macos-*/*.framework" -type d -name "Sparkle.framework" | head -n 1 || true)"
-if [[ -n "${SPARKLE_FW}" && -d "${SPARKLE_FW}" ]]; then
-  cp -R "${SPARKLE_FW}" "${FRAMEWORKS_DIR}/"
-  install_name_tool -add_rpath "@executable_path/../Frameworks" "${MACOS_DIR}/SparkleSFTP" 2>/dev/null || true
+if [[ -z "${SPARKLE_FW}" || ! -d "${SPARKLE_FW}" ]]; then
+  printf 'Expected Sparkle.framework artifact missing under .build/artifacts.\n' >&2
+  exit 1
 fi
+cp -R "${SPARKLE_FW}" "${FRAMEWORKS_DIR}/"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "${MACOS_DIR}/SparkleSFTP" 2>/dev/null || true
 
-codesign --force --deep --sign "${DEVELOPER_ID_APP:--}" "${APP_BUNDLE}"
+SIGN_ID="${DEVELOPER_ID_APP:--}"
+if [[ "${SIGN_ID}" == "-" ]]; then
+  sign_embedded_frameworks "${SIGN_ID}" "${FRAMEWORKS_DIR}" ""
+  codesign --force --sign "${SIGN_ID}" "${APP_BUNDLE}"
+else
+  sign_embedded_frameworks "${SIGN_ID}" "${FRAMEWORKS_DIR}" "--options runtime"
+  codesign --force --timestamp --options runtime --entitlements "${REPO_ROOT}/src/App/SparkleSFTP.entitlements" --sign "${SIGN_ID}" "${APP_BUNDLE}"
+fi
 codesign --verify --deep --strict "${APP_BUNDLE}"
 printf 'Built universal bundle: %s\n' "${APP_BUNDLE}"
 

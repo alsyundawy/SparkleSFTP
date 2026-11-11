@@ -1,0 +1,26 @@
+# Exclude source code, tests, scripts, and internal tooling from GitHub Pages publishing
+exclude:
+  - .betterleaks.toml
+  - .clang-format
+  - .clangd
+  - .github/
+  - .gitignore
+  - .markdownlint.json
+  - .mega-linter.yml
+  - .swiftformat
+  - .swiftlint.yml
+  - .trunk/
+  - .vscode/
+  - .yamllint.yml
+  - Gemfile
+  - Gemfile.lock
+  - Package.resolved
+  - Package.swift
+  - Tests/
+  - Tools/
+  - build/
+  - dist/
+  - reports/
+  - sonar-project.properties
+  - src/
+  - tasks/

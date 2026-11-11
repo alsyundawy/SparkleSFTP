@@ -43,7 +43,6 @@ flowchart TD
     SYNC --> CORE
     TERM --> NET
     TERM --> CORE
-    TE --> PERS
     TE --> SEC
     TE --> CORE
     NET --> SEC

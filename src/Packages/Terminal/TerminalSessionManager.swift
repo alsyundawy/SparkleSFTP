@@ -58,9 +58,11 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     @Published public var currentDirectory: String?
     @Published public var isActive: Bool = false
 
+    private static let maxPendingOutputBytes = 256 * 1024
     private weak var terminalView: TerminalView?
     private let resourceBox = PTYResourceBox()
     private var pendingCommandInsertion: String?
+    private var pendingOutputBuffer: [UInt8] = []
 
     public init(
         id: UUID = UUID(),
@@ -80,6 +82,11 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     public func attachTerminalView(_ view: TerminalView) {
         terminalView = view
+        if !pendingOutputBuffer.isEmpty {
+            let buffered = pendingOutputBuffer
+            pendingOutputBuffer.removeAll(keepingCapacity: false)
+            view.feed(byteArray: buffered[...])
+        }
     }
 
     public func attachPTYChannel(_ channel: SSHPTYChannel) {
@@ -90,11 +97,16 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
                     break
                 }
                 await MainActor.run {
-                    (self?.terminalView ?? view)?.feed(byteArray: bytes[...])
+                    if let activeView = self?.terminalView ?? view {
+                        activeView.feed(byteArray: bytes[...])
+                    } else if let strongSelf = self {
+                        strongSelf.appendPendingOutput(bytes)
+                    }
                 }
             }
             await MainActor.run {
                 self?.isActive = false
+                self?.resourceBox.closeAll()
             }
         }
         resourceBox.replace(channel: channel, task: task)
@@ -103,6 +115,19 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
             let bytes = Array(pending.utf8)
             resourceBox.write(bytes[...])
         }
+    }
+
+    private func appendPendingOutput(_ bytes: [UInt8]) {
+        guard !bytes.isEmpty else { return }
+        if pendingOutputBuffer.count + bytes.count > Self.maxPendingOutputBytes {
+            let excess = (pendingOutputBuffer.count + bytes.count) - Self.maxPendingOutputBytes
+            if excess >= pendingOutputBuffer.count {
+                pendingOutputBuffer.removeAll(keepingCapacity: true)
+            } else {
+                pendingOutputBuffer.removeFirst(excess)
+            }
+        }
+        pendingOutputBuffer.append(contentsOf: bytes)
     }
 
     public func sendInput(_ bytes: ArraySlice<UInt8>) {
@@ -120,8 +145,13 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     }
 
     public func sendCommand(_ text: String) {
-        let bytes = Array((text + "\n").utf8)
-        resourceBox.write(bytes[...])
+        let payload = text + "\n"
+        if isActive {
+            let bytes = Array(payload.utf8)
+            resourceBox.write(bytes[...])
+        } else {
+            pendingCommandInsertion = (pendingCommandInsertion ?? "") + payload
+        }
     }
 
     public func resizePTY(cols: Int, rows: Int) {

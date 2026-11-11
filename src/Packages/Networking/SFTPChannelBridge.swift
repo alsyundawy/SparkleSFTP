@@ -16,6 +16,8 @@ public final class SFTPChannelBridge:
     private var pendingRequests: [UInt32: CheckedContinuation<SFTPPacket, Error>] = [:]
     private var bufferedEarlyResponses: [UInt32: Result<SFTPPacket, Error>] = [:]
     private var abandonedRequestIDs: Set<UInt32> = []
+    private var abandonedOrder: [UInt32] = []
+    private var versionCancelled = false
     private var isClosed = false
 
     init(eventLoop: EventLoop, requestTimeoutSeconds: Int = 30) {
@@ -53,6 +55,11 @@ public final class SFTPChannelBridge:
                         if self.isClosed {
                             self.lock.unlock()
                             continuation.resume(throwing: AppError.notConnected)
+                            return
+                        }
+                        if self.versionCancelled || Task.isCancelled {
+                            self.lock.unlock()
+                            continuation.resume(throwing: CancellationError())
                             return
                         }
                         self.versionContinuation = continuation
@@ -141,6 +148,11 @@ public final class SFTPChannelBridge:
                     continuation.resume(throwing: AppError.notConnected)
                     return
                 }
+                if self.abandonedRequestIDs.remove(requestID) != nil || Task.isCancelled {
+                    self.lock.unlock()
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
                 self.pendingRequests[requestID] = continuation
                 self.lock.unlock()
             }
@@ -192,6 +204,7 @@ public final class SFTPChannelBridge:
         pendingRequests.removeAll()
         bufferedEarlyResponses.removeAll()
         abandonedRequestIDs.removeAll()
+        abandonedOrder.removeAll()
         lock.unlock()
 
         vCont?.resume(throwing: error)
@@ -202,6 +215,7 @@ public final class SFTPChannelBridge:
 
     private func failVersion(error: Error) {
         lock.lock()
+        versionCancelled = true
         let cont = versionContinuation
         versionContinuation = nil
         lock.unlock()
@@ -211,10 +225,17 @@ public final class SFTPChannelBridge:
     private func failPending(id: UInt32, error: Error) {
         lock.lock()
         bufferedEarlyResponses.removeValue(forKey: id)
-        if abandonedRequestIDs.count > 1024 {
-            abandonedRequestIDs.removeAll(keepingCapacity: true)
+        if abandonedRequestIDs.insert(id).inserted {
+            abandonedOrder.append(id)
+            if abandonedOrder.count > 4096 {
+                let overflow = abandonedOrder.count - 2048
+                for evicted in abandonedOrder.prefix(overflow) {
+                    abandonedRequestIDs.remove(evicted)
+                    bufferedEarlyResponses.removeValue(forKey: evicted)
+                }
+                abandonedOrder.removeFirst(overflow)
+            }
         }
-        abandonedRequestIDs.insert(id)
         let cont = pendingRequests.removeValue(forKey: id)
         lock.unlock()
         cont?.resume(throwing: error)

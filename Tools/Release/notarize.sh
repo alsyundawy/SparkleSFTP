@@ -15,11 +15,31 @@ if [[ ! -d "${APP_BUNDLE}" ]]; then
   exit 1
 fi
 
-codesign --deep --force --verify --verbose --timestamp \
+SPARKLE_FW="${APP_BUNDLE}/Contents/Frameworks/Sparkle.framework"
+if [[ -d "${SPARKLE_FW}" ]]; then
+  VERSIONS_B="${SPARKLE_FW}/Versions/B"
+  if [[ -d "${VERSIONS_B}" ]]; then
+    for xpc in "${VERSIONS_B}"/XPCServices/*.xpc; do
+      if [[ -e "${xpc}" ]]; then
+        codesign --force --timestamp --options runtime --sign "${DEVELOPER_ID_APP}" "${xpc}"
+      fi
+    done
+    if [[ -e "${VERSIONS_B}/Updater.app" ]]; then
+      codesign --force --timestamp --options runtime --sign "${DEVELOPER_ID_APP}" "${VERSIONS_B}/Updater.app"
+    fi
+    if [[ -e "${VERSIONS_B}/Autoupdate" ]]; then
+      codesign --force --timestamp --options runtime --sign "${DEVELOPER_ID_APP}" "${VERSIONS_B}/Autoupdate"
+    fi
+  fi
+  codesign --force --timestamp --options runtime --sign "${DEVELOPER_ID_APP}" "${SPARKLE_FW}"
+fi
+
+codesign --force --verify --verbose --timestamp \
   --options runtime \
   --entitlements "${ENTITLEMENTS}" \
   --sign "${DEVELOPER_ID_APP}" \
   "${APP_BUNDLE}"
+codesign --verify --deep --strict "${APP_BUNDLE}"
 
 ZIP_PATH="${REPO_ROOT}/dist/SparkleSFTP-notarize.zip"
 rm -f "${ZIP_PATH}"

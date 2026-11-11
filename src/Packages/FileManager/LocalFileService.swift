@@ -90,15 +90,35 @@ public actor LocalFileService {
     }
 
     public func createDirectory(named name: String, in parent: URL) throws -> URL {
-        let target = parent.appendingPathComponent(name, isDirectory: true)
+        try validateSinglePathComponent(name)
+        let target = try resolvedDescendant(name: name, in: parent, isDirectory: true)
         try fileManager.createDirectory(at: target, withIntermediateDirectories: true)
         return target
     }
 
     public func rename(itemAt url: URL, to newName: String) throws -> URL {
-        let destination = url.deletingLastPathComponent().appendingPathComponent(newName)
+        try validateSinglePathComponent(newName)
+        let parent = url.deletingLastPathComponent()
+        let destination = try resolvedDescendant(name: newName, in: parent, isDirectory: false)
         try fileManager.moveItem(at: url, to: destination)
         return destination
+    }
+
+    private func validateSinglePathComponent(_ component: String) throws {
+        if component.isEmpty || component == "." || component == ".."
+            || component.contains("/") || component.contains("\0") {
+            throw AppError.pathTraversal(attempted: component)
+        }
+    }
+
+    private func resolvedDescendant(name: String, in parent: URL, isDirectory: Bool) throws -> URL {
+        let base = parent.standardizedFileURL.resolvingSymlinksInPath()
+        let basePrefix = base.path.hasSuffix("/") ? base.path : base.path + "/"
+        let candidate = base.appendingPathComponent(name, isDirectory: isDirectory).standardizedFileURL
+        guard candidate.path.hasPrefix(basePrefix) else {
+            throw AppError.pathTraversal(attempted: name)
+        }
+        return candidate
     }
 
     public func delete(itemAt url: URL) throws {

@@ -45,13 +45,16 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
     }
 
     public func saveSecret(_ data: Data, for reference: SecretReference, requireTouchID: Bool) async throws {
-        try deleteSync(accountKey: reference.accountKey)
         let attributes = try buildAddAttributes(
             data: data,
             accountKey: reference.accountKey,
             requireTouchID: requireTouchID
         )
-        let status = SecItemAdd(attributes as CFDictionary, nil)
+        var status = SecItemAdd(attributes as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            try deleteSync(accountKey: reference.accountKey)
+            status = SecItemAdd(attributes as CFDictionary, nil)
+        }
         guard status == errSecSuccess else {
             DiagnosticsLogger.security.error("Keychain add failed with status \(status, privacy: .public)")
             throw AppError.keychainFailure(status: status, message: Self.errorMessage(for: status))

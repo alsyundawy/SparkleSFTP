@@ -31,12 +31,17 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
     public func connect() async throws {
         try await sshClient.connect()
         let channelBridge = try await sshClient.openSFTPBridge()
-        let version = try await channelBridge.initializeSFTP()
-        guard version >= 3 else {
+        do {
+            let version = try await channelBridge.initializeSFTP()
+            guard version >= 3 else {
+                channelBridge.close()
+                throw AppError.protocolError(code: Int(version), message: "Unsupported SFTP server version \(version)")
+            }
+            bridge = channelBridge
+        } catch {
             channelBridge.close()
-            throw AppError.protocolError(code: Int(version), message: "Unsupported SFTP server version \(version)")
+            throw error
         }
-        bridge = channelBridge
     }
 
     public func disconnect(policy: DisconnectPolicy) async throws {
@@ -51,47 +56,55 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         let openResp = try await sftp.send(.opendir(requestID: openReqID, path: path.rawValue))
         let handle = try extractHandle(from: openResp, path: path.rawValue)
 
-        defer {
-            Task { [sftp, handle] in
-                _ = try? await sftp.send(.close(requestID: sftp.allocateRequestID(), handle: handle))
-            }
-        }
-
         var items: [RemoteFile] = []
-        while true {
-            try Task.checkCancellation()
-            let readResp = try await sftp.send(.readdir(requestID: sftp.allocateRequestID(), handle: handle))
-            switch readResp {
-            case let .name(_, entries):
-                for entry in entries where entry.filename != "." && entry.filename != ".." {
-                    guard let safeChild = try? PathValidator.canonicalizeRemote(entry.filename, relativeTo: path) else {
-                        continue
-                    }
-                    let defaultPerms: UInt32 = entry.attributes.isDirectory ? 0o755 : 0o644
-                    let perms = entry.attributes.permissions ?? defaultPerms
-                    let mtime = entry.attributes.modificationTime.map { Date(timeIntervalSince1970: TimeInterval($0)) }
-                    items.append(
-                        RemoteFile(
-                            name: entry.filename,
-                            path: safeChild,
-                            size: Int64(entry.attributes.size ?? 0),
-                            isDirectory: entry.attributes.isDirectory,
-                            isSymlink: entry.attributes.isSymlink,
-                            permissions: perms & 0o7777,
-                            modificationTime: mtime,
-                            ownerID: entry.attributes.uid,
-                            groupID: entry.attributes.gid
+        do {
+            while true {
+                try Task.checkCancellation()
+                let readResp = try await sftp.send(.readdir(requestID: sftp.allocateRequestID(), handle: handle))
+                switch readResp {
+                case let .name(_, entries):
+                    for entry in entries where entry.filename != "." && entry.filename != ".." {
+                        guard let safeChild = try? PathValidator.canonicalizeRemote(
+                            entry.filename,
+                            relativeTo: path
+                        ) else {
+                            continue
+                        }
+                        let defaultPerms: UInt32 = entry.attributes.isDirectory ? 0o755 : 0o644
+                        let perms = entry.attributes.permissions ?? defaultPerms
+                        let mtime = entry.attributes.modificationTime
+                            .map { Date(timeIntervalSince1970: TimeInterval($0)) }
+                        items.append(
+                            RemoteFile(
+                                name: entry.filename,
+                                path: safeChild,
+                                size: Int64(entry.attributes.size ?? 0),
+                                isDirectory: entry.attributes.isDirectory,
+                                isSymlink: entry.attributes.isSymlink,
+                                permissions: perms & 0o7777,
+                                modificationTime: mtime,
+                                ownerID: entry.attributes.uid,
+                                groupID: entry.attributes.gid
+                            )
                         )
-                    )
+                    }
+                case .status(_, .eof, _, _):
+                    await closeHandle(handle, on: sftp)
+                    return items
+                case let .status(_, code, msg, _):
+                    throw Self.mapStatusError(code: code, message: msg, path: path.rawValue)
+                default:
+                    throw AppError.protocolError(code: -1, message: "Unexpected READDIR response")
                 }
-            case .status(_, .eof, _, _):
-                return items
-            case let .status(_, code, msg, _):
-                throw Self.mapStatusError(code: code, message: msg, path: path.rawValue)
-            default:
-                throw AppError.protocolError(code: -1, message: "Unexpected READDIR response")
             }
+        } catch {
+            await closeHandle(handle, on: sftp)
+            throw error
         }
+    }
+
+    private func closeHandle(_ handle: Data, on bridge: SFTPChannelBridge) async {
+        _ = try? await bridge.send(.close(requestID: bridge.allocateRequestID(), handle: handle))
     }
 
     public func metadata(at path: RemotePath) async throws -> RemoteFileMetadata {
@@ -133,7 +146,13 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
         let sftp = try requireBridge()
-        let total = try await metadata(at: remotePath).size
+        let statResp = try? await sftp.send(.stat(requestID: sftp.allocateRequestID(), path: remotePath.rawValue))
+        let statAttrs = statResp.flatMap { try? extractAttrs(from: $0, path: remotePath.rawValue) }
+        let total = if let statSize = statAttrs?.size {
+            Int64(statSize)
+        } else {
+            try await metadata(at: remotePath).size
+        }
         let openResp = try await sftp.send(
             .open(
                 requestID: sftp.allocateRequestID(),
@@ -143,11 +162,6 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             )
         )
         let handle = try extractHandle(from: openResp, path: remotePath.rawValue)
-        defer {
-            Task { [sftp, handle] in
-                _ = try? await sftp.send(.close(requestID: sftp.allocateRequestID(), handle: handle))
-            }
-        }
         let ctx = SFTPDownloadChunkContext(
             bridge: sftp,
             handle: handle,
@@ -158,7 +172,13 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             inFlightWindow: min(32, max(2, pipelineDepth * 4)),
             onProgress: onProgress
         )
-        try await transferDownloadChunks(ctx)
+        do {
+            try await transferDownloadChunks(ctx)
+            await closeHandle(handle, on: sftp)
+        } catch {
+            await closeHandle(handle, on: sftp)
+            throw error
+        }
     }
 
     public func upload(
@@ -180,22 +200,23 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             )
         )
         let handle = try extractHandle(from: openResp, path: remotePath.rawValue)
-        defer {
-            Task { [sftp, handle] in
-                _ = try? await sftp.send(.close(requestID: sftp.allocateRequestID(), handle: handle))
-            }
-        }
         let ctx = SFTPUploadChunkContext(
             bridge: sftp,
             handle: handle,
             remotePath: remotePath,
             localURL: localURL,
-            initialOffset: offset,
+            initialOffset: max(0, min(offset, total)),
             totalBytes: total,
             inFlightWindow: min(32, max(2, pipelineDepth * 4)),
             onProgress: onProgress
         )
-        try await transferUploadChunks(ctx)
+        do {
+            try await transferUploadChunks(ctx)
+            await closeHandle(handle, on: sftp)
+        } catch {
+            await closeHandle(handle, on: sftp)
+            throw error
+        }
     }
 
     public func delete(at path: RemotePath, isDirectory: Bool) async throws {

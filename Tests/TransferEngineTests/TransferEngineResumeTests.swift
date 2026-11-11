@@ -208,7 +208,7 @@ struct TransferEngineResumeTests {
         let doneUpload = await waitUntilSnapshot(in: uploadQueue, id: uploadTask.id) { $0.status.isTerminal }
         #expect(doneUpload?.status == .completed)
         #expect(await remoteFS.files["/full-part.bin"] == payload)
-        #expect(await remoteFS.recordedUploadOffsets.contains(Int64(payload.count)))
+        #expect(await remoteFS.recordedUploadOffsets.contains(128))
     }
 
     @Test("TransferQueue conflict skip removes stale partial and reports zero bytes")

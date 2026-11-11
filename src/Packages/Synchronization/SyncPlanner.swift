@@ -150,35 +150,17 @@ public enum SyncPlanner {
         mode: SyncComparisonMode,
         deleteExtras: Bool
     ) -> [SyncAction] {
-        let targetMap = Dictionary(uniqueKeysWithValues: target.map { ($0.relativePath, $0) })
+        let targetMap = Dictionary(target.map { ($0.relativePath, $0) }, uniquingKeysWith: { first, _ in first })
         let originSet = Set(origin.map(\.relativePath))
         var actions: [SyncAction] = []
 
         for item in origin {
             guard let existing = targetMap[item.relativePath] else {
-                actions.append(
-                    SyncAction(
-                        relativePath: item.relativePath,
-                        kind: .create,
-                        transferDirection: transferDirection,
-                        isDirectory: item.isDirectory,
-                        size: item.size,
-                        expectedMtime: item.modificationTime
-                    )
-                )
+                actions.append(makeCreateAction(item: item, direction: transferDirection))
                 continue
             }
             if !item.isDirectory, filesDiffer(lhs: item, rhs: existing, mode: mode) {
-                actions.append(
-                    SyncAction(
-                        relativePath: item.relativePath,
-                        kind: .update,
-                        transferDirection: transferDirection,
-                        isDirectory: false,
-                        size: item.size,
-                        expectedMtime: existing.modificationTime
-                    )
-                )
+                actions.append(makeUpdateAction(item: item, existing: existing, direction: transferDirection))
             }
         }
 
@@ -187,19 +169,53 @@ public enum SyncPlanner {
                 .filter { !originSet.contains($0.relativePath) }
                 .sorted { $0.relativePath.count > $1.relativePath.count }
             for extra in extras {
-                actions.append(
-                    SyncAction(
-                        relativePath: extra.relativePath,
-                        kind: .delete,
-                        transferDirection: transferDirection,
-                        isDirectory: extra.isDirectory,
-                        size: extra.size,
-                        expectedMtime: extra.modificationTime
-                    )
-                )
+                actions.append(makeDeleteAction(item: extra, direction: transferDirection))
             }
         }
         return actions
+    }
+
+    private static func makeCreateAction(
+        item: ScannedFileEntry,
+        direction: SyncActionDirection
+    ) -> SyncAction {
+        SyncAction(
+            relativePath: item.relativePath,
+            kind: .create,
+            transferDirection: direction,
+            isDirectory: item.isDirectory,
+            size: item.size,
+            expectedMtime: item.modificationTime
+        )
+    }
+
+    private static func makeUpdateAction(
+        item: ScannedFileEntry,
+        existing: ScannedFileEntry,
+        direction: SyncActionDirection
+    ) -> SyncAction {
+        SyncAction(
+            relativePath: item.relativePath,
+            kind: .update,
+            transferDirection: direction,
+            isDirectory: false,
+            size: item.size,
+            expectedMtime: direction == .download ? item.modificationTime : existing.modificationTime
+        )
+    }
+
+    private static func makeDeleteAction(
+        item: ScannedFileEntry,
+        direction: SyncActionDirection
+    ) -> SyncAction {
+        SyncAction(
+            relativePath: item.relativePath,
+            kind: .delete,
+            transferDirection: direction,
+            isDirectory: item.isDirectory,
+            size: item.size,
+            expectedMtime: item.modificationTime
+        )
     }
 
     private static func planBidirectional(
@@ -207,8 +223,8 @@ public enum SyncPlanner {
         remote: [ScannedFileEntry],
         mode: SyncComparisonMode
     ) -> [SyncAction] {
-        let remoteMap = Dictionary(uniqueKeysWithValues: remote.map { ($0.relativePath, $0) })
-        let localMap = Dictionary(uniqueKeysWithValues: local.map { ($0.relativePath, $0) })
+        let remoteMap = Dictionary(remote.map { ($0.relativePath, $0) }, uniquingKeysWith: { first, _ in first })
+        let localMap = Dictionary(local.map { ($0.relativePath, $0) }, uniquingKeysWith: { first, _ in first })
         var actions: [SyncAction] = []
 
         for localItem in local {

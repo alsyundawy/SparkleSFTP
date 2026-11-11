@@ -5,6 +5,7 @@ import SparkleSecurity
 struct DownloadConflictPlan: Sendable {
     let destination: URL
     let resumeOffset: Int64
+    let allowPreparedPartial: Bool
 }
 
 struct UploadConflictPlan: Sendable {
@@ -95,9 +96,12 @@ extension TransferQueue {
         )
     }
 
-    func resolveConflictDestination(_ req: DownloadConflictRequest) async throws -> DownloadConflictPlan? {
+    func resolveConflictDestination(
+        _ req: DownloadConflictRequest,
+        preparedPartialOffset: Int64
+    ) async throws -> DownloadConflictPlan? {
         guard FileManager.default.fileExists(atPath: req.safeDest.path) else {
-            return DownloadConflictPlan(destination: req.safeDest, resumeOffset: 0)
+            return DownloadConflictPlan(destination: req.safeDest, resumeOffset: 0, allowPreparedPartial: true)
         }
         let attrs = try? FileManager.default.attributesOfItem(atPath: req.safeDest.path)
         let existingSize = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
@@ -116,22 +120,50 @@ extension TransferQueue {
             originalFilename: req.safeDest.lastPathComponent,
             overridePolicy: req.metadata.conflictPolicyOverride
         )
+        return try applyDownloadConflictResolution(
+            resolution,
+            req: req,
+            existingSize: existingSize,
+            preparedPartialOffset: preparedPartialOffset
+        )
+    }
+
+    private func applyDownloadConflictResolution(
+        _ resolution: TransferConflictResolution,
+        req: DownloadConflictRequest,
+        existingSize: Int64,
+        preparedPartialOffset: Int64
+    ) throws -> DownloadConflictPlan? {
         switch resolution {
         case .skip:
             return nil
         case .overwrite:
-            return DownloadConflictPlan(destination: req.safeDest, resumeOffset: 0)
+            try? FileManager.default.removeItem(at: req.partialURL)
+            return DownloadConflictPlan(destination: req.safeDest, resumeOffset: 0, allowPreparedPartial: false)
         case .resume:
+            let totalIncoming = req.remoteMeta?.size ?? req.metadata.totalBytes
+            if preparedPartialOffset >= existingSize, preparedPartialOffset > 0 {
+                return DownloadConflictPlan(
+                    destination: req.safeDest,
+                    resumeOffset: preparedPartialOffset,
+                    allowPreparedPartial: true
+                )
+            }
             let seedOffset = prepareResumedPartialFile(
                 existingDest: req.safeDest,
                 partialURL: req.partialURL,
                 existingSize: existingSize,
-                totalIncoming: req.remoteMeta?.size ?? req.metadata.totalBytes
+                totalIncoming: totalIncoming
             )
-            return DownloadConflictPlan(destination: req.safeDest, resumeOffset: seedOffset)
+            return DownloadConflictPlan(
+                destination: req.safeDest,
+                resumeOffset: seedOffset,
+                allowPreparedPartial: false
+            )
         case let .rename(newName):
+            try? FileManager.default.removeItem(at: req.partialURL)
             let renamed = try PathValidator.safeLocalDestination(filename: newName, baseDirectory: req.baseDir)
-            return DownloadConflictPlan(destination: renamed, resumeOffset: 0)
+            return DownloadConflictPlan(destination: renamed, resumeOffset: 0, allowPreparedPartial: false)
         }
     }
 
