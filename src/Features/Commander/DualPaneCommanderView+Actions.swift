@@ -220,7 +220,7 @@ extension DualPaneCommanderView {
         case .openExternalApp:
             Task { await appState.openInExternalEditor(file: target, isLocal: isLocal) }
         case .configureEditor:
-            NSApp?.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            appState.openPreferencesWindow()
         case .showInFinder:
             if isLocal {
                 appState.showInFinder(file: target)

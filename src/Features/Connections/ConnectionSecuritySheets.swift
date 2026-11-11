@@ -31,6 +31,8 @@ public struct HostKeyVerificationSheet: View {
             .background(appState.activePalette.canvasColor)
             .clipShape(RoundedRectangle(cornerRadius: 6))
 
+            Spacer(minLength: 0)
+
             HStack {
                 Spacer()
                 Button(appState.strings.t("conn.reject"), role: .cancel) {
@@ -43,7 +45,7 @@ public struct HostKeyVerificationSheet: View {
             }
         }
         .padding(SparkleTheme.Spacing.large)
-        .frame(width: 480)
+        .frame(width: 500, height: 240)
         .sparkleWorkspaceSurface(appState.activePalette)
     }
 }
@@ -103,7 +105,7 @@ public struct SecurityDiagnosticsView: View {
                 }
                 .scrollContentBackground(.hidden)
                 .background(appState.activePalette.canvasColor)
-                .frame(minHeight: 160)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .padding(SparkleTheme.Spacing.large)

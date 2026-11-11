@@ -135,6 +135,7 @@ private extension DualPaneCommanderView {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
             Text(appState.strings.newFolder).font(SparkleTheme.Typography.title)
             TextField(appState.strings.t("pane.folderName"), text: $newFolderName)
+            Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button(appState.strings.t("common.cancel"), role: .cancel) { isShowingNewFolderSheet = false }
@@ -148,7 +149,7 @@ private extension DualPaneCommanderView {
             }
         }
         .padding()
-        .frame(width: 340)
+        .frame(width: 360, height: 165)
         .sparkleWorkspaceSurface(appState.activePalette)
     }
 

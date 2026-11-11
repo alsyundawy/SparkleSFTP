@@ -114,7 +114,7 @@ public struct SyncPreviewSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .background(appState.activePalette.canvasColor)
-                .frame(minHeight: 200)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 Toggle(appState.strings.t("sync.dryRunOnly"), isOn: $dryRunOnly)
                 if !dryRunOnly, !plan.deleteActions.isEmpty || !plan.updateActions.isEmpty {
@@ -141,11 +141,11 @@ public struct SyncPreviewSheet: View {
                 Text(appState.strings.t("sync.emptyPrompt"))
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(appState.activePalette.secondaryTextColor)
-                    .frame(maxWidth: .infinity, minHeight: 160)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .padding(SparkleTheme.Spacing.large)
-        .frame(width: 680)
+        .frame(width: 680, height: 500)
         .sparkleWorkspaceSurface(appState.activePalette)
     }
 

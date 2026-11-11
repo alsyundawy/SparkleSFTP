@@ -72,15 +72,20 @@ public struct ConflictResolutionSheet: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
             headerRow
-            comparisonSection
-            Divider().overlay(palette.borderColor)
-            actionsSection
-            Divider().overlay(palette.borderColor)
-            scopeCheckboxes
+            ScrollView {
+                VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
+                    comparisonSection
+                    Divider().overlay(palette.borderColor)
+                    actionsSection
+                    Divider().overlay(palette.borderColor)
+                    scopeCheckboxes
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             footerButtons
         }
         .padding(SparkleTheme.Spacing.large)
-        .frame(width: 560)
+        .frame(width: 580, height: 560)
         .sparkleWorkspaceSurface(palette)
         .onAppear {
             let existingName = URL(fileURLWithPath: conflict.destinationDisplayPath).lastPathComponent

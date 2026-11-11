@@ -30,6 +30,7 @@ public struct PermissionsEditorSheet: View {
                 Text("\(strings.t("pane.symbolic")): \(parsed.symbolicString)")
                     .font(SparkleTheme.Typography.monoSmall)
             }
+            Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button(strings.t("common.cancel"), role: .cancel) { dismiss() }
@@ -43,7 +44,7 @@ public struct PermissionsEditorSheet: View {
             }
         }
         .padding()
-        .frame(width: 320)
+        .frame(width: 360, height: 190)
         .sparkleWorkspaceSurface(palette)
     }
 }
@@ -68,6 +69,7 @@ public struct RenameItemSheet: View {
             Text(strings.t("pane.renameItem")).font(SparkleTheme.Typography.title)
             TextField(strings.t("pane.newName"), text: $newName)
                 .textFieldStyle(.roundedBorder)
+            Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button(strings.t("common.cancel"), role: .cancel) { dismiss() }
@@ -83,7 +85,7 @@ public struct RenameItemSheet: View {
             }
         }
         .padding()
-        .frame(width: 360)
+        .frame(width: 380, height: 165)
         .sparkleWorkspaceSurface(palette)
     }
 }

@@ -16,32 +16,36 @@ public struct PreferencesView: View {
     public var body: some View {
         TabView {
             PreferencesLocalizationTab(appState: appState)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .tabItem {
                     Label(strings.t("prefs.tabGeneral"), systemImage: "globe")
                 }
 
             PreferencesThemeTab(appState: appState)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .tabItem {
                     Label(strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme)
                 }
 
             transfersAndBehaviorTab
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .tabItem {
                     Label(strings.t("prefs.tabTransfers"), systemImage: "arrow.up.arrow.down.circle")
                 }
 
             PreferencesUpdatesTab(appState: appState)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .tabItem {
                     Label(strings.t("prefs.tabUpdates"), systemImage: SparkleTheme.Symbols.updates)
                 }
         }
         .padding(SparkleTheme.Spacing.medium)
         .frame(
-            minWidth: 640,
-            idealWidth: 720,
+            minWidth: 740,
+            idealWidth: 760,
             maxWidth: .infinity,
-            minHeight: 480,
-            idealHeight: 560,
+            minHeight: 580,
+            idealHeight: 600,
             maxHeight: .infinity
         )
         .sparkleWorkspaceSurface(appState.activePalette)

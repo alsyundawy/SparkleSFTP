@@ -141,6 +141,23 @@ public extension AppState {
         for idx in workspaceTabs.indices where workspaceTabs[idx].sessionID == nil {
             workspaceTabs[idx].title = strings.t("tabs.newTab")
         }
+        refreshManagedWindowTitles()
+    }
+
+    private func refreshManagedWindowTitles() {
+        guard let windows = NSApp?.windows else { return }
+        for window in windows {
+            switch window.identifier?.rawValue {
+            case "sparkle.preferences":
+                window.title = strings.t("nav.settings")
+            case "sparkle.about":
+                window.title = strings.t("nav.about")
+            case "sparkle.editor":
+                window.title = strings.t("editor.windowTitle")
+            default:
+                break
+            }
+        }
     }
 
     func refreshActivePalette(emitChange: Bool = false) {

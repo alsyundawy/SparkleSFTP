@@ -49,6 +49,10 @@ public extension AppState {
         aboutWindowController.present(appState: self)
     }
 
+    func openPreferencesWindow() {
+        preferencesWindowController.present(appState: self)
+    }
+
     func hasSavedSecret(for profile: ConnectionProfile?) async -> Bool {
         guard let profile else { return false }
         let targetRef = profile.authMethod == .publicKey ? profile.privateKeyRef : profile.passwordRef

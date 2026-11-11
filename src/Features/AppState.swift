@@ -212,6 +212,7 @@ public final class AppState: ObservableObject {
     public var onOpenProfileInNewWindow: ((UUID) -> Void)?
     let editorWindowController = EditorWindowController()
     let aboutWindowController = AboutWindowController()
+    let preferencesWindowController = PreferencesWindowController()
 
     var didBootstrap = false
     var transferQueueInstance: TransferQueue?

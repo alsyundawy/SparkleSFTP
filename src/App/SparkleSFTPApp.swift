@@ -69,6 +69,13 @@ private struct SparkleAppCommands: Commands {
             }
         }
 
+        CommandGroup(replacing: .appSettings) {
+            Button(activeState.strings.t("nav.settings")) {
+                activeState.openPreferencesWindow()
+            }
+            .keyboardShortcut(",", modifiers: [.command])
+        }
+
         CommandGroup(after: .newItem) {
             Button(activeState.strings.t("tabs.closeTab")) {
                 handleCloseActiveTabOrWindow()
@@ -224,10 +231,6 @@ struct SparkleSFTPApp: App {
         .defaultSize(width: 1280, height: 820)
         .commands {
             SparkleAppCommands(fallbackState: environment.settingsFallbackState)
-        }
-
-        Settings {
-            PreferencesView(appState: environment.settingsFallbackState)
         }
     }
 

@@ -53,6 +53,8 @@ public struct CopyMoveItemSheet: View {
                     .font(SparkleTheme.Typography.monoSmall)
             }
 
+            Spacer(minLength: 0)
+
             HStack {
                 Spacer()
                 Button(strings.t("common.cancel"), role: .cancel) { dismiss() }
@@ -65,7 +67,7 @@ public struct CopyMoveItemSheet: View {
             }
         }
         .padding()
-        .frame(width: 460)
+        .frame(width: 480, height: 230)
         .sparkleWorkspaceSurface(palette)
     }
 
@@ -168,32 +170,34 @@ public struct FileComparisonSheet: View {
             }
         }
         .padding()
-        .frame(width: 640, height: 300)
+        .frame(width: 640, height: 320)
         .sparkleWorkspaceSurface(palette)
     }
 
     private func comparisonColumn(title: String, file: RemoteFile?, sha256: String?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(SparkleTheme.Typography.headline)
-            if let file {
-                Text("\(strings.t("pane.path")): \(file.path.rawValue)")
-                    .font(SparkleTheme.Typography.monoSmall)
-                    .textSelection(.enabled)
-                Text("\(strings.t("pane.size")): \(file.size) bytes")
-                    .font(SparkleTheme.Typography.caption)
-                if let mtime = file.modificationTime {
-                    Text("\(strings.t("pane.modified")): \(mtime.formatted(date: .abbreviated, time: .standard))")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title).font(SparkleTheme.Typography.headline)
+                if let file {
+                    Text("\(strings.t("pane.path")): \(file.path.rawValue)")
+                        .font(SparkleTheme.Typography.monoSmall)
+                        .textSelection(.enabled)
+                    Text("\(strings.t("pane.size")): \(file.size) bytes")
                         .font(SparkleTheme.Typography.caption)
+                    if let mtime = file.modificationTime {
+                        Text("\(strings.t("pane.modified")): \(mtime.formatted(date: .abbreviated, time: .standard))")
+                            .font(SparkleTheme.Typography.caption)
+                    }
+                    Text("\(strings.t("pane.sha256")): \(sha256 ?? "--")")
+                        .font(SparkleTheme.Typography.monoSmall)
+                        .textSelection(.enabled)
+                } else {
+                    Text(strings.t("compare.notPresent"))
+                        .font(SparkleTheme.Typography.caption)
+                        .foregroundStyle(palette.secondaryTextColor)
                 }
-                Text("\(strings.t("pane.sha256")): \(sha256 ?? "--")")
-                    .font(SparkleTheme.Typography.monoSmall)
-                    .textSelection(.enabled)
-            } else {
-                Text(strings.t("compare.notPresent"))
-                    .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(palette.secondaryTextColor)
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

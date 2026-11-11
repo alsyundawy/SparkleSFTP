@@ -1,50 +1,21 @@
 import AppKit
-import SparkleDesignSystem
-import SwiftUI
 
 /// Manages a standalone resizable macOS window hosting `InternalEditorView`.
 @MainActor
-final class EditorWindowController: NSObject, NSWindowDelegate {
-    private var window: NSWindow?
+final class EditorWindowController {
+    private let host = ManagedWindowController(
+        descriptor: ManagedWindowDescriptor(
+            identifier: NSUserInterfaceItemIdentifier("sparkle.editor"),
+            defaultSize: NSSize(width: 900, height: 620),
+            minSize: NSSize(width: 680, height: 420),
+            allowFullScreen: true,
+            shareAcrossAppStates: false
+        )
+    )
 
     func present(appState: AppState) {
-        if let existing = window {
-            existing.title = appState.strings.t("editor.windowTitle")
-            SparkleWindowConfigurator.SparkleWindowProbeView.configure(
-                window: existing,
-                palette: appState.activePalette,
-                allowFullScreen: true
-            )
-            existing.makeKeyAndOrderFront(nil)
-            return
+        host.present(title: appState.strings.t("editor.windowTitle"), appState: appState) {
+            InternalEditorView(appState: appState)
         }
-
-        let rootView = InternalEditorView(appState: appState)
-        let hostingController = NSHostingController(rootView: rootView)
-        let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        newWindow.title = appState.strings.t("editor.windowTitle")
-        newWindow.identifier = NSUserInterfaceItemIdentifier("sparkle.editor")
-        newWindow.minSize = NSSize(width: 680, height: 420)
-        newWindow.collectionBehavior = [.fullScreenPrimary]
-        SparkleWindowConfigurator.SparkleWindowProbeView.configure(
-            window: newWindow,
-            palette: appState.activePalette,
-            allowFullScreen: true
-        )
-        newWindow.center()
-        newWindow.isReleasedWhenClosed = false
-        newWindow.contentViewController = hostingController
-        newWindow.delegate = self
-        window = newWindow
-        newWindow.makeKeyAndOrderFront(nil)
-    }
-
-    func windowWillClose(_: Notification) {
-        // Window stays cached (isReleasedWhenClosed = false) to preserve active tabs across reopen.
     }
 }

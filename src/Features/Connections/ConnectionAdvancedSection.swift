@@ -137,6 +137,7 @@ public struct CredentialPromptSheet: View {
             SecureField(appState.strings.t("conn.otpPlaceholder"), text: $secret)
                 .textFieldStyle(.roundedBorder)
             Toggle(appState.strings.t("conn.rememberPassword"), isOn: $rememberPassword)
+            Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button(appState.strings.t("common.cancel"), role: .cancel) {
@@ -152,7 +153,7 @@ public struct CredentialPromptSheet: View {
             }
         }
         .padding(SparkleTheme.Spacing.large)
-        .frame(width: 440)
+        .frame(width: 460, height: 220)
         .sparkleWorkspaceSurface(palette)
     }
 }

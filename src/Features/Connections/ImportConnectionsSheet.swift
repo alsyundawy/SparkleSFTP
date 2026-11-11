@@ -81,12 +81,12 @@ public struct ImportConnectionsSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .background(appState.activePalette.canvasColor)
-                .frame(minHeight: 240)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Text(strings.t("import.noEntries"))
                     .font(SparkleTheme.Typography.body)
                     .foregroundStyle(appState.activePalette.secondaryTextColor)
-                    .frame(maxWidth: .infinity, minHeight: 200)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             HStack {

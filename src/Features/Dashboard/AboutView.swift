@@ -63,10 +63,10 @@ public struct AboutView: View {
             footerBar
         }
         .frame(
-            minWidth: 640,
+            minWidth: 700,
             idealWidth: 720,
             maxWidth: .infinity,
-            minHeight: 480,
+            minHeight: 540,
             idealHeight: 560,
             maxHeight: .infinity
         )
