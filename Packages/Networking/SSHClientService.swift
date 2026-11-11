@@ -264,8 +264,10 @@ public actor SSHClientService {
             eventLoopGroup = attempt.group
             rootChannel = channel
             connectionState = .connected(connectedAt: Date())
+            let connectedHost = profile.host
+            let connectedPort = profile.port
             DiagnosticsLogger.network.info(
-                "SSH connected to \(self.profile.host, privacy: .private):\(self.profile.port, privacy: .public)"
+                "SSH connected to \(connectedHost, privacy: .private):\(connectedPort, privacy: .public)"
             )
         } catch {
             if let connectedChannel {

@@ -53,9 +53,9 @@ public extension AppState {
             if watchedLocalURL?.standardizedFileURL != url.standardizedFileURL {
                 watchedLocalURL = url
                 localWatcher.startWatching(directory: url) { [weak self] in
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        await refreshLocalDirectory(localCurrentURL, recordHistory: false)
+                    Task { @MainActor in
+                        guard let strongSelf = self else { return }
+                        await strongSelf.refreshLocalDirectory(strongSelf.localCurrentURL, recordHistory: false)
                     }
                 }
             }

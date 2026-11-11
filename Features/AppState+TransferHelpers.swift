@@ -140,8 +140,8 @@ extension AppState {
         let watcher = LocalDirectoryWatcher()
         let digestTracker = DigestTracker(initialDigest: request.initialDigest)
         watcher.startWatching(directory: request.tempDir) { [weak self] in
-            Task { @MainActor [weak self] in
-                guard let self,
+            Task { @MainActor in
+                guard let strongSelf = self,
                       FileManager.default.fileExists(atPath: request.localCopy.path),
                       let newDigest = try? await SHA256Verifier.computeHexDigest(of: request.localCopy),
                       newDigest != digestTracker.lastUploadedDigest
@@ -160,7 +160,7 @@ extension AppState {
                     totalBytes: size,
                     conflictPolicyOverride: .overwrite
                 )
-                _ = await transferQueue.enqueue(meta)
+                _ = await strongSelf.transferQueue.enqueue(meta)
             }
         }
         remoteEditWatches[request.tempDir] = watcher
