@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  # checkov:skip=CKV_GHA_7:Manual release trigger takes zero user inputs
   workflow_dispatch:
 
 permissions:

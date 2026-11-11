@@ -157,6 +157,13 @@ public enum TransferStatus: Sendable, Equatable {
             return false
         }
     }
+
+    public var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
+    }
 }
 
 public struct TransferCheckpoint: Sendable, Codable, Equatable {

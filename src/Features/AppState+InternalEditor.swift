@@ -10,7 +10,7 @@ extension AppState {
             try editorManager.openLocalFile(at: url)
             editorWindowController.present(appState: self)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -32,7 +32,7 @@ extension AppState {
             )
             editorWindowController.present(appState: self)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -81,7 +81,7 @@ extension AppState {
                 edited.isSaving = false
                 edited.syncStatusKey = "transfers.transferFailed"
             }
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -108,7 +108,7 @@ extension AppState {
             }
             await refreshLocalDirectory(localCurrentURL, recordHistory: false)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -131,7 +131,7 @@ extension AppState {
                 edited.syncStatusKey = doc.isRemote ? "editor.statusUploaded" : "editor.statusSaved"
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 }

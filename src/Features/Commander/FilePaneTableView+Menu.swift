@@ -2,8 +2,24 @@ import AppKit
 import SparkleDesignSystem
 
 extension FilePaneTableView.Coordinator {
+    public func menuWillOpen(_: NSMenu) {
+        isMenuOpen = true
+    }
+
+    public func menuDidClose(_: NSMenu) {
+        isMenuOpen = false
+        if deferredReload, let tableView {
+            deferredReload = false
+            isProgrammaticUpdate = true
+            tableView.reloadData()
+            syncSelectionToTableView()
+            isProgrammaticUpdate = false
+        }
+    }
+
     func buildContextMenu() -> NSMenu {
         let menu = NSMenu(title: "Commander Actions")
+        menu.delegate = self
         let strings = parent.strings
 
         addItem(strings.t("common.open"), action: .open, to: menu)

@@ -41,5 +41,5 @@ Adopt a **split persistence strategy** behind `Core` repository interfaces:
 
 ## Consequences
 
-- `ConnectionProfile` export/import (including FileZilla XML / WinSCP `.ini` / `.ssh/config` imports) stays clean and human-debuggable.
+- `ConnectionProfile` export/import (including FileZilla XML / Commander `.ini` / `.ssh/config` imports) stays clean and human-debuggable.
 - `TransferJournal` enforces bounded retention (`SCALE-002`) and remote metadata revalidation before resuming interrupted transfers (`LOG-002`).

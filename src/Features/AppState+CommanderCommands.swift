@@ -90,7 +90,7 @@ public extension AppState {
             await refreshRemoteDirectory(recordHistory: false)
             statusBannerMessage = "\(strings.t("pane.compressedUploaded")): \(archiveSpec.archiveName)"
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -157,7 +157,7 @@ public extension AppState {
                 )
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -251,7 +251,7 @@ public extension AppState {
                 await refreshRemoteDirectory(recordHistory: false)
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 

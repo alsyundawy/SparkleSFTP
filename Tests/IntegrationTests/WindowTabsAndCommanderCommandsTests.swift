@@ -174,17 +174,17 @@ struct WindowTabsAndCommanderCommandsTests {
         #expect(windowA.workspaceTabs[0].sessionID == nil)
     }
 
-    @Test("WinSCP custom commands: CWE-78 quoting, gzip upload, SHA-256 verification and file comparison")
-    func winSCPCommandsAndQuoting() async throws {
+    @Test("Commander custom commands: CWE-78 quoting, gzip upload, SHA-256 verification and file comparison")
+    func commanderCommandsAndQuoting() async throws {
         let quoted = try PathValidator.escapePOSIXSingleQuoted("file'name; rm -rf /")
         #expect(quoted == "'file'\\''name; rm -rf /'")
         #expect(throws: AppError.self) {
             _ = try PathValidator.escapePOSIXSingleQuoted("bad\0name")
         }
 
-        let dirs = try LoopbackTestPaths.createDirectories(prefix: "SparkleWinSCP")
+        let dirs = try LoopbackTestPaths.createDirectories(prefix: "SparkleCommander")
         defer { try? FileManager.default.removeItem(at: dirs.root) }
-        let payload = Data("SparkleSFTP WinSCP test payload\n".utf8)
+        let payload = Data("SparkleSFTP Commander test payload\n".utf8)
         let localFileURL = dirs.localDirA.appendingPathComponent("sample.txt")
         try payload.write(to: localFileURL)
         try payload.write(to: dirs.remoteRoot.appendingPathComponent("sample.txt"))
@@ -198,7 +198,7 @@ struct WindowTabsAndCommanderCommandsTests {
             authorizedPublicKeyFingerprint: nil,
             virtualFS: vfs
         )
-        try await runWinSCPCommandChecks(
+        try await runCommanderCommandChecks(
             paths: dirs.withPort(server.port),
             payload: payload,
             localFileURL: localFileURL
@@ -207,7 +207,7 @@ struct WindowTabsAndCommanderCommandsTests {
     }
 
     @MainActor
-    private func runWinSCPCommandChecks(
+    private func runCommanderCommandChecks(
         paths: LoopbackTestPaths,
         payload: Data,
         localFileURL: URL

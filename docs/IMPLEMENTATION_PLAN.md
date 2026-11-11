@@ -19,7 +19,7 @@
 
 **SparkleSFTP** adalah aplikasi native macOS yang menggabungkan:
 
-- **Dual-pane Commander** (WinSCP-style) dengan UI modern & elegan
+- **Dual-pane Commander** (Dual-Pane Commander) dengan UI modern & elegan
 - **Protokol lengkap**: SFTP, FTP, FTPS (Explicit/Implicit), SCP, SSH Terminal
 - **Keamanan sejak hari pertama**: Keychain + Touch ID, tanpa Electron, tanpa overhead runtime asing
 
@@ -103,7 +103,7 @@ SparkleSFTP/
 │   │   ├── Security/                      # KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator (`CWE-22/59/78`), PrivateKeyParser, UpdateConfigurationValidator
 │   │   ├── Terminal/                      # TerminalViewRepresentable, ExternalTerminalLauncher, TerminalSessionManager, PortForwardingManager, CommandSnippetStore
 │   │   ├── Synchronization/               # DirectoryScanner, SyncPlanner, SyncExecutor
-│   │   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters, ExternalSessionFileReader (incl. 0xA3 WinSCP INI password decryption)
+│   │   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters, ExternalSessionFileReader (incl. 0xA3 Commander INI password decryption)
 │   │   └── DesignSystem/                  # 76 SparkNotePad/NotepadNext themes (26 families), SparkleWindowConfigurator, EN/ID JSON Locales (365 keys)
 │   │
 │   └── Features/                          # SwiftUI + AppKit Views & AppState (+WorkspaceTabs/+CommanderCommands/+Connections/+ConnectionManagement/+Operations/+Imports/+Settings/+TransferHelpers)
@@ -279,7 +279,7 @@ struct SyncPlan: Sendable {
 ## 📋 Phased Roadmap (8 Fase)
 
 > [!IMPORTANT]
-> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori dalam struktur modular `src/{App,Features,Packages}` (diverifikasi `95 tests in 25 suites` & `160` file Swift bersih SwiftLint/SwiftFormat/Trunk/MegaLinter), termasuk multi-jendela independen (`AppEnvironment.makeWindowState()` + `FocusedValues`), multi-tab FileZilla/WinSCP (`WorkspaceTabBar` + **1 Tab = 1 SSH Shell** + `QuickConnectBar` hanya saat tab terputus), jendela mandiri `PreferencesWindowController` / `AboutWindowController` / `EditorWindowController` lewat `ManagedWindowController` (`sizingOptions = [.minSize]`, tombol Close/Minimize/Zoom aktif & ukuran dialog/tab tetap) + ukuran tetap modal `.sheet`, pintasan presisi modifier-ketat (`F7`/`⌘⇧C`/`⌘⌥C`/`⌘↩`/`⌥↩`/`⌘⇧S`/`⌘W`/`Tab` bebas `NSText`), grid kartu tema Preferences (`LazyVGrid` + Live Preview), menu konteks WinSCP (`Compare Files`, `.gz` `-lz`, `SHA-256`, perintah SSH kustom aman `CWE-78`), dekripsi INI `0xA3`, integrasi pustaka pihak ketiga (`Clibcurl` `-lcurl -lz`, `256 KB` GCD workers, `libssh2`, `ToolchainInspector`), transfer multi-thread pipelined `64 KB` terurut + peluruhan `TransferSpeedMeter` + anti-reentrancy `TransferQueue` + pelestarian izin POSIX bottom-up (`0o755` dir defaults) & resume `100%` partial/cleanup `.skip`, dialog konflik FileZilla (`ConflictResolutionSheet`), `76` tema SparkNotePad/NotepadNext (`26` keluarga), About 7-tab, Notepad2 editor, dan `365` kunci EN/ID JSON; Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
+> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori dalam struktur modular `src/{App,Features,Packages}` (diverifikasi `95 tests in 25 suites` & `160` file Swift bersih SwiftLint/SwiftFormat/Trunk/MegaLinter), termasuk multi-jendela independen (`AppEnvironment.makeWindowState()` + `FocusedValues`), multi-tab FileZilla XML & Commander INI (`WorkspaceTabBar` + **1 Tab = 1 SSH Shell** + `QuickConnectBar` hanya saat tab terputus), jendela mandiri `PreferencesWindowController` / `AboutWindowController` / `EditorWindowController` lewat `ManagedWindowController` (`sizingOptions = [.minSize]`, tombol Close/Minimize/Zoom aktif & ukuran dialog/tab tetap) + ukuran tetap modal `.sheet`, pintasan presisi modifier-ketat (`F7`/`⌘⇧C`/`⌘⌥C`/`⌘↩`/`⌥↩`/`⌘⇧S`/`⌘W`/`Tab` bebas `NSText`), grid kartu tema Preferences (`LazyVGrid` + Live Preview), menu konteks Commander (`Compare Files`, `.gz` `-lz`, `SHA-256`, perintah SSH kustom aman `CWE-78`), dekripsi INI `0xA3`, integrasi pustaka pihak ketiga (`Clibcurl` `-lcurl -lz`, `256 KB` GCD workers, `libssh2`, `ToolchainInspector`), transfer multi-thread pipelined `64 KB` terurut + peluruhan `TransferSpeedMeter` + anti-reentrancy `TransferQueue` + pelestarian izin POSIX bottom-up (`0o755` dir defaults) & resume `100%` partial/cleanup `.skip`, dialog konflik FileZilla (`ConflictResolutionSheet`), `76` tema SparkNotePad/NotepadNext (`26` keluarga), About 7-tab, Notepad2 editor, dan `365` kunci EN/ID JSON; Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
 
 ```mermaid
 flowchart LR
@@ -317,7 +317,7 @@ flowchart LR
 - Host key TOFU: SHA-256 fingerprint, 6-state machine, changed-key blocking
 - SSH auth: password, Ed25519/ECDSA key, keyboard-interactive (2FA)
 - TLS certificate validation: `SecTrustEvaluateWithError` chain + hostname + OCSP
-- SSH config parser (`~/.ssh/config`) + `FileZilla XML` & `WinSCP .ini` importers
+- SSH config parser (`~/.ssh/config`) + `FileZilla XML` & `Commander .ini` importers
 
 ### Phase 04 — Protocol Engine (Minggu 8–11) _(Selesai)_
 
@@ -421,7 +421,7 @@ flowchart LR
 - [x] **TASK-031** Implement recent connections (`ConnectionProfile.lastConnectedAt`)
 - [x] **TASK-032** Implement SSH config parser (`SSHConfigParser` `~/.ssh/config` → Host, HostName, Port, User, IdentityFile, ProxyJump)
 - [x] **TASK-033** Implement FileZilla XML importer (`FileZillaImporter`)
-- [x] **TASK-034** Implement WinSCP `.ini` importer (`WinSCPIniImporter`)
+- [x] **TASK-034** Implement Commander `.ini` importer (`IniSessionImporter`)
 
 ### EPIC-04 — Security Engine
 
@@ -519,7 +519,7 @@ flowchart LR
 
 ### EPIC-10 — Quality Assurance & Release
 
-- [x] **TASK-111** Unit tests: state machine, path parser, conflict rules, SSH config & importers (`0xA3` simple password decryption + `UseMasterPassword=1` guard), `76` themes (`26` families, `LazyVGrid` card UI), i18n (`365` keys), 1-tab = 1-shell binding, standalone Preferences/About window traffic lights + constant tab/modal dialog sizes & AppKit modifier-scoped shortcuts, Quickconnect unconnected-only visibility, bottom-up POSIX permission & dotfile recursive transfer, stall-decaying `TransferSpeedMeter`, ordered SFTP pipelining & reentrancy/pause/skip/0-byte resume, bidirectional sync, Notepad2 editor, Keychain Remember Password & `FTPService` prompt, 7-tab About diagnostics, AppKit table row keys, `zlib`/`gzip` `CWE-409` codecs, `ToolchainInspector`, `ExternalTerminalLauncher` `CWE-78`, FIFO `pendingConflictQueue`, independent multi-window & paired multi-tab sessions, WinSCP `.gz` upload / SHA-256 / comparison / `CWE-78` quoting, and connection cloning/batch deletion/performance (`CoreTests`, `PersistenceTests`, `FileManagerTests`, `SynchronizationTests`, `IntegrationTests` — 95 tests in 25 suites)
+- [x] **TASK-111** Unit tests: state machine, path parser, conflict rules, SSH config & importers (`0xA3` simple password decryption + `UseMasterPassword=1` guard), `76` themes (`26` families, `LazyVGrid` card UI), i18n (`365` keys), 1-tab = 1-shell binding, standalone Preferences/About window traffic lights + constant tab/modal dialog sizes & AppKit modifier-scoped shortcuts, Quickconnect unconnected-only visibility, bottom-up POSIX permission & dotfile recursive transfer, stall-decaying `TransferSpeedMeter`, ordered SFTP pipelining & reentrancy/pause/skip/0-byte resume, bidirectional sync, Notepad2 editor, Keychain Remember Password & `FTPService` prompt, 7-tab About diagnostics, AppKit table row keys, `zlib`/`gzip` `CWE-409` codecs, `ToolchainInspector`, `ExternalTerminalLauncher` `CWE-78`, FIFO `pendingConflictQueue`, independent multi-window & paired multi-tab sessions, Commander `.gz` upload / SHA-256 / comparison / `CWE-78` quoting, and connection cloning/batch deletion/performance (`CoreTests`, `PersistenceTests`, `FileManagerTests`, `SynchronizationTests`, `IntegrationTests` — 95 tests in 25 suites)
 - [ ] **TASK-112** Live Docker Compose integration test execution (`Tools/TestServers/` tersedia; butuh container runtime Docker)
 - [x] **TASK-113** SFTP interoperability tests via real encrypted `LoopbackSSHServer` (listing, upload, download, mkdir, rename, chmod, delete)
 - [ ] **TASK-114** Live Docker FTPS server interop run (TLS self-signed rejection & FTP CRLF sanitizer terverifikasi; live FTPS container deferred ke Docker env)
@@ -665,7 +665,7 @@ services:
 - [x] Engine SFTP, FTP, explicit/implicit FTPS, dan SSH terminal tersedia dalam [`SparkleNetworking`](../src/Packages/Networking/) & [`SparkleTerminal`](../src/Packages/Terminal/) (interop SFTP & DirectTCPIP teruji live loopback; container Docker FTPS deferred ke host Docker)
 - [x] Host key verification berjalan benar (`LoopbackSFTPIntegrationTests` memverifikasi unknown prompt, trusted reuse, dan blokir host key berubah via `.hostKeyMismatch`)
 - [x] TLS certificate validation (`TLSCertificateValidator` menolak sertifikat self-signed X.509 di `SecurityTests`)
-- [x] Dual-pane lokal/remote berfungsi + multi-jendela independen + multi-tab FileZilla/WinSCP (`⌘T`, `⌘⇧[`, `⌘⇧]`, `⌘W`, `⌘\\`, `⌘N`, `⌘R`, `⌘⇧S`, `⌘⇧N`, `Tab` terlingkup tabel) + menu konteks WinSCP (`Edit`, `F5`–`F9`, `Compare`, `.gz`, `SHA-256`, perintah SSH kustom)
+- [x] Dual-pane lokal/remote berfungsi + multi-jendela independen + multi-tab FileZilla XML & Commander INI (`⌘T`, `⌘⇧[`, `⌘⇧]`, `⌘W`, `⌘\\`, `⌘N`, `⌘R`, `⌘⇧S`, `⌘⇧N`, `Tab` terlingkup tabel) + menu konteks Commander (`Edit`, `F5`–`F9`, `Compare`, `.gz`, `SHA-256`, perintah SSH kustom)
 - [x] Upload/download + batch multi-thread (`TransferScheduler` 4 global / 3 per-host + `SFTPPipelinedTransfer` `64 KB` sliding window + `TransferSpeedMeter` + POSIX permission preservation) + pause/resume + cancel + retry (`TransferEngineTests` + `ToolchainAndConflictTests` + `LoopbackSFTPIntegrationTests`)
 - [x] FileZilla-style conflict resolution (`ConflictResolutionSheet` 7 actions + sticky queue/direction checkboxes + FIFO `pendingConflictQueue`) + atomic upload (`.part` verify -> atomic rename)
 - [x] Toolchain integration (`Clibcurl` `-lcurl -lz`, `256 KB` `CurlClientHelper` GCD workers, bounded `zlib`/`gzip`, dynamic `dlopen` `libssh2` probe, `OpenSSL`/`OpenSSH`/shell detection, v0.1 `terminal.fill` icon, sanitized `ExternalTerminalLauncher` for iTerm2/Terminal) (`ToolchainAndConflictTests`, `WindowControlsAndShortcutsTests`, `FolderPermissionsTransferTests`)

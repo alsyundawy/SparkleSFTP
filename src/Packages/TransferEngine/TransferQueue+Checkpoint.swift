@@ -2,28 +2,53 @@ import Foundation
 import SparkleCore
 
 extension TransferQueue {
-    func persistSnapshot(_ snapshot: TransferSnapshot) async {
-        guard let journal else { return }
+    func journalRecord(for snapshot: TransferSnapshot) -> TransferJournalRecord {
         let errorMsg: String? = if case let .failed(appError) = snapshot.status {
             appError.errorDescription
         } else {
             nil
         }
-        let record = TransferJournalRecord(
+        return TransferJournalRecord(
             id: snapshot.id,
             metadata: snapshot.metadata,
             statusCode: snapshot.status.statusCode,
             errorDescription: errorMsg,
             checkpoint: snapshot.checkpoint
         )
-        try? await journal.upsert(record)
+    }
+
+    func persistSnapshot(_ snapshot: TransferSnapshot) async {
+        guard let journal else { return }
+        try? await journal.upsert(journalRecord(for: snapshot))
     }
 
     func orderedSnapshots() -> [TransferSnapshot] {
         snapshots.values.sorted { $0.metadata.createdAt > $1.metadata.createdAt }
     }
 
-    func broadcastSnapshots() {
+    func broadcastSnapshots(immediate: Bool = false) {
+        guard !streamContinuations.isEmpty else { return }
+        let isQueueIdle = activeTasks.isEmpty
+            && !snapshots.values.contains { $0.status.isActive || $0.status == .queued }
+        if immediate || snapshots.count <= 20 || isQueueIdle {
+            snapshotFlushTask?.cancel()
+            snapshotFlushTask = nil
+            flushSnapshotsNow()
+            return
+        }
+        guard snapshotFlushTask == nil else { return }
+        snapshotFlushTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(60))
+            await self?.flushCoalescedSnapshots()
+        }
+    }
+
+    private func flushCoalescedSnapshots() {
+        snapshotFlushTask = nil
+        flushSnapshotsNow()
+    }
+
+    private func flushSnapshotsNow() {
         guard !streamContinuations.isEmpty else { return }
         let ordered = orderedSnapshots()
         for (_, cont) in streamContinuations {

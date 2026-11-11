@@ -1,12 +1,12 @@
 import Foundation
 import SparkleCore
 
-private struct WinSCPIniSection {
+private struct IniSessionSection {
     let name: String
     let fields: [String: String]
 }
 
-private enum WinSCPPasswordDecoder {
+private enum IniSessionPasswordDecoder {
     private static let magic: UInt8 = 0xA3
     private static let versionFlag: UInt8 = 0xFF
     private static let internalMarker: UInt8 = 0x00
@@ -110,8 +110,8 @@ private enum WinSCPPasswordDecoder {
     }
 }
 
-/// Imports WinSCP `.ini` `[Sessions\...]` profiles cleanly, including simple password decryption.
-public enum WinSCPIniImporter {
+/// Imports Commander `.ini` `[Sessions\...]` profiles cleanly, including `0xA3` simple password decoding.
+public enum IniSessionImporter {
     public static func parse(iniContents: String) -> [ImportedConnection] {
         parseWithReport(iniContents: iniContents).connections
     }
@@ -135,17 +135,17 @@ public enum WinSCPIniImporter {
         }
 
         return ExternalImportReport(
-            format: .winSCPINI,
+            format: .commanderINI,
             connections: results,
             skippedUnsupported: skippedUnsupported
         )
     }
 
     private static func parseSections(from iniContents: String) -> (
-        sections: [WinSCPIniSection],
+        sections: [IniSessionSection],
         vaultPassEnabled: Bool
     ) {
-        var sections: [WinSCPIniSection] = []
+        var sections: [IniSessionSection] = []
         var currentName: String?
         var currentFields: [String: String] = [:]
         var vaultPassEnabled = false
@@ -183,7 +183,7 @@ public enum WinSCPIniImporter {
     private static func commitSection(
         name: String?,
         fields: [String: String],
-        sections: inout [WinSCPIniSection],
+        sections: inout [IniSessionSection],
         vaultPassEnabled: inout Bool
     ) {
         guard let name else { return }
@@ -191,7 +191,7 @@ public enum WinSCPIniImporter {
            fields["UseMasterPassword"] == "1" {
             vaultPassEnabled = true
         }
-        sections.append(WinSCPIniSection(name: name, fields: fields))
+        sections.append(IniSessionSection(name: name, fields: fields))
     }
 
     private static func buildOutcome(
@@ -274,7 +274,7 @@ public enum WinSCPIniImporter {
             rawHost: rawHost,
             host: host
         )
-        return WinSCPPasswordDecoder.decrypt(
+        return IniSessionPasswordDecoder.decrypt(
             encodedHex: fields["Password"],
             candidateKeys: candidateKeys,
             vaultPassEnabled: vaultPassEnabled
@@ -387,6 +387,6 @@ public enum ExternalConnectionFileReader {
         if fileExtension == "xml" || trimmed.hasPrefix("<") {
             return try FileZillaImporter.parseWithReport(xmlData: data)
         }
-        return WinSCPIniImporter.parseWithReport(iniContents: text)
+        return IniSessionImporter.parseWithReport(iniContents: text)
     }
 }

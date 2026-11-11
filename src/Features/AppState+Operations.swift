@@ -21,7 +21,10 @@ public extension AppState {
     }
 
     func applyConflictPolicySettings() async {
-        await transferQueue.updateDefaultConflictPolicy(defaultConflictPolicy)
+        await transferQueue.updateDefaultConflictPolicies(
+            upload: defaultUploadConflictPolicy,
+            download: defaultDownloadConflictPolicy
+        )
     }
 
     func resetConflictQueueRules() async {
@@ -46,7 +49,7 @@ public extension AppState {
             )
             statusBannerMessage = "Opened \(profile.host) in \(launchedApp)"
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -94,7 +97,7 @@ public extension AppState {
                 }
             }
         } catch {
-            lastError = .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -114,7 +117,7 @@ public extension AppState {
             }
             activeSessions[refreshedIdx].remoteFiles = PaginatedFileWindow(allFiles: sorted)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -202,7 +205,7 @@ public extension AppState {
                 await refreshRemoteDirectory(recordHistory: false)
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -220,7 +223,7 @@ public extension AppState {
                 await refreshRemoteDirectory(recordHistory: false)
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -240,7 +243,7 @@ public extension AppState {
                 await refreshRemoteDirectory(recordHistory: false)
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -250,7 +253,7 @@ public extension AppState {
             try await session.service.fileSystem.setPermissions(mode, at: file.path)
             await refreshRemoteDirectory(recordHistory: false)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -278,7 +281,7 @@ public extension AppState {
                 )
             )
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error, asBannerOnly: true)
         }
     }
 }

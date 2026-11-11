@@ -29,7 +29,7 @@ public final class SparkleUpdaterService {
 
     public init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.2.0"
+        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.3.0"
         let feedURL = info["SUFeedURL"] as? String
         let publicEDKey = info["SUPublicEDKey"] as? String
         let isPackagedApp = Bundle.main.bundleURL.pathExtension == "app"

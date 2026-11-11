@@ -96,19 +96,21 @@ public struct PreferencesView: View {
 
                 Toggle(strings.t("prefs.zlibCompression"), isOn: $appState.useZlibCompression)
 
-                Picker(strings.t("prefs.defaultConflict"), selection: $appState.defaultConflictPolicy) {
-                    Text(strings.t("prefs.conflictAsk")).tag(TransferConflictPolicy.ask)
-                    Text(strings.t("prefs.conflictOverwrite")).tag(TransferConflictPolicy.overwrite)
-                    Text(strings.t("prefs.conflictOverwriteIfNewer")).tag(TransferConflictPolicy.overwriteIfNewer)
-                    Text(strings.t("prefs.conflictOverwriteIfDiffSize"))
-                        .tag(TransferConflictPolicy.overwriteIfDifferentSize)
-                    Text(strings.t("prefs.conflictOverwriteIfDiffOrNewer"))
-                        .tag(TransferConflictPolicy.overwriteIfDifferentSizeOrNewer)
-                    Text(strings.t("prefs.conflictResume")).tag(TransferConflictPolicy.resume)
-                    Text(strings.t("prefs.conflictRename")).tag(TransferConflictPolicy.rename)
-                    Text(strings.t("prefs.conflictSkip")).tag(TransferConflictPolicy.skip)
+                Picker(strings.t("prefs.uploadConflict"), selection: $appState.defaultUploadConflictPolicy) {
+                    ForEach(TransferConflictPolicy.allCases, id: \.self) { policy in
+                        Text(policy.localizedTitle(strings)).tag(policy)
+                    }
                 }
-                .onChange(of: appState.defaultConflictPolicy) { _ in
+                .onChange(of: appState.defaultUploadConflictPolicy) { _ in
+                    Task { await appState.applyConflictPolicySettings() }
+                }
+
+                Picker(strings.t("prefs.downloadConflict"), selection: $appState.defaultDownloadConflictPolicy) {
+                    ForEach(TransferConflictPolicy.allCases, id: \.self) { policy in
+                        Text(policy.localizedTitle(strings)).tag(policy)
+                    }
+                }
+                .onChange(of: appState.defaultDownloadConflictPolicy) { _ in
                     Task { await appState.applyConflictPolicySettings() }
                 }
             }

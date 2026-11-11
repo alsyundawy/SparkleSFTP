@@ -16,6 +16,8 @@ public extension AppState {
         static let useZlib = "sparklesftp.useZlibCompression"
         static let externalTerminal = "sparklesftp.externalTerminalApp"
         static let conflictPolicy = "sparklesftp.conflictPolicy"
+        static let uploadConflictPolicy = "sparklesftp.uploadConflictPolicy"
+        static let downloadConflictPolicy = "sparklesftp.downloadConflictPolicy"
         static let openInternalEditor = "sparklesftp.openDoubleClickInInternalEditor"
         static let updateSettings = "sparklesftp.autoUpdateSettings"
     }
@@ -72,7 +74,16 @@ public extension AppState {
         }
         if let rawPolicy = defaults.string(forKey: PreferenceKey.conflictPolicy),
            let policy = TransferConflictPolicy(rawValue: rawPolicy) {
-            defaultConflictPolicy = policy
+            defaultUploadConflictPolicy = policy
+            defaultDownloadConflictPolicy = policy
+        }
+        if let rawUpload = defaults.string(forKey: PreferenceKey.uploadConflictPolicy),
+           let uploadPolicy = TransferConflictPolicy(rawValue: rawUpload) {
+            defaultUploadConflictPolicy = uploadPolicy
+        }
+        if let rawDownload = defaults.string(forKey: PreferenceKey.downloadConflictPolicy),
+           let downloadPolicy = TransferConflictPolicy(rawValue: rawDownload) {
+            defaultDownloadConflictPolicy = downloadPolicy
         }
         if defaults.object(forKey: PreferenceKey.openInternalEditor) != nil {
             openDoubleClickInInternalEditor = defaults.bool(forKey: PreferenceKey.openInternalEditor)
@@ -91,7 +102,9 @@ public extension AppState {
         defaults.set(transferPipelineDepth, forKey: PreferenceKey.pipelineDepth)
         defaults.set(useZlibCompression, forKey: PreferenceKey.useZlib)
         defaults.set(externalTerminalApp.rawValue, forKey: PreferenceKey.externalTerminal)
-        defaults.set(defaultConflictPolicy.rawValue, forKey: PreferenceKey.conflictPolicy)
+        defaults.set(defaultUploadConflictPolicy.rawValue, forKey: PreferenceKey.conflictPolicy)
+        defaults.set(defaultUploadConflictPolicy.rawValue, forKey: PreferenceKey.uploadConflictPolicy)
+        defaults.set(defaultDownloadConflictPolicy.rawValue, forKey: PreferenceKey.downloadConflictPolicy)
         defaults.set(openDoubleClickInInternalEditor, forKey: PreferenceKey.openInternalEditor)
         if let encoded = try? JSONEncoder().encode(autoUpdateSettings) {
             defaults.set(encoded, forKey: PreferenceKey.updateSettings)

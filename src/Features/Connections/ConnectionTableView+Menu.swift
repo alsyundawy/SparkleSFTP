@@ -85,6 +85,21 @@ extension ConnectionListCoordinator: NSMenuDelegate {
         return menu
     }
 
+    func menuWillOpen(_: NSMenu) {
+        isMenuOpen = true
+    }
+
+    func menuDidClose(_: NSMenu) {
+        isMenuOpen = false
+        if deferredReload, let tableView {
+            deferredReload = false
+            isProgrammaticUpdate = true
+            tableView.reloadData()
+            syncSelectionToTableView()
+            isProgrammaticUpdate = false
+        }
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let clicked = tableView?.clickedRow ?? -1

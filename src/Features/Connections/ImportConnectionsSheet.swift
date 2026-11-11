@@ -4,7 +4,7 @@ import SparklePersistence
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Dedicated preview and selective importer for FileZilla XML and WinSCP INI connection files.
+/// Dedicated preview and selective importer for FileZilla XML and Commander INI connection files.
 public struct ImportConnectionsSheet: View {
     @ObservedObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -54,7 +54,7 @@ public struct ImportConnectionsSheet: View {
                 if let report {
                     let formatLabel = report.format == .fileZillaXML
                         ? strings.t("import.fileZillaFormat")
-                        : strings.t("import.winSCPFormat")
+                        : strings.t("import.iniFormat")
                     StatusPill(title: formatLabel, systemImage: "doc.text", tint: SparkleTheme.Colors.accent)
                 }
             }

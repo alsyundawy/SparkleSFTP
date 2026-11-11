@@ -58,7 +58,7 @@ SparkleSFTP/
 ├── sonar-project.properties      # SonarQube configuration (`src` sources + `swiftlint --reporter sonarqube`)
 ├── src/
 │   ├── App/                      # Executable entry (`SparkleSFTPApp` + `WindowGroup`), `AppDelegate`, `AppEnvironment`, `SparkleUpdaterService`
-│   ├── Features/                 # SparkleFeatures: SwiftUI + AppKit (`WorkspaceTabBar`, `QuickConnectBar`, Commander + WinSCP context menus/sheets, Connections hover/select/delete, Notepad2 Editor, 1-Tab=1-Shell Terminal, ConflictResolutionSheet, 7-Tab About, Preferences) & per-window `AppState`
+│   ├── Features/                 # SparkleFeatures: SwiftUI + AppKit (`WorkspaceTabBar`, `QuickConnectBar`, Commander + Commander context menus/sheets, Connections hover/select/delete, Notepad2 Editor, 1-Tab=1-Shell Terminal, ConflictResolutionSheet, 7-Tab About, Preferences) & per-window `AppState`
 │   └── Packages/
 │       ├── Clibcurl/             # Non-variadic C11 bridge over macOS SDK libcurl (-lcurl), zlib (-lz) & dynamic libssh2 probe
 │       ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, ToolchainModels, Protocols, FeatureFlags
@@ -68,7 +68,7 @@ SparkleSFTP/
 │       ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator (`CWE-22/59/78`), PrivateKeyParser, UpdateConfigurationValidator
 │       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, 1-Tab=1-Shell SessionManager, ExternalTerminalLauncher, PortForwardingManager
 │       ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
-│       ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
+│       ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla XML & Commander INI BOM & Nested-Group Importers
 │       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator (WindowObserverBox), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 365 keys)
 ├── Tests/                        # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                        # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts

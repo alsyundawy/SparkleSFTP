@@ -9,22 +9,41 @@ import UserNotifications
 public extension AppState {
     internal func notifyTerminalTransfersIfNeeded(_ snapshots: [TransferSnapshot]) {
         guard Bundle.main.bundleURL.pathExtension == "app" else { return }
-        for snap in snapshots where !notifiedTerminalTransferIDs.contains(snap.id) {
-            let content = UNMutableNotificationContent()
-            switch snap.status {
-            case .completed:
-                content.title = "Transfer Completed"
-                content.body = snap.metadata.destination.displayPath
-            case let .failed(error):
-                content.title = "Transfer Failed"
-                content.body = error.errorDescription ?? snap.metadata.destination.displayPath
-            default:
-                continue
-            }
-            notifiedTerminalTransferIDs.insert(snap.id)
-            let req = UNNotificationRequest(identifier: snap.id.uuidString, content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(req) { _ in }
+        let isQueueBusy = snapshots.contains { $0.status.isActive || $0.status == .queued }
+        let newlyTerminal = snapshots.filter {
+            ($0.status == .completed || $0.status.isFailed) && !notifiedTerminalTransferIDs.contains($0.id)
         }
+        guard !newlyTerminal.isEmpty else { return }
+        if isQueueBusy, snapshots.count > 5 {
+            return
+        }
+        for snap in newlyTerminal {
+            notifiedTerminalTransferIDs.insert(snap.id)
+        }
+        let content = makeTransferNotificationContent(for: newlyTerminal)
+        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(req) { _ in }
+    }
+
+    private func makeTransferNotificationContent(
+        for newlyTerminal: [TransferSnapshot]
+    ) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        if newlyTerminal.count == 1, let single = newlyTerminal.first {
+            if case let .failed(error) = single.status {
+                content.title = "Transfer Failed"
+                content.body = error.errorDescription ?? single.metadata.destination.displayPath
+            } else {
+                content.title = "Transfer Completed"
+                content.body = single.metadata.destination.displayPath
+            }
+            return content
+        }
+        let failedCount = newlyTerminal.count(where: \.status.isFailed)
+        let completedCount = newlyTerminal.count - failedCount
+        content.title = failedCount > 0 ? "Transfers Finished with Issues" : "Transfers Completed"
+        content.body = "\(completedCount) completed, \(failedCount) failed"
+        return content
     }
 
     func bootstrap() async {
@@ -174,11 +193,16 @@ public extension AppState {
                 hostMismatchAlert = appError
             }
             lastError = appError
+        } catch is CancellationError {
+            if didConnectTransport, !committedSession {
+                try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
+            }
+            return
         } catch {
             if didConnectTransport, !committedSession {
                 try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
             }
-            lastError = .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 

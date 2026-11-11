@@ -3,9 +3,34 @@ import LocalAuthentication
 import Security
 import SparkleCore
 
+/// Thread-safe in-memory cache avoiding repeated non-TouchID Keychain lookups.
+private final class KeychainMemoryCache: @unchecked Sendable { // JUSTIFICATION: Protected via NSLock.
+    private let lock = NSLock()
+    private var entries: [String: Data] = [:]
+
+    func get(_ key: String) -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        return entries[key]
+    }
+
+    func set(_ data: Data, for key: String) {
+        lock.lock()
+        entries[key] = data
+        lock.unlock()
+    }
+
+    func remove(_ key: String) {
+        lock.lock()
+        entries.removeValue(forKey: key)
+        lock.unlock()
+    }
+}
+
 /// Native Apple Security.framework Keychain store enforcing device-only isolation (CWE-312 / CWE-522).
 public final class KeychainService: CredentialStoreProtocol, Sendable {
     public let serviceIdentifier: String
+    private let memoryCache = KeychainMemoryCache()
 
     public init(serviceIdentifier: String = "com.alsyundawy.SparkleSFTP") {
         self.serviceIdentifier = serviceIdentifier
@@ -59,12 +84,20 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
             DiagnosticsLogger.security.error("Keychain add failed with status \(status, privacy: .public)")
             throw AppError.keychainFailure(status: status, message: Self.errorMessage(for: status))
         }
+        if requireTouchID {
+            memoryCache.remove(reference.accountKey)
+        } else {
+            memoryCache.set(data, for: reference.accountKey)
+        }
         DiagnosticsLogger.security.info(
             "Stored item \(reference.id.uuidString, privacy: .private) touchID=\(requireTouchID, privacy: .public)"
         )
     }
 
     public func loadSecret(for reference: SecretReference, prompt: String?) async throws -> Data {
+        if prompt == nil, let cached = memoryCache.get(reference.accountKey) {
+            return cached
+        }
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceIdentifier,
@@ -83,6 +116,7 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound {
+            memoryCache.remove(reference.accountKey)
             throw AppError.credentialNotFound(service: reference.accountKey)
         }
         if status == errSecAuthFailed || status == errSecUserCanceled {
@@ -91,23 +125,34 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
         guard status == errSecSuccess, let data = result as? Data else {
             throw AppError.keychainFailure(status: status, message: Self.errorMessage(for: status))
         }
+        if prompt == nil {
+            memoryCache.set(data, for: reference.accountKey)
+        }
         return data
     }
 
     public func deleteSecret(for reference: SecretReference) async throws {
+        memoryCache.remove(reference.accountKey)
         try deleteSync(accountKey: reference.accountKey)
     }
 
     public func hasSecret(for reference: SecretReference) async -> Bool {
+        if memoryCache.get(reference.accountKey) != nil {
+            return true
+        }
+        let context = LAContext()
+        context.interactionNotAllowed = true
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceIdentifier,
             kSecAttrAccount as String: reference.accountKey,
             kSecReturnAttributes as String: kCFBooleanFalse as Any,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrSynchronizable as String: kCFBooleanFalse as Any
+            kSecAttrSynchronizable as String: kCFBooleanFalse as Any,
+            kSecUseAuthenticationContext as String: context
         ]
-        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
     /// Evaluates Touch ID / local owner authentication explicitly when vault lock is enabled.

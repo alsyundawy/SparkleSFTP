@@ -1,12 +1,22 @@
 import AppKit
 import Foundation
 import SparkleCore
+import SparkleDesignSystem
+import SparkleTerminal
 import SparkleTransferEngine
 
-struct FolderTransferCollector {
+struct InitialWorkspaceBootstrap {
+    let locales: [LocaleDocument]
+    let themes: [SparkleThemePalette]
+    let strings: AppStrings
+    let firstTab: WorkspaceTab
+    let palette: SparkleThemePalette
+}
+
+struct FolderTransferCollector: Sendable {
     var taskIDs: Set<UUID> = []
     var remoteDirectories: [RemoteDirectoryPermissionTarget] = []
-    var localDirectories: [(url: URL, mode: UInt32)] = []
+    var localDirectories: [LocalDirectoryPermissionTarget] = []
 }
 
 struct RemoteEditWatchRequest {
@@ -21,10 +31,85 @@ struct RemoteEditWatchRequest {
 @MainActor
 private enum TransferRefreshTracker {
     static var completedIDsByWindow: [UUID: Set<UUID>] = [:]
+    static var failedIDsByWindow: [UUID: Set<UUID>] = [:]
     static var debounceTasksByWindow: [UUID: Task<Void, Never>] = [:]
+    static var lastRefreshAtByWindow: [UUID: Date] = [:]
 }
 
 public extension AppState {
+    func reportNonCancellationError(
+        _ error: Error,
+        asBannerOnly: Bool = false,
+        fallback: (String) -> AppError = { .transferFailed(reason: $0) }
+    ) {
+        if error is CancellationError {
+            return
+        }
+        if let urlError = error as? URLError, urlError.code == .cancelled {
+            return
+        }
+        let mapped = (error as? AppError) ?? fallback(error.localizedDescription)
+        if asBannerOnly {
+            statusBannerMessage = mapped.errorDescription ?? error.localizedDescription
+        } else {
+            lastError = mapped
+        }
+    }
+
+    func openStandaloneTerminal(
+        kind: StandaloneShellKind = .userDefault,
+        sshProfile: ConnectionProfile? = nil
+    ) {
+        if let profile = sshProfile {
+            do {
+                _ = try standaloneTerminalManager.openSSHTab(for: profile)
+            } catch {
+                reportNonCancellationError(error)
+                return
+            }
+        } else if kind == .userDefault {
+            standaloneTerminalManager.ensureInitialTab(workingDirectory: localCurrentURL)
+        } else {
+            _ = standaloneTerminalManager.openLocalTab(kind: kind, workingDirectory: localCurrentURL)
+        }
+        standaloneTerminalManager.applyThemeColors(terminalThemeColors)
+        standaloneTerminalWindowController.present(appState: self)
+    }
+
+    internal static func makeInitialWorkspaceBootstrap() -> InitialWorkspaceBootstrap {
+        let initialLocales = LocalizationCatalog.loadAvailableLocales()
+        let initialThemes = SparkleThemeStore.loadAllPalettes()
+        let initialStrings = AppStrings(language: .english, localeCode: "en", availableLocales: initialLocales)
+        let firstTab = WorkspaceTab(
+            id: UUID(),
+            sessionID: nil,
+            title: initialStrings.t("tabs.newTab"),
+            localPath: FileManager.default.homeDirectoryForCurrentUser
+        )
+        let palette = SparkleThemeCatalog.palette(
+            id: SparkleThemeCatalog.defaultLight.id,
+            appearanceMode: .auto,
+            systemIsDark: NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
+            available: initialThemes
+        )
+        return InitialWorkspaceBootstrap(
+            locales: initialLocales,
+            themes: initialThemes,
+            strings: initialStrings,
+            firstTab: firstTab,
+            palette: palette
+        )
+    }
+
+    var terminalThemeColors: TerminalThemeColors {
+        TerminalThemeColors(
+            backgroundHex: activePalette.canvasHex,
+            foregroundHex: activePalette.primaryTextHex,
+            caretHex: activePalette.accentHex,
+            selectionHex: activePalette.borderHex
+        )
+    }
+
     func selectAdjacentWorkspaceTab(delta: Int) {
         guard workspaceTabs.count > 1,
               let currentIdx = workspaceTabs.firstIndex(where: { $0.id == activeTabID })
@@ -56,6 +141,7 @@ public extension AppState {
     }
 
     func handleTransferSnapshotsChanged(_ snapshots: [TransferSnapshot]) {
+        updateFailedTransferBannerIfNeeded(from: snapshots)
         let completed = snapshots.filter { $0.status == .completed }
         guard !completed.isEmpty else { return }
 
@@ -75,16 +161,36 @@ public extension AppState {
         guard sawNewLocalDownload || sawNewRemoteUpload else { return }
         TransferRefreshTracker.completedIDsByWindow[windowInstanceID] = known
 
+        let isQueueBusy = snapshots.contains { $0.status.isActive || $0.status == .queued }
+        let lastRefresh = TransferRefreshTracker.lastRefreshAtByWindow[windowInstanceID] ?? .distantPast
+        if isQueueBusy, Date().timeIntervalSince(lastRefresh) < 2.0,
+           TransferRefreshTracker.debounceTasksByWindow[windowInstanceID] != nil {
+            return
+        }
+
+        let delay: Duration = isQueueBusy ? .seconds(2) : .milliseconds(250)
         TransferRefreshTracker.debounceTasksByWindow[windowInstanceID]?.cancel()
         TransferRefreshTracker.debounceTasksByWindow[windowInstanceID] = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
+            TransferRefreshTracker.lastRefreshAtByWindow[windowInstanceID] = Date()
             if sawNewLocalDownload {
                 await refreshLocalDirectory(localCurrentURL, recordHistory: false)
             }
             if sawNewRemoteUpload, currentSession != nil {
                 await refreshRemoteDirectory(recordHistory: false)
             }
+        }
+    }
+
+    private func updateFailedTransferBannerIfNeeded(from snapshots: [TransferSnapshot]) {
+        var knownFailed = TransferRefreshTracker.failedIDsByWindow[windowInstanceID] ?? []
+        let activeFailedIDs = Set(snapshots.filter(\.status.isFailed).map(\.id))
+        knownFailed.formIntersection(activeFailedIDs)
+        let newFailures = activeFailedIDs.subtracting(knownFailed)
+        TransferRefreshTracker.failedIDsByWindow[windowInstanceID] = activeFailedIDs
+        if !newFailures.isEmpty {
+            statusBannerMessage = "\(activeFailedIDs.count) \(strings.t("transfers.failedBannerCount"))"
         }
     }
 }

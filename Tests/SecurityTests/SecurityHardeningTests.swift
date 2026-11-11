@@ -43,4 +43,56 @@ struct SecurityHardeningTests {
         #expect(didThrow)
         #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("evil.json").path))
     }
+
+    @Test("FileHostTrustBackingStore persists with 0600 permissions and detects corruption without prompts")
+    func fileHostTrustStoreRoundTripAndTamperDetection() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleTrust-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let trustFile = dir.appendingPathComponent("trusted_hosts.v1.json")
+        let backing = FileHostTrustBackingStore(fileURL: trustFile, legacyKeychainStore: nil)
+        let store = HostTrustStore(backingStore: backing)
+
+        try await store.trust(host: "example.com", port: 22, fingerprint: "SHA256:testfingerprint001")
+
+        let attrs = try FileManager.default.attributesOfItem(atPath: trustFile.path)
+        let mode = (attrs[.posixPermissions] as? NSNumber)?.intValue
+        #expect(mode == 0o600)
+
+        let reloaded = HostTrustStore(backingStore: FileHostTrustBackingStore(
+            fileURL: trustFile,
+            legacyKeychainStore: nil
+        ))
+        let evaluation = await reloaded.evaluate(
+            host: "example.com",
+            port: 22,
+            fingerprint: "SHA256:testfingerprint001"
+        )
+        if case let .trusted(fingerprint, _) = evaluation {
+            #expect(fingerprint == "SHA256:testfingerprint001")
+        } else {
+            Issue.record("Expected .trusted state")
+        }
+
+        try Data("{\"corrupted\":true".utf8).write(to: trustFile, options: [.atomic])
+        let tamperedStore = HostTrustStore(backingStore: FileHostTrustBackingStore(
+            fileURL: trustFile,
+            legacyKeychainStore: nil
+        ))
+        let corruptedState = await tamperedStore.evaluate(
+            host: "example.com",
+            port: 22,
+            fingerprint: "SHA256:testfingerprint001"
+        )
+        #expect(corruptedState == .corrupted)
+    }
+
+    @Test("KeychainService hasSecret returns false cleanly for nonexistent references")
+    func keychainHasSecretMissingReturnsFalseWithoutPrompt() async {
+        let service = KeychainService(serviceIdentifier: "com.sparklesftp.test.\(UUID().uuidString)")
+        let missing = SecretReference(kind: .password)
+        let exists = await service.hasSecret(for: missing)
+        #expect(!exists)
+    }
 }

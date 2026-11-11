@@ -61,7 +61,8 @@ extension AboutView {
                     .font(SparkleTheme.Typography.headline)
                 Text(
                     "SparkleSFTP is built cleanly in Swift 6 with native macOS Security.framework, Keychain, "
-                        + "Touch ID, and SecTrust isolation — inspired by SparkNotePad and WinSCP workflows."
+                        + "Touch ID, and SecTrust isolation — inspired by SparkNotePad and dual-pane Commander "
+                        + "workflows."
                 )
                 .font(SparkleTheme.Typography.caption)
                 .foregroundStyle(palette.secondaryTextColor)

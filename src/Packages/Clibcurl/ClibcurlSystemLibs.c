@@ -1,3 +1,4 @@
+#define ZLIB_CONST
 #include "Clibcurl.h"
 #include <dlfcn.h>
 #include <stdio.h>
@@ -65,18 +66,30 @@ int sparklesftp_zlib_deflate(const uint8_t *input, size_t input_len, int level, 
     if (bound == 0) {
         bound = 16;
     }
-    uint8_t *buffer = (uint8_t *)malloc((size_t)bound);
+    uint8_t *buffer = malloc((size_t)bound);
     if (buffer == NULL) {
         deflateEnd(&stream);
         return -3;
     }
 
-    stream.next_in = (Bytef *)input;
+    uint8_t *in_copy = NULL;
+    if (input_len > 0) {
+        in_copy = malloc(input_len);
+        if (in_copy == NULL) {
+            free(buffer);
+            deflateEnd(&stream);
+            return -3;
+        }
+        memcpy(in_copy, input, input_len);
+    }
+
+    stream.next_in = in_copy;
     stream.avail_in = (uInt)input_len;
-    stream.next_out = (Bytef *)buffer;
+    stream.next_out = buffer;
     stream.avail_out = (uInt)bound;
 
     int status = deflate(&stream, Z_FINISH);
+    free(in_copy);
     if (status != Z_STREAM_END) {
         free(buffer);
         deflateEnd(&stream);
@@ -110,73 +123,80 @@ int sparklesftp_zlib_inflate(const uint8_t *input, size_t input_len, size_t max_
     if (capacity > max_output_bytes) {
         capacity = max_output_bytes;
     }
-    uint8_t *buffer = (uint8_t *)malloc(capacity);
-    if (buffer == NULL) {
+    uint8_t *buffer = malloc(capacity);
+    uint8_t *in_copy = malloc(input_len);
+    if (buffer == NULL || in_copy == NULL) {
+        free(buffer);
+        free(in_copy);
         inflateEnd(&stream);
         return -3;
     }
+    memcpy(in_copy, input, input_len);
 
-    stream.next_in = (Bytef *)input;
+    stream.next_in = in_copy;
     stream.avail_in = (uInt)input_len;
 
+    int rc = -4;
     for (;;) {
         if (stream.total_out >= max_output_bytes) {
             if (stream.avail_in > 0) {
                 uint8_t trailer_probe = 0;
-                stream.next_out = (Bytef *)&trailer_probe;
+                stream.next_out = &trailer_probe;
                 stream.avail_out = 0;
                 int probe_status = inflate(&stream, Z_NO_FLUSH);
                 if (probe_status == Z_STREAM_END) {
-                    *out_data = buffer;
-                    *out_len = (size_t)stream.total_out;
-                    inflateEnd(&stream);
-                    return 0;
+                    rc = 0;
+                    break;
                 }
             }
-            free(buffer);
-            inflateEnd(&stream);
-            return -5;
+            rc = -5;
+            break;
         }
         size_t remaining_cap = capacity - (size_t)stream.total_out;
         if (remaining_cap == 0) {
             size_t next_cap = capacity <= (max_output_bytes / 2) ? (capacity * 2) : max_output_bytes;
             if (next_cap <= capacity) {
-                free(buffer);
-                inflateEnd(&stream);
-                return -5;
+                rc = -5;
+                break;
             }
-            uint8_t *grown = (uint8_t *)realloc(buffer, next_cap);
+            uint8_t *grown = realloc(buffer, next_cap);
             if (grown == NULL) {
-                free(buffer);
-                inflateEnd(&stream);
-                return -3;
+                rc = -3;
+                break;
             }
             buffer = grown;
             capacity = next_cap;
             remaining_cap = capacity - (size_t)stream.total_out;
         }
 
-        stream.next_out = (Bytef *)(buffer + stream.total_out);
+        stream.next_out = buffer + stream.total_out;
         stream.avail_out = (uInt)remaining_cap;
 
         int status = inflate(&stream, Z_NO_FLUSH);
         if (status == Z_STREAM_END) {
-            *out_data = buffer;
-            *out_len = (size_t)stream.total_out;
-            inflateEnd(&stream);
-            return 0;
+            rc = 0;
+            break;
         }
         if (status != Z_OK && status != Z_BUF_ERROR) {
-            free(buffer);
-            inflateEnd(&stream);
-            return -4;
+            rc = -4;
+            break;
         }
         if (stream.avail_in == 0 && stream.avail_out > 0) {
-            free(buffer);
-            inflateEnd(&stream);
-            return -4;
+            rc = -4;
+            break;
         }
     }
+
+    size_t produced = (size_t)stream.total_out;
+    free(in_copy);
+    inflateEnd(&stream);
+    if (rc != 0) {
+        free(buffer);
+        return rc;
+    }
+    *out_data = buffer;
+    *out_len = produced;
+    return 0;
 }
 
 void sparklesftp_zlib_free(void *ptr) {

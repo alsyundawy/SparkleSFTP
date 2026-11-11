@@ -38,16 +38,21 @@ public struct WorkspaceTab: Identifiable, Equatable, Sendable {
     }
 }
 
-struct RemoteDirectoryPermissionTarget {
+struct RemoteDirectoryPermissionTarget: Sendable {
     let path: RemotePath
     let mode: UInt32
     let profileID: UUID
 }
 
-struct PendingFolderPermissionJob {
+struct LocalDirectoryPermissionTarget: Sendable {
+    let url: URL
+    let mode: UInt32
+}
+
+struct PendingFolderPermissionJob: Sendable {
     var remainingTaskIDs: Set<UUID>
     let remoteDirectories: [RemoteDirectoryPermissionTarget]
-    let localDirectories: [(url: URL, mode: UInt32)]
+    let localDirectories: [LocalDirectoryPermissionTarget]
 }
 
 public struct CopyMoveRequest: Identifiable, Sendable {

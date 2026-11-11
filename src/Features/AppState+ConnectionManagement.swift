@@ -197,6 +197,7 @@ public extension AppState {
         }
         remoteEditWatches.removeAll()
         terminalManager.closeAll()
+        standaloneTerminalManager.terminateAll()
     }
 
     func shutdownAsyncResources() async {

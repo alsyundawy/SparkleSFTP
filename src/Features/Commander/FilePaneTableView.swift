@@ -159,10 +159,17 @@ public struct FilePaneTableView: NSViewRepresentable {
         if themeChanged {
             context.coordinator.applyTheme(palette)
         }
-        let filesChanged = context.coordinator.cachedFiles.count != files.count
-            || context.coordinator.cachedFiles != files
+        let filesChanged = context.coordinator.cachedFiles != files
+        if context.coordinator.isMenuOpen {
+            if filesChanged {
+                context.coordinator.cachedFiles = files
+                context.coordinator.deferredReload = true
+            }
+            return
+        }
         if filesChanged || themeChanged {
             context.coordinator.cachedFiles = files
+            context.coordinator.deferredReload = false
             context.coordinator.isProgrammaticUpdate = true
             tableView.reloadData()
             context.coordinator.syncSelectionToTableView()
@@ -177,7 +184,7 @@ public struct FilePaneTableView: NSViewRepresentable {
 
 public extension FilePaneTableView {
     @MainActor
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var parent: FilePaneTableView
         var cachedFiles: [RemoteFile] = []
         var cachedPalette: SparkleThemePalette?
@@ -186,6 +193,8 @@ public extension FilePaneTableView {
         weak var scrollView: NSScrollView?
         weak var tableView: NSTableView?
         var isProgrammaticUpdate = false
+        var isMenuOpen = false
+        var deferredReload = false
         private var focusObserver: NSObjectProtocol?
 
         private static let folderSymbol = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: nil)

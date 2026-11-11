@@ -120,7 +120,7 @@ struct PersistenceTests {
         #expect(entries[0].proxyJump == "jump.internal")
     }
 
-    @Test("FileZilla XML and WinSCP INI importers extract endpoints cleanly")
+    @Test("FileZilla XML and Commander INI importers extract endpoints cleanly")
     func externalImportersTest() throws {
         let xml = """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -151,11 +151,11 @@ struct PersistenceTests {
         FSProtocol=2
         RemoteDirectory=/srv/app
         """
-        let winscp = WinSCPIniImporter.parse(iniContents: ini)
-        #expect(winscp.count == 1)
-        #expect(winscp[0].profile.name == "Prod SFTP")
-        #expect(winscp[0].profile.port == 2200)
-        #expect(winscp[0].profile.protocolType == .sftp)
+        let iniSessions = IniSessionImporter.parse(iniContents: ini)
+        #expect(iniSessions.count == 1)
+        #expect(iniSessions[0].profile.name == "Prod SFTP")
+        #expect(iniSessions[0].profile.port == 2200)
+        #expect(iniSessions[0].profile.protocolType == .sftp)
 
         let scpIni = """
         [Sessions\\Legacy%20SCP]
@@ -163,7 +163,7 @@ struct PersistenceTests {
         UserName=deploy
         FSProtocol=0
         """
-        let scpSessions = WinSCPIniImporter.parse(iniContents: scpIni)
+        let scpSessions = IniSessionImporter.parse(iniContents: scpIni)
         #expect(scpSessions.count == 1)
         #expect(scpSessions[0].profile.protocolType == .scp)
     }

@@ -1,10 +1,62 @@
 import Foundation
+import LocalAuthentication
 import Security
 import SparkleCore
 
 public protocol HostTrustBackingStore: Sendable {
     func loadTrustBlob() async throws -> Data?
     func saveTrustBlob(_ data: Data) async throws
+}
+
+/// File-backed `0600` known-hosts trust store matching `~/.ssh/known_hosts` isolation without triggering
+/// macOS login Keychain prompts on app launch across ad-hoc rebuilds.
+public final class FileHostTrustBackingStore: HostTrustBackingStore, Sendable {
+    private let fileURL: URL
+    private let legacyKeychainStore: KeychainHostTrustBackingStore?
+
+    public init(
+        fileURL: URL = FileHostTrustBackingStore.defaultFileURL(),
+        legacyKeychainStore: KeychainHostTrustBackingStore? = KeychainHostTrustBackingStore()
+    ) {
+        self.fileURL = fileURL
+        self.legacyKeychainStore = legacyKeychainStore
+    }
+
+    public static func defaultFileURL() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".sparklesftp", isDirectory: true)
+        return base
+            .appendingPathComponent("SparkleSFTP", isDirectory: true)
+            .appendingPathComponent("trusted_hosts.v1.json")
+    }
+
+    public func loadTrustBlob() async throws -> Data? {
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            return try Data(contentsOf: fileURL)
+        }
+        guard let legacyKeychainStore,
+              let migrated = try await legacyKeychainStore.loadTrustBlobNonInteractively(),
+              !migrated.isEmpty
+        else {
+            return nil
+        }
+        try? await saveTrustBlob(migrated)
+        return migrated
+    }
+
+    public func saveTrustBlob(_ data: Data) async throws {
+        let dir = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: NSNumber(value: 0o700)]
+        )
+        try data.write(to: fileURL, options: [.atomic])
+        try FileManager.default.setAttributes(
+            [.posixPermissions: NSNumber(value: 0o600)],
+            ofItemAtPath: fileURL.path
+        )
+    }
 }
 
 /// Keychain-backed host key trust storage (not UserDefaults) enforcing local device isolation.
@@ -21,7 +73,15 @@ public final class KeychainHostTrustBackingStore: HostTrustBackingStore, Sendabl
     }
 
     public func loadTrustBlob() async throws -> Data? {
-        let query: [String: Any] = [
+        try loadTrustBlobInternal(allowInteractivePrompt: true)
+    }
+
+    public func loadTrustBlobNonInteractively() async throws -> Data? {
+        try loadTrustBlobInternal(allowInteractivePrompt: false)
+    }
+
+    private func loadTrustBlobInternal(allowInteractivePrompt: Bool) throws -> Data? {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
@@ -29,9 +89,16 @@ public final class KeychainHostTrustBackingStore: HostTrustBackingStore, Sendabl
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecAttrSynchronizable as String: kCFBooleanFalse as Any
         ]
+        if !allowInteractivePrompt {
+            let context = LAContext()
+            context.interactionNotAllowed = true
+            query[kSecUseAuthenticationContext as String] = context
+        }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound {
+        let deniedSilently = !allowInteractivePrompt
+            && (status == errSecInteractionNotAllowed || status == errSecAuthFailed)
+        if status == errSecItemNotFound || deniedSilently {
             return nil
         }
         guard status == errSecSuccess else {
@@ -78,7 +145,7 @@ public actor HostTrustStore: HostTrustStoreProtocol {
     private var isCorrupted = false
     private var hasLoaded = false
 
-    public init(backingStore: any HostTrustBackingStore = KeychainHostTrustBackingStore()) {
+    public init(backingStore: any HostTrustBackingStore = FileHostTrustBackingStore()) {
         self.backingStore = backingStore
     }
 

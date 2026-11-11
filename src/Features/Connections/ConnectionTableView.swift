@@ -139,8 +139,16 @@ struct ConnectionListTableView: NSViewRepresentable {
             tableView.menu = context.coordinator.buildMenu()
         }
         let rowsChanged = context.coordinator.cachedRows != rows
+        if context.coordinator.isMenuOpen {
+            if rowsChanged {
+                context.coordinator.cachedRows = rows
+                context.coordinator.deferredReload = true
+            }
+            return
+        }
         if rowsChanged || themeChanged {
             context.coordinator.cachedRows = rows
+            context.coordinator.deferredReload = false
             context.coordinator.isProgrammaticUpdate = true
             tableView.reloadData()
             context.coordinator.syncSelectionToTableView()
@@ -161,6 +169,8 @@ final class ConnectionListCoordinator: NSObject, NSTableViewDataSource, NSTableV
     var cachedLocaleCode = ""
     var lastSyncedSelection: Set<UUID> = []
     var isProgrammaticUpdate = false
+    var isMenuOpen = false
+    var deferredReload = false
     weak var scrollView: NSScrollView?
     weak var tableView: NSTableView?
 

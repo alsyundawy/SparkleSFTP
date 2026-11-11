@@ -5,7 +5,7 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 APP_BUNDLE="${1:-${REPO_ROOT}/dist/SparkleSFTP.app}"
-VERSION="${2:-0.2.0}"
+VERSION="${2:-0.3.0}"
 if [[ ! "${VERSION}" =~ ^[0-9]+(\.[0-9]+)*([-.][A-Za-z0-9.-]+)?$ ]]; then
   printf 'Invalid version string: %s\n' "${VERSION}" >&2
   exit 1

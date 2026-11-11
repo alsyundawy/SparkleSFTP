@@ -188,8 +188,20 @@ public final class AppState: ObservableObject {
 
     @Published public var toolchainReport = HostToolchainReport()
 
-    @Published public var defaultConflictPolicy: TransferConflictPolicy = .ask {
+    @Published public var defaultUploadConflictPolicy: TransferConflictPolicy = .ask {
         didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var defaultDownloadConflictPolicy: TransferConflictPolicy = .ask {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    public var defaultConflictPolicy: TransferConflictPolicy {
+        get { defaultUploadConflictPolicy }
+        set {
+            defaultUploadConflictPolicy = newValue
+            defaultDownloadConflictPolicy = newValue
+        }
     }
 
     @Published public var syncComparisonMode: SyncComparisonMode = .sizeAndMtime
@@ -213,6 +225,8 @@ public final class AppState: ObservableObject {
     let editorWindowController = EditorWindowController()
     let aboutWindowController = AboutWindowController()
     let preferencesWindowController = PreferencesWindowController()
+    let standaloneTerminalWindowController = StandaloneTerminalWindowController()
+    public let standaloneTerminalManager = StandaloneTerminalManager()
 
     var didBootstrap = false
     var transferQueueInstance: TransferQueue?
@@ -240,7 +254,10 @@ public final class AppState: ObservableObject {
         if let existing = transferQueueInstance {
             return existing
         }
-        let resolver = ConflictResolver(defaultPolicy: defaultConflictPolicy) { [weak self] context in
+        let resolver = ConflictResolver(
+            defaultPolicy: defaultUploadConflictPolicy,
+            defaultDownloadPolicy: defaultDownloadConflictPolicy
+        ) { [weak self] context in
             guard let self else { return .skip }
             return await promptConflictResolution(context)
         }
@@ -271,31 +288,17 @@ public final class AppState: ObservableObject {
         isSignedUpdatesReady: Bool = false,
         performUpdateCheckAction: @escaping @MainActor (AutoUpdateSettings, Bool) async
             -> AutoUpdateCheckStatus = { _, _ in
-                .upToDate(version: "0.2.0")
+                .upToDate(version: "0.3.0")
             },
         applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
-        let initialLocales = LocalizationCatalog.loadAvailableLocales()
-        let initialThemes = SparkleThemeStore.loadAllPalettes()
-        let initialStrings = AppStrings(language: .english, localeCode: "en", availableLocales: initialLocales)
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let firstTab = WorkspaceTab(
-            id: UUID(),
-            sessionID: nil,
-            title: initialStrings.t("tabs.newTab"),
-            localPath: homeDir
-        )
-        _workspaceTabs = Published(initialValue: [firstTab])
-        _activeTabID = Published(initialValue: firstTab.id)
-        _availableLocales = Published(initialValue: initialLocales)
-        _availableThemes = Published(initialValue: initialThemes)
-        strings = initialStrings
-        activePalette = SparkleThemeCatalog.palette(
-            id: SparkleThemeCatalog.defaultLight.id,
-            appearanceMode: .auto,
-            systemIsDark: NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
-            available: initialThemes
-        )
+        let bootstrap = Self.makeInitialWorkspaceBootstrap()
+        _workspaceTabs = Published(initialValue: [bootstrap.firstTab])
+        _activeTabID = Published(initialValue: bootstrap.firstTab.id)
+        _availableLocales = Published(initialValue: bootstrap.locales)
+        _availableThemes = Published(initialValue: bootstrap.themes)
+        strings = bootstrap.strings
+        activePalette = bootstrap.palette
         self.credentialStore = credentialStore
         self.hostTrustStore = hostTrustStore
         self.connectionStore = connectionStore
@@ -306,7 +309,7 @@ public final class AppState: ObservableObject {
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
         let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.2.0"
+        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.3.0"
         self.isSignedUpdatesReady = isSignedUpdatesReady
         self.performUpdateCheckAction = performUpdateCheckAction
         self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction
@@ -354,7 +357,9 @@ extension AppState {
                 }
                 transferSnapshots = snapshots
                 notifyTerminalTransfersIfNeeded(snapshots)
-                await finalizePendingFolderPermissions(from: snapshots)
+                if !pendingFolderPermissionJobs.isEmpty {
+                    await finalizePendingFolderPermissions(from: snapshots)
+                }
             }
         }
     }

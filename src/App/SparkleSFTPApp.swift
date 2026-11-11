@@ -131,6 +131,11 @@ private struct SparkleAppCommands: Commands {
             .keyboardShortcut("k", modifiers: [.command])
             .disabled(activeState.currentSession?.sshClient == nil && !activeState.isTerminalVisible)
 
+            Button(activeState.strings.t("nav.standaloneTerminal")) {
+                activeState.openStandaloneTerminal()
+            }
+            .keyboardShortcut("t", modifiers: [.command, .option])
+
             Button(activeState.strings.synchronize) {
                 activeState.isShowingSyncSheet = true
             }

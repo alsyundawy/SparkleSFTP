@@ -124,8 +124,18 @@ extension SSHClientService {
 
     func loadOptionalSecret(ref: SecretReference?, prompt: String) async throws -> String? {
         guard let ref else { return nil }
-        let data = try await credentialStore.loadSecret(for: ref, prompt: profile.requireTouchID ? prompt : nil)
-        return String(data: data, encoding: .utf8)
+        do {
+            let data = try await credentialStore.loadSecret(for: ref, prompt: profile.requireTouchID ? prompt : nil)
+            return String(data: data, encoding: .utf8)
+        } catch let appError as AppError {
+            if case .credentialNotFound = appError {
+                return nil
+            }
+            if case .biometricAuthenticationFailed = appError, !profile.requireTouchID {
+                return nil
+            }
+            throw appError
+        }
     }
 
     static func runExec(on rootChannel: Channel, command: String) async throws -> SSHCommandOutput {

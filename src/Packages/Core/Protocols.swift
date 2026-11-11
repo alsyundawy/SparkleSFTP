@@ -137,8 +137,24 @@ public struct TransferJournalRecord: Sendable, Equatable, Identifiable {
 
 public protocol TransferJournalProtocol: Sendable {
     func upsert(_ record: TransferJournalRecord) async throws
+    func upsertBatch(_ records: [TransferJournalRecord]) async throws
     func fetchAll() async throws -> [TransferJournalRecord]
     func reconcileInterruptedOnLaunch() async throws -> [TransferJournalRecord]
     func pruneOldEntries(maxEntries: Int, maxAgeDays: Int) async throws
     func delete(id: UUID) async throws
+    func deleteBatch(ids: [UUID]) async throws
+}
+
+public extension TransferJournalProtocol {
+    func upsertBatch(_ records: [TransferJournalRecord]) async throws {
+        for record in records {
+            try await upsert(record)
+        }
+    }
+
+    func deleteBatch(ids: [UUID]) async throws {
+        for id in ids {
+            try await delete(id: id)
+        }
+    }
 }

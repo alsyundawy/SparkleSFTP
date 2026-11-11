@@ -40,18 +40,13 @@ struct DownloadPartialPreparation: Sendable {
 
 extension TransferQueue {
     public func resumeAll() async {
-        let resumableIDs = snapshots.values
-            .filter { snapshot in
-                switch snapshot.status {
-                case .paused, .interrupted, .failed:
-                    true
-                default:
-                    false
-                }
+        await retryTasks { snapshot in
+            switch snapshot.status {
+            case .paused, .interrupted, .failed:
+                true
+            default:
+                false
             }
-            .map(\.id)
-        for id in resumableIDs {
-            await retry(id: id)
         }
     }
 

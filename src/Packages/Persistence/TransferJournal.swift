@@ -19,12 +19,12 @@ private final class SQLiteDatabaseBox: @unchecked Sendable { // JUSTIFICATION: A
 /// Durable SQLite3 WAL-mode transfer journal with crash reconciliation and bounded retention (ADR-005, SCALE-002).
 public actor TransferJournal: TransferJournalProtocol {
     private let dbBox: SQLiteDatabaseBox
-    private var database: OpaquePointer {
+    var database: OpaquePointer {
         dbBox.handle
     }
 
     private let databaseURL: URL
-    private let encoder = JSONEncoder()
+    let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
     public init(databaseURL: URL = TransferJournal.defaultDatabaseURL()) throws {
@@ -53,51 +53,6 @@ public actor TransferJournal: TransferJournalProtocol {
         return appSupport
             .appendingPathComponent("SparkleSFTP", isDirectory: true)
             .appendingPathComponent("transfer_journal.sqlite3", isDirectory: false)
-    }
-
-    public func upsert(_ record: TransferJournalRecord) async throws {
-        let metadataData = try encoder.encode(record.metadata)
-        let checkpointData = try record.checkpoint.map { try encoder.encode($0) }
-
-        let sql = """
-        INSERT INTO transfer_journal (id, metadata_json, status_code, error_description, checkpoint_json, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-            metadata_json = excluded.metadata_json,
-            status_code = excluded.status_code,
-            error_description = excluded.error_description,
-            checkpoint_json = excluded.checkpoint_json,
-            updated_at = excluded.updated_at;
-        """
-
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(database, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
-            throw AppError.persistenceFailure(reason: lastErrorMessage())
-        }
-        defer { sqlite3_finalize(stmt) }
-
-        sqlite3_bind_text(stmt, 1, record.id.uuidString, -1, sqliteTransient)
-        _ = metadataData.withUnsafeBytes { rawBuf in
-            sqlite3_bind_blob(stmt, 2, rawBuf.baseAddress, Int32(metadataData.count), sqliteTransient)
-        }
-        sqlite3_bind_text(stmt, 3, record.statusCode, -1, sqliteTransient)
-        if let errorDescription = record.errorDescription {
-            sqlite3_bind_text(stmt, 4, errorDescription, -1, sqliteTransient)
-        } else {
-            sqlite3_bind_null(stmt, 4)
-        }
-        if let checkpointData {
-            _ = checkpointData.withUnsafeBytes { rawBuf in
-                sqlite3_bind_blob(stmt, 5, rawBuf.baseAddress, Int32(checkpointData.count), sqliteTransient)
-            }
-        } else {
-            sqlite3_bind_null(stmt, 5)
-        }
-        sqlite3_bind_double(stmt, 6, record.updatedAt.timeIntervalSince1970)
-
-        guard sqlite3_step(stmt) == SQLITE_DONE else {
-            throw AppError.persistenceFailure(reason: lastErrorMessage())
-        }
     }
 
     public func fetchAll() async throws -> [TransferJournalRecord] {
@@ -173,19 +128,6 @@ public actor TransferJournal: TransferJournalProtocol {
         }
     }
 
-    public func delete(id: UUID) async throws {
-        let sql = "DELETE FROM transfer_journal WHERE id = ?;"
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(database, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
-            throw AppError.persistenceFailure(reason: lastErrorMessage())
-        }
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, id.uuidString, -1, sqliteTransient)
-        guard sqlite3_step(stmt) == SQLITE_DONE else {
-            throw AppError.persistenceFailure(reason: lastErrorMessage())
-        }
-    }
-
     private static func createSchemaIfNeeded(on database: OpaquePointer) throws {
         let schemaSQL = """
         CREATE TABLE IF NOT EXISTS transfer_journal (
@@ -238,7 +180,7 @@ public actor TransferJournal: TransferJournalProtocol {
         )
     }
 
-    private func executeSQL(_ sql: String) throws {
+    func executeSQL(_ sql: String) throws {
         try Self.executeSQL(sql, on: database)
     }
 
@@ -253,7 +195,7 @@ public actor TransferJournal: TransferJournalProtocol {
         }
     }
 
-    private func lastErrorMessage() -> String {
+    func lastErrorMessage() -> String {
         String(cString: sqlite3_errmsg(database))
     }
 

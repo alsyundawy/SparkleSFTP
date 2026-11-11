@@ -4,6 +4,26 @@ import SparkleFileManager
 import SparkleSecurity
 import SparkleTransferEngine
 
+private struct FolderWalkAccumulator {
+    var pendingBatch: [TransferTaskMetadata] = []
+    var collector = FolderTransferCollector()
+}
+
+private struct LocalUploadWalkContext: Sendable {
+    let profileID: UUID
+    let host: String
+    let remoteFS: any RemoteFileSystem
+    let localFileService: LocalFileService
+    let transferQueue: TransferQueue
+}
+
+private struct RemoteDownloadWalkContext: Sendable {
+    let profileID: UUID
+    let host: String
+    let remoteFS: any RemoteFileSystem
+    let transferQueue: TransferQueue
+}
+
 extension AppState {
     func enqueueLocalItemUpload(url: URL, isDirectory: Bool, into session: ActiveSessionModel) async {
         ensureTransferObserverStarted()
@@ -12,73 +32,135 @@ extension AppState {
         if !isDirectory {
             let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
             guard let remoteDest = try? session.currentRemotePath.appending(url.lastPathComponent) else { return }
-            _ = await enqueueFileUpload(
-                localURL: url,
-                remoteDest: remoteDest,
-                size: size,
-                permissions: posixMode,
-                session: session
+            let meta = TransferTaskMetadata(
+                direction: .upload,
+                source: .local(url: url),
+                destination: .remote(profileID: session.profile.id, host: session.profile.host, path: remoteDest),
+                totalBytes: size,
+                sourcePermissions: posixMode
             )
+            _ = await transferQueue.enqueue(meta)
             return
         }
 
         do {
             let remoteDir = try session.currentRemotePath.appending(url.lastPathComponent)
-            var collector = FolderTransferCollector()
-            try await ensureRemoteDirectory(
-                at: remoteDir,
-                desiredPermissions: posixMode,
-                sessionProfileID: session.profile.id,
+            let context = LocalUploadWalkContext(
+                profileID: session.profile.id,
+                host: session.profile.host,
                 remoteFS: session.service.fileSystem,
-                collector: &collector
+                localFileService: localFileService,
+                transferQueue: transferQueue
             )
-            try await enqueueLocalDirectoryContents(
-                localDir: url,
-                remoteDir: remoteDir,
-                session: session,
-                visited: [url.resolvingSymlinksInPath().path],
-                collector: &collector
-            )
+            let collector = try await Task.detached(priority: .userInitiated) {
+                try await Self.collectAndEnqueueLocalFolder(
+                    localDir: url,
+                    remoteDir: remoteDir,
+                    posixMode: posixMode,
+                    context: context
+                )
+            }.value
             await registerOrApplyFolderPermissions(collector)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error, asBannerOnly: true)
         }
     }
 
-    private func ensureRemoteDirectory(
-        at remoteDir: RemotePath,
-        desiredPermissions: UInt32?,
-        sessionProfileID: UUID,
-        remoteFS: any RemoteFileSystem,
-        collector: inout FolderTransferCollector
-    ) async throws {
-        if let existing = try? await remoteFS.metadata(at: remoteDir) {
-            guard existing.isDirectory else {
-                throw AppError.transferFailed(reason: "Remote path exists as a file: \(remoteDir.rawValue)")
-            }
-        } else {
-            try await remoteFS.createDirectory(at: remoteDir)
+    func enqueueRemoteItemDownload(
+        file: RemoteFile,
+        localParentDir: URL,
+        session: ActiveSessionModel
+    ) async {
+        ensureTransferObserverStarted()
+        if !file.isDirectory {
+            await enqueueSingleRemoteDownload(file: file, localParentDir: localParentDir, session: session)
+            return
         }
-        if let perms = desiredPermissions {
-            let exactMode = perms & 0o777
-            // Keep owner rwx during folder upload so queued child files can be written into the directory.
-            let uploadSafeMode = exactMode | 0o700
-            try? await remoteFS.setPermissions(uploadSafeMode, at: remoteDir)
-            let target = RemoteDirectoryPermissionTarget(path: remoteDir, mode: exactMode, profileID: sessionProfileID)
-            collector.remoteDirectories.append(target)
+        do {
+            let context = RemoteDownloadWalkContext(
+                profileID: session.profile.id,
+                host: session.profile.host,
+                remoteFS: session.service.fileSystem,
+                transferQueue: transferQueue
+            )
+            let collector = try await Task.detached(priority: .userInitiated) {
+                try await Self.collectAndEnqueueRemoteFolder(
+                    file: file,
+                    localParentDir: localParentDir,
+                    context: context
+                )
+            }.value
+            await registerOrApplyFolderPermissions(collector)
+        } catch {
+            reportNonCancellationError(error, asBannerOnly: true)
         }
     }
 
-    private func enqueueLocalDirectoryContents(
+    private func enqueueSingleRemoteDownload(
+        file: RemoteFile,
+        localParentDir: URL,
+        session: ActiveSessionModel
+    ) async {
+        do {
+            let safePerms: UInt32? = file.permissions > 0 ? (file.permissions & 0o777) : nil
+            let localDest = try PathValidator.safeLocalDestination(
+                filename: file.name,
+                baseDirectory: localParentDir,
+                symlinkTarget: file.symlinkTarget
+            )
+            let meta = TransferTaskMetadata(
+                direction: .download,
+                source: .remote(profileID: session.profile.id, host: session.profile.host, path: file.path),
+                destination: .local(url: localDest),
+                totalBytes: file.size,
+                sourcePermissions: safePerms
+            )
+            _ = await transferQueue.enqueue(meta)
+        } catch {
+            reportNonCancellationError(error, asBannerOnly: true)
+        }
+    }
+
+    private nonisolated static func collectAndEnqueueLocalFolder(
         localDir: URL,
         remoteDir: RemotePath,
-        session: ActiveSessionModel,
+        posixMode: UInt32?,
+        context: LocalUploadWalkContext
+    ) async throws -> FolderTransferCollector {
+        var acc = FolderWalkAccumulator()
+        try await ensureRemoteDirectory(
+            at: remoteDir,
+            desiredPermissions: posixMode,
+            profileID: context.profileID,
+            remoteFS: context.remoteFS,
+            collector: &acc.collector
+        )
+        try await walkLocalDirectory(
+            localDir: localDir,
+            remoteDir: remoteDir,
+            context: context,
+            visited: [localDir.resolvingSymlinksInPath().path],
+            accumulator: &acc
+        )
+        if !acc.pendingBatch.isEmpty {
+            let ids = await context.transferQueue.enqueueBatch(acc.pendingBatch)
+            acc.collector.taskIDs.formUnion(ids)
+        }
+        return acc.collector
+    }
+
+    private nonisolated static func walkLocalDirectory(
+        localDir: URL,
+        remoteDir: RemotePath,
+        context: LocalUploadWalkContext,
         visited: Set<String>,
-        collector: inout FolderTransferCollector
+        accumulator: inout FolderWalkAccumulator
     ) async throws {
+        try Task.checkCancellation()
         var nextVisited = visited
-        let children = try await localFileService.listDirectory(at: localDir, showHidden: true)
+        let children = try await context.localFileService.listDirectory(at: localDir, showHidden: true)
         for child in children {
+            try Task.checkCancellation()
             let childURL = URL(fileURLWithPath: child.path.rawValue)
             guard let targetRemote = try? remoteDir.appending(child.name) else { continue }
             if child.isSymlink {
@@ -92,122 +174,142 @@ extension AppState {
                 try await ensureRemoteDirectory(
                     at: targetRemote,
                     desiredPermissions: child.permissions,
-                    sessionProfileID: session.profile.id,
-                    remoteFS: session.service.fileSystem,
-                    collector: &collector
+                    profileID: context.profileID,
+                    remoteFS: context.remoteFS,
+                    collector: &accumulator.collector
                 )
-                try await enqueueLocalDirectoryContents(
+                try await walkLocalDirectory(
                     localDir: childURL,
                     remoteDir: targetRemote,
-                    session: session,
+                    context: context,
                     visited: nextVisited,
-                    collector: &collector
+                    accumulator: &accumulator
                 )
             } else {
-                let taskID = await enqueueFileUpload(
-                    localURL: childURL,
-                    remoteDest: targetRemote,
-                    size: child.size,
-                    permissions: child.permissions,
-                    session: session
+                let meta = TransferTaskMetadata(
+                    direction: .upload,
+                    source: .local(url: childURL),
+                    destination: .remote(profileID: context.profileID, host: context.host, path: targetRemote),
+                    totalBytes: child.size,
+                    sourcePermissions: child.permissions
                 )
-                collector.taskIDs.insert(taskID)
+                try await appendAndFlushIfNeeded(meta, queue: context.transferQueue, accumulator: &accumulator)
             }
         }
     }
 
-    @discardableResult
-    private func enqueueFileUpload(
-        localURL: URL,
-        remoteDest: RemotePath,
-        size: Int64,
-        permissions: UInt32?,
-        session: ActiveSessionModel
-    ) async -> UUID {
-        let meta = TransferTaskMetadata(
-            direction: .upload,
-            source: .local(url: localURL),
-            destination: .remote(profileID: session.profile.id, host: session.profile.host, path: remoteDest),
-            totalBytes: size,
-            sourcePermissions: permissions
-        )
-        return await transferQueue.enqueue(meta)
+    private nonisolated static func appendAndFlushIfNeeded(
+        _ meta: TransferTaskMetadata,
+        queue: TransferQueue,
+        accumulator: inout FolderWalkAccumulator
+    ) async throws {
+        accumulator.pendingBatch.append(meta)
+        if accumulator.pendingBatch.count >= 50 {
+            try Task.checkCancellation()
+            let ids = await queue.enqueueBatch(accumulator.pendingBatch)
+            accumulator.collector.taskIDs.formUnion(ids)
+            accumulator.pendingBatch.removeAll(keepingCapacity: true)
+        }
     }
 
-    func enqueueRemoteItemDownload(
+    private nonisolated static func ensureRemoteDirectory(
+        at remoteDir: RemotePath,
+        desiredPermissions: UInt32?,
+        profileID: UUID,
+        remoteFS: any RemoteFileSystem,
+        collector: inout FolderTransferCollector
+    ) async throws {
+        if let existing = try? await remoteFS.metadata(at: remoteDir) {
+            guard existing.isDirectory else {
+                throw AppError.transferFailed(reason: "Remote path exists as a file: \(remoteDir.rawValue)")
+            }
+        } else {
+            try await remoteFS.createDirectory(at: remoteDir)
+        }
+        if let perms = desiredPermissions {
+            let exactMode = perms & 0o777
+            let uploadSafeMode = exactMode | 0o700
+            try? await remoteFS.setPermissions(uploadSafeMode, at: remoteDir)
+            collector.remoteDirectories.append(
+                RemoteDirectoryPermissionTarget(path: remoteDir, mode: exactMode, profileID: profileID)
+            )
+        }
+    }
+
+    private nonisolated static func collectAndEnqueueRemoteFolder(
         file: RemoteFile,
         localParentDir: URL,
-        session: ActiveSessionModel
-    ) async {
-        ensureTransferObserverStarted()
-        var collector = FolderTransferCollector()
-        await traverseRemoteItemDownload(
+        context: RemoteDownloadWalkContext
+    ) async throws -> FolderTransferCollector {
+        var acc = FolderWalkAccumulator()
+        try await walkRemoteDirectory(
             file: file,
             localParentDir: localParentDir,
-            session: session,
+            context: context,
             visitedRemotePaths: [],
-            collector: &collector
+            accumulator: &acc
         )
-        await registerOrApplyFolderPermissions(collector)
+        if !acc.pendingBatch.isEmpty {
+            let ids = await context.transferQueue.enqueueBatch(acc.pendingBatch)
+            acc.collector.taskIDs.formUnion(ids)
+        }
+        return acc.collector
     }
 
-    private func traverseRemoteItemDownload(
+    private nonisolated static func walkRemoteDirectory(
         file: RemoteFile,
         localParentDir: URL,
-        session: ActiveSessionModel,
+        context: RemoteDownloadWalkContext,
         visitedRemotePaths: Set<String>,
-        collector: inout FolderTransferCollector
-    ) async {
-        do {
-            let safePerms: UInt32? = file.permissions > 0 ? (file.permissions & 0o777) : nil
-            let localDest = try PathValidator.safeLocalDestination(
-                filename: file.name,
-                baseDirectory: localParentDir,
-                symlinkTarget: file.symlinkTarget
+        accumulator: inout FolderWalkAccumulator
+    ) async throws {
+        try Task.checkCancellation()
+        let safePerms: UInt32? = file.permissions > 0 ? (file.permissions & 0o777) : nil
+        let localDest = try PathValidator.safeLocalDestination(
+            filename: file.name,
+            baseDirectory: localParentDir,
+            symlinkTarget: file.symlinkTarget
+        )
+        if !file.isDirectory {
+            let meta = TransferTaskMetadata(
+                direction: .download,
+                source: .remote(profileID: context.profileID, host: context.host, path: file.path),
+                destination: .local(url: localDest),
+                totalBytes: file.size,
+                sourcePermissions: safePerms
             )
-            if !file.isDirectory {
-                let meta = TransferTaskMetadata(
-                    direction: .download,
-                    source: .remote(profileID: session.profile.id, host: session.profile.host, path: file.path),
-                    destination: .local(url: localDest),
-                    totalBytes: file.size,
-                    sourcePermissions: safePerms
-                )
-                await collector.taskIDs.insert(transferQueue.enqueue(meta))
-                return
-            }
-            var nextVisited = visitedRemotePaths
-            let canonicalDir: RemotePath = if file.isSymlink {
-                await (try? session.service.fileSystem.resolveSymlink(at: file.path)) ?? file.path
-            } else {
-                file.path
-            }
-            guard !nextVisited.contains(canonicalDir.rawValue) else { return }
-            nextVisited.insert(canonicalDir.rawValue)
-            nextVisited.insert(file.path.rawValue)
-            try prepareDownloadDirectory(localDest: localDest, safePerms: safePerms, collector: &collector)
-            let children = try await session.service.fileSystem.listDirectory(at: file.path)
-            for child in children {
-                if child.isSymlink {
-                    let target = await (try? session.service.fileSystem.resolveSymlink(at: child.path)) ?? child.path
-                    if nextVisited.contains(target.rawValue) || nextVisited.contains(child.path.rawValue) {
-                        continue
-                    }
+            try await appendAndFlushIfNeeded(meta, queue: context.transferQueue, accumulator: &accumulator)
+            return
+        }
+        var nextVisited = visitedRemotePaths
+        let canonicalDir: RemotePath = if file.isSymlink {
+            await (try? context.remoteFS.resolveSymlink(at: file.path)) ?? file.path
+        } else {
+            file.path
+        }
+        guard !nextVisited.contains(canonicalDir.rawValue) else { return }
+        nextVisited.insert(canonicalDir.rawValue)
+        nextVisited.insert(file.path.rawValue)
+        try prepareDownloadDirectory(localDest: localDest, safePerms: safePerms, collector: &accumulator.collector)
+        let children = try await context.remoteFS.listDirectory(at: file.path)
+        for child in children {
+            if child.isSymlink {
+                let target = await (try? context.remoteFS.resolveSymlink(at: child.path)) ?? child.path
+                if nextVisited.contains(target.rawValue) || nextVisited.contains(child.path.rawValue) {
+                    continue
                 }
-                await traverseRemoteItemDownload(
-                    file: child,
-                    localParentDir: localDest,
-                    session: session,
-                    visitedRemotePaths: nextVisited,
-                    collector: &collector
-                )
             }
-        } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            try await walkRemoteDirectory(
+                file: child,
+                localParentDir: localDest,
+                context: context,
+                visitedRemotePaths: nextVisited,
+                accumulator: &accumulator
+            )
         }
     }
 
-    private func prepareDownloadDirectory(
+    private nonisolated static func prepareDownloadDirectory(
         localDest: URL,
         safePerms: UInt32?,
         collector: inout FolderTransferCollector
@@ -219,7 +321,7 @@ extension AppState {
             [.posixPermissions: NSNumber(value: writableMode)],
             ofItemAtPath: localDest.path
         )
-        collector.localDirectories.append((url: localDest, mode: safePerms))
+        collector.localDirectories.append(LocalDirectoryPermissionTarget(url: localDest, mode: safePerms))
     }
 
     public func quickLookRemoteFile(_ file: RemoteFile) async -> URL? {
@@ -231,7 +333,7 @@ extension AppState {
             remoteEditWatches[tempDir] = LocalDirectoryWatcher()
             return localPreview
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
             return nil
         }
     }

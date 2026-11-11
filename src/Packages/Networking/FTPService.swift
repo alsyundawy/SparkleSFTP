@@ -45,23 +45,23 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                 )
                 cachedPassword = String(data: data, encoding: .utf8)
             } catch let appError as AppError {
-                if case .credentialNotFound = appError {
-                    cachedPassword = nil
+                let recoverableNonTouchID: Bool = switch appError {
+                case .credentialNotFound:
+                    true
+                case .biometricAuthenticationFailed:
+                    !profile.requireTouchID
+                default:
+                    false
+                }
+                if recoverableNonTouchID {
+                    cachedPassword = await promptFTPPassword()
                 } else {
                     connectionState = .failed(appError)
                     throw appError
                 }
             }
-        } else if profile.authMethod == .password, let credentialPrompt {
-            let req = CredentialPromptRequest(
-                host: profile.host,
-                port: profile.port,
-                username: profile.username,
-                authMethod: profile.authMethod,
-                promptTitle: "Enter \(profile.protocolType.displayName) password for "
-                    + "\(profile.username)@\(profile.host)"
-            )
-            cachedPassword = await credentialPrompt(req)
+        } else if profile.authMethod == .password {
+            cachedPassword = await promptFTPPassword()
         } else {
             cachedPassword = nil
         }
@@ -245,6 +245,19 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
 }
 
 private extension FTPService {
+    func promptFTPPassword() async -> String? {
+        guard profile.authMethod == .password, let credentialPrompt else { return nil }
+        let req = CredentialPromptRequest(
+            host: profile.host,
+            port: profile.port,
+            username: profile.username,
+            authMethod: profile.authMethod,
+            promptTitle: "Enter \(profile.protocolType.displayName) password for "
+                + "\(profile.username)@\(profile.host)"
+        )
+        return await credentialPrompt(req)
+    }
+
     func performListing(path: RemotePath, useMLSD: Bool) async throws -> String {
         let ctx = try makeRequestContext(path: path, trailingSlash: true)
         return try await CurlClientHelper.runOffCooperativePool {

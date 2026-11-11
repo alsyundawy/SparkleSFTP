@@ -124,6 +124,13 @@ public struct MainWindowView: View {
                 .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
 
                 Button {
+                    appState.openStandaloneTerminal()
+                } label: {
+                    Label(appState.strings.t("nav.standaloneTerminal"), systemImage: "macwindow.on.rectangle")
+                }
+                .help(appState.strings.t("nav.standaloneTerminal"))
+
+                Button {
                     appState.isShowingSyncSheet = true
                 } label: {
                     Label(appState.strings.synchronize, systemImage: SparkleTheme.Symbols.sync)

@@ -18,7 +18,7 @@ public extension AppState {
             )
             setActiveTabTerminalVisibility(true)
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -57,7 +57,7 @@ public extension AppState {
             _ = try await portForwardingManager.startForward(rule: rule, sshClient: sshClient)
             activeTunnels = await portForwardingManager.activeTunnels()
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -93,7 +93,7 @@ public extension AppState {
                 deleteExtras: deleteExtras
             )
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -117,7 +117,7 @@ public extension AppState {
                 await refreshRemoteDirectory(recordHistory: false)
             }
         } catch {
-            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+            reportNonCancellationError(error)
         }
     }
 
@@ -152,7 +152,7 @@ public extension AppState {
             pendingImportReport = report
             isShowingImportSheet = true
         } catch {
-            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+            reportNonCancellationError(error) { .persistenceFailure(reason: $0) }
         }
     }
 
@@ -161,7 +161,7 @@ public extension AppState {
             let report = try ExternalConnectionFileReader.inspect(url: url)
             await commitImportedConnections(report.connections, createGroups: true, skipDuplicates: false)
         } catch {
-            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+            reportNonCancellationError(error) { .persistenceFailure(reason: $0) }
         }
     }
 
@@ -211,7 +211,7 @@ public extension AppState {
             broadcastConnectionsDidChange()
             statusBannerMessage = "Imported \(importedCount) connection(s)"
         } catch {
-            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+            reportNonCancellationError(error) { .persistenceFailure(reason: $0) }
         }
     }
 }

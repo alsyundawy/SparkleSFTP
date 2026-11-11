@@ -72,7 +72,7 @@ jobs:
       - name: Pre-resolve Swift packages
         if: matrix.language == 'swift'
         shell: bash
-        run: swift package --only-use-versions-from-resolved-file resolve
+        run: swift package resolve
 
       # Add any setup steps before running the `github/codeql-action/init` action.
       # This includes steps like installing compilers or runtimes (`actions/setup-node`
@@ -101,7 +101,7 @@ jobs:
       - name: Run manual build steps
         if: matrix.build-mode == 'manual' && matrix.language == 'swift'
         shell: bash
-        run: swift build --disable-automatic-resolution --skip-update --disable-sandbox -j 2
+        run: swift build --skip-update --disable-sandbox -j 2
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3

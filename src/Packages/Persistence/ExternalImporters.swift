@@ -3,7 +3,7 @@ import SparkleCore
 
 public enum ExternalImportFormat: String, Sendable, Codable, Equatable {
     case fileZillaXML
-    case winSCPINI
+    case commanderINI
 }
 
 public enum ImportedSecretStatus: String, Sendable, Codable, Equatable {

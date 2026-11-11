@@ -39,9 +39,12 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
         var onWindowResolved: (@MainActor (NSWindow) -> Void)?
         private let observerBox = WindowObserverBox()
         private var isConfiguring = false
+        private var lastConfiguredPalette: SparkleThemePalette?
+        private var lastConfiguredWindowNumber: Int = -1
 
         override public func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            lastConfiguredWindowNumber = -1
             installWindowObservers()
             applyWindowConfiguration()
             DispatchQueue.main.async { [weak self] in
@@ -51,8 +54,14 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
 
         func applyWindowConfiguration() {
             guard !isConfiguring, let window else { return }
+            let needsChromeUpdate = lastConfiguredWindowNumber != window.windowNumber
+                || lastConfiguredPalette != palette
+                || Self.needsWindowControlsEnforcement(window)
+            guard needsChromeUpdate else { return }
             isConfiguring = true
             defer { isConfiguring = false }
+            lastConfiguredWindowNumber = window.windowNumber
+            lastConfiguredPalette = palette
             onWindowResolved?(window)
             Self.configure(window: window, palette: palette, allowFullScreen: allowFullScreen)
         }

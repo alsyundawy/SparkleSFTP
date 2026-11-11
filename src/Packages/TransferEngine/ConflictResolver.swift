@@ -44,7 +44,8 @@ public struct ConflictContext: Identifiable, Sendable, Equatable {
 public actor ConflictResolver {
     public typealias InteractivePrompt = @Sendable (ConflictContext) async -> TransferConflictResolution
 
-    private var defaultPolicy: TransferConflictPolicy
+    private var defaultUploadPolicy: TransferConflictPolicy
+    private var defaultDownloadPolicy: TransferConflictPolicy
     private var queueRuleAll: TransferConflictPolicy?
     private var queueRuleUploads: TransferConflictPolicy?
     private var queueRuleDownloads: TransferConflictPolicy?
@@ -53,16 +54,24 @@ public actor ConflictResolver {
 
     public init(
         defaultPolicy: TransferConflictPolicy = .ask,
+        defaultDownloadPolicy: TransferConflictPolicy? = nil,
         promptTimeoutSeconds: Int = 120,
         interactivePrompt: InteractivePrompt? = nil
     ) {
-        self.defaultPolicy = defaultPolicy
+        defaultUploadPolicy = defaultPolicy
+        self.defaultDownloadPolicy = defaultDownloadPolicy ?? defaultPolicy
         self.promptTimeoutSeconds = max(1, promptTimeoutSeconds)
         self.interactivePrompt = interactivePrompt
     }
 
     public func updateDefaultPolicy(_ policy: TransferConflictPolicy) {
-        defaultPolicy = policy
+        defaultUploadPolicy = policy
+        defaultDownloadPolicy = policy
+    }
+
+    public func updateDefaultPolicies(upload: TransferConflictPolicy, download: TransferConflictPolicy) {
+        defaultUploadPolicy = upload
+        defaultDownloadPolicy = download
     }
 
     public func applyQueueRule(_ policy: TransferConflictPolicy, scope: TransferConflictScope) {
@@ -88,7 +97,8 @@ public actor ConflictResolver {
         overridePolicy: TransferConflictPolicy? = nil
     ) async -> TransferConflictResolution {
         let directionRule = context.direction == .upload ? queueRuleUploads : queueRuleDownloads
-        let activePolicy = directionRule ?? queueRuleAll ?? overridePolicy ?? defaultPolicy
+        let directionDefault = context.direction == .upload ? defaultUploadPolicy : defaultDownloadPolicy
+        let activePolicy = directionRule ?? queueRuleAll ?? overridePolicy ?? directionDefault
         if activePolicy == .ask {
             return await askInteractively(context)
         }

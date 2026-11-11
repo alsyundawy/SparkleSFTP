@@ -27,6 +27,7 @@ public actor TransferQueue {
     var skippedIDs: Set<UUID> = []
     var cancelledIDs: Set<UUID> = []
     var streamContinuations: [UUID: AsyncStream<[TransferSnapshot]>.Continuation] = [:]
+    var snapshotFlushTask: Task<Void, Never>?
 
     public init(
         maxGlobalConcurrent: Int = 4,
@@ -46,6 +47,7 @@ public actor TransferQueue {
     }
 
     deinit {
+        snapshotFlushTask?.cancel()
         for (_, task) in activeTasks {
             task.cancel()
         }
@@ -82,6 +84,13 @@ public actor TransferQueue {
         await conflictResolver.updateDefaultPolicy(policy)
     }
 
+    public func updateDefaultConflictPolicies(
+        upload: TransferConflictPolicy,
+        download: TransferConflictPolicy
+    ) async {
+        await conflictResolver.updateDefaultPolicies(upload: upload, download: download)
+    }
+
     public func applyConflictRule(_ policy: TransferConflictPolicy, scope: TransferConflictScope) async {
         await conflictResolver.applyQueueRule(policy, scope: scope)
     }
@@ -90,9 +99,8 @@ public actor TransferQueue {
         await conflictResolver.clearQueueRules()
     }
 
-    public func clearFinished() {
-        snapshots = snapshots.filter { !$0.value.status.isTerminal }
-        broadcastSnapshots()
+    public func clearFinished() async {
+        await clearCompletedAndFailed(removeCompleted: true, removeFailedAndCancelled: true)
     }
 
     public func restoreInterruptedFromJournal() async throws -> [TransferSnapshot] {
@@ -237,49 +245,6 @@ public actor TransferQueue {
                 }
             }
             activeTasks[next.id] = worker
-        }
-    }
-
-    private func executeTransfer(metadata: TransferTaskMetadata, workerToken: UUID) async {
-        defer {
-            Task { [weak self] in
-                await self?.finalizeExecutionSlot(
-                    taskID: metadata.id,
-                    workerToken: workerToken,
-                    host: metadata.targetHost
-                )
-            }
-        }
-
-        await updateStatus(id: metadata.id, status: .preparing)
-
-        // Post-await reentrancy verification (RUN-003)
-        guard isStillActive(id: metadata.id) else { return }
-
-        do {
-            try await runWithRetry(metadata: metadata)
-            // Re-verify after transfer await before marking completed (RUN-003)
-            guard isStillActive(id: metadata.id) else { return }
-            let wasSkipped = skippedIDs.remove(metadata.id) != nil
-            let existingProgress = snapshots[metadata.id]?.progress
-            let finalTransferred = wasSkipped ? 0 : max(metadata.totalBytes, existingProgress?.bytesTransferred ?? 0)
-            let finalTotal = wasSkipped ? metadata.totalBytes : max(
-                metadata.totalBytes,
-                existingProgress?.totalBytes ?? 0
-            )
-            let finalProgress = TransferProgress(
-                bytesTransferred: finalTransferred,
-                totalBytes: finalTotal,
-                bytesPerSecond: 0
-            )
-            await updateSnapshot(id: metadata.id, status: .completed, progress: finalProgress)
-        } catch is CancellationError {
-            // Status already set by cancel()/pause(); avoid overwriting with failed.
-            return
-        } catch {
-            guard isStillActive(id: metadata.id) else { return }
-            let mapped = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
-            await updateStatus(id: metadata.id, status: .failed(mapped))
         }
     }
 }
