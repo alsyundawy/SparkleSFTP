@@ -21,16 +21,15 @@ public struct LocalTerminalProcessRepresentable: NSViewRepresentable {
 
     public func makeCoordinator() -> Coordinator {
         let paneID = pane.id
-        weak let weakManager = manager
         return Coordinator(
-            onTitleChange: { title in
-                Task { @MainActor in weakManager?.updatePaneTitle(title, for: paneID) }
+            onTitleChange: { [weak manager] title in
+                Task { @MainActor in manager?.updatePaneTitle(title, for: paneID) }
             },
-            onDirectoryChange: { directory in
-                Task { @MainActor in weakManager?.updatePaneDirectory(directory, for: paneID) }
+            onDirectoryChange: { [weak manager] directory in
+                Task { @MainActor in manager?.updatePaneDirectory(directory, for: paneID) }
             },
-            onProcessTerminated: { exitCode in
-                Task { @MainActor in weakManager?.markPaneTerminated(paneID: paneID, exitCode: exitCode) }
+            onProcessTerminated: { [weak manager] exitCode in
+                Task { @MainActor in manager?.markPaneTerminated(paneID: paneID, exitCode: exitCode) }
             }
         )
     }
