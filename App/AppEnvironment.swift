@@ -33,10 +33,7 @@ public final class AppEnvironment {
     }
 
     public func shutdown() async {
-        appState.terminalManager.closeAll()
-        await appState.portForwardingManager.stopAll()
-        for session in appState.activeSessions {
-            await appState.disconnect(sessionID: session.id)
-        }
+        appState.prepareFastShutdown()
+        await appState.shutdownAsyncResources()
     }
 }

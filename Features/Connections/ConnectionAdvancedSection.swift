@@ -14,6 +14,17 @@ struct ConnectionAdvancedOptions {
     var jumpHostProfileID: UUID?
     var passphraseInput: String = ""
     var privateKeyBookmarkData: Data?
+
+    init(profile: ConnectionProfile? = nil) {
+        guard let profile else { return }
+        groupID = profile.groupID
+        defaultLocalPath = profile.defaultLocalPath ?? ""
+        proxyKind = profile.proxy.kind
+        proxyHost = profile.proxy.host
+        proxyPort = String(profile.proxy.port)
+        jumpHostProfileID = profile.jumpHostProfileID
+        privateKeyBookmarkData = profile.privateKeyBookmarkData
+    }
 }
 
 struct ConnectionAdvancedSection: View {

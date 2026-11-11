@@ -63,8 +63,8 @@ SparkleSFTP/
 │   ├── Terminal/             # SparkleTerminal: SwiftTerm NSViewRepresentable, TerminalSessionManager, PortForwardingManager
 │   ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
 │   ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
-│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), WCAG contrast helpers, JSON i18n Locales (en.json / id.json, 263 keys)
-├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views (Commander, Connections + ImportConnectionsSheet, Notepad2 Editor, Terminal, Transfers, Sync, Settings Tabs) & AppState ObservableObject
+│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), WCAG contrast helpers, JSON i18n Locales (en.json / id.json, 271 keys)
+├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views (Commander, Connections + ConnectionEditorView + ImportConnectionsSheet, Notepad2 Editor, Terminal, Transfers + TransferMonitor, Sync, Settings Tabs) & AppState ObservableObject
 ├── Tests/                    # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                    # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
 └── docs/                     # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs
@@ -76,5 +76,6 @@ SparkleSFTP/
 - **Actor Reentrancy Guards (`RUN-003`)**: `TransferQueue` re-verifies cancellation and task membership after every `await` suspension point.
 - **No `Task.detached` Retain Cycles (`MEM-001`)**: Workers capture `[weak self]` and store `Task` handles cancelled in `deinit`.
 - **Bounded Backpressure (`MEM-003`, `PERF-004`)**: `ProgressThrottler` (100 ms / 10 Hz) + `AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(10))`.
-- **Zero Main-Thread Blocking (`PERF-001`, `PERF-002`, `PERF-003`)**: Paginated directory windows (`NSTableView` cell dequeue reuse), off-`MainActor` sorting, and background streaming `SHA256Verifier`.
+- **Zero Main-Thread Blocking (`PERF-001`, `PERF-002`, `PERF-003`)**: Paginated directory windows (`NSTableView` cell dequeue reuse + cached symbol `NSImage`s), single-`lstat` local enumeration, cached `AppStrings`/`SparkleThemePalette`, `TransferMonitor` 10Hz progress isolation, 2-second throttled SQLite progress checkpoints, off-`MainActor` sorting, and background streaming `SHA256Verifier`.
+- **Non-Deadlocking Application Exit**: `AppDelegate.applicationShouldTerminate` synchronously invokes `prepareFastShutdown()` and returns `.terminateNow` when idle (`<= 350ms` bounded `.terminateLater` parallel session/tunnel teardown otherwise), preserving child-to-bastion `ProxyJump` teardown order.
 - **PTY Resource Hygiene (`MEM-002`)**: Explicit `PTYResourceBox` teardown closes `SSHPTYChannel`, cancels reader tasks, and clears `TerminalView.terminalDelegate`.

@@ -6,24 +6,31 @@ import UniformTypeIdentifiers
 
 public struct ConnectionManagerView: View {
     @ObservedObject var appState: AppState
-    @Binding var isShowingEditor: Bool
-    @Binding var editingProfile: ConnectionProfile?
+    @Binding var editorMode: ConnectionEditorMode?
     @State private var isShowingImporter = false
     @State private var isAddingGroup = false
     @State private var newGroupName = ""
+    @State private var pendingDeleteIDs: Set<UUID> = []
+    @State private var isConfirmingBatchDelete = false
 
     public init(
         appState: AppState,
-        isShowingEditor: Binding<Bool>,
-        editingProfile: Binding<ConnectionProfile?>
+        editorMode: Binding<ConnectionEditorMode?>
     ) {
         self.appState = appState
-        _isShowingEditor = isShowingEditor
-        _editingProfile = editingProfile
+        _editorMode = editorMode
     }
 
     public var body: some View {
-        List(selection: $appState.selectedProfileID) {
+        let filtered = appState.filteredProfiles
+        let profilesByGroup = Dictionary(grouping: filtered) { $0.groupID }
+        let validGroupIDs = Set(appState.groups.map(\.id))
+        let ungrouped = filtered.filter { profile in
+            guard let groupID = profile.groupID else { return true }
+            return !validGroupIDs.contains(groupID)
+        }
+
+        List(selection: $appState.selectedProfileIDs) {
             if appState.searchText.isEmpty, !appState.recentProfiles.isEmpty {
                 Section(appState.strings.t("nav.recent")) {
                     ForEach(appState.recentProfiles.prefix(4)) { profile in
@@ -33,65 +40,30 @@ public struct ConnectionManagerView: View {
             }
 
             ForEach(appState.groups) { group in
-                let members = appState.filteredProfiles.filter { $0.groupID == group.id }
+                let members = profilesByGroup[group.id] ?? []
                 if !members.isEmpty || appState.searchText.isEmpty {
                     Section {
                         ForEach(members) { profile in
                             profileRow(profile)
                         }
                     } header: {
-                        HStack {
-                            Text(group.name)
-                            Spacer()
-                            Button {
-                                Task { await appState.deleteGroup(id: group.id) }
-                            } label: {
-                                Image(systemName: "trash").font(.caption2)
-                            }
-                            .buttonStyle(.borderless)
-                        }
+                        groupHeader(group)
                     }
                 }
             }
 
             Section(appState.strings.connectionsTitle) {
-                let ungrouped = appState.filteredProfiles.filter { profile in
-                    profile.groupID == nil || !appState.groups.contains { $0.id == profile.groupID }
-                }
                 ForEach(ungrouped) { profile in
                     profileRow(profile)
                 }
             }
         }
         .searchable(text: $appState.searchText)
+        .onDeleteCommand {
+            requestDelete(ids: appState.selectedProfileIDs)
+        }
         .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 4) {
-                HStack(spacing: SparkleTheme.Spacing.tiny) {
-                    Button {
-                        editingProfile = nil
-                        isShowingEditor = true
-                    } label: {
-                        Label(appState.strings.newConnection, systemImage: "plus")
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button(appState.strings.t("nav.newGroup")) {
-                        isAddingGroup = true
-                    }
-
-                    Menu(appState.strings.t("nav.importMenu")) {
-                        Button(appState.strings.t("nav.importSSHConfig")) {
-                            Task { await appState.importFromSSHConfig() }
-                        }
-                        Button(appState.strings.t("nav.importExternal")) {
-                            appState.isShowingImportSheet = true
-                        }
-                    }
-                }
-            }
-            .padding(SparkleTheme.Spacing.small)
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial)
+            bottomControls
         }
         .alert(appState.strings.t("nav.newGroupTitle"), isPresented: $isAddingGroup) {
             TextField(appState.strings.t("nav.groupName"), text: $newGroupName)
@@ -101,6 +73,18 @@ public struct ConnectionManagerView: View {
                 newGroupName = ""
                 Task { await appState.createGroup(named: name) }
             }
+        }
+        .alert(appState.strings.t("conn.confirmDeleteTitle"), isPresented: $isConfirmingBatchDelete) {
+            Button(appState.strings.t("common.cancel"), role: .cancel) {
+                pendingDeleteIDs = []
+            }
+            Button(appState.strings.t("common.delete"), role: .destructive) {
+                let ids = pendingDeleteIDs
+                pendingDeleteIDs = []
+                Task { await appState.deleteProfiles(ids: ids) }
+            }
+        } message: {
+            Text("\(appState.strings.t("conn.confirmDeleteMessage")) (\(pendingDeleteIDs.count))")
         }
         .fileImporter(
             isPresented: $isShowingImporter,
@@ -116,6 +100,89 @@ public struct ConnectionManagerView: View {
                 appState.inspectExternalConnections(from: url)
             }
         }
+    }
+
+    private func groupHeader(_ group: ServerGroup) -> some View {
+        HStack {
+            Text(group.name)
+            Spacer()
+            Button {
+                Task { await appState.deleteGroup(id: group.id) }
+            } label: {
+                Image(systemName: "trash").font(.caption2)
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
+    private var bottomControls: some View {
+        VStack(spacing: 6) {
+            if appState.selectedProfileIDs.count > 1 {
+                HStack {
+                    Text("\(appState.selectedProfileIDs.count) \(appState.strings.t("transfers.items"))")
+                        .font(SparkleTheme.Typography.caption)
+                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    Spacer()
+                    Button(appState.strings.t("conn.deleteSelected"), role: .destructive) {
+                        requestDelete(ids: appState.selectedProfileIDs)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+
+            HStack(spacing: SparkleTheme.Spacing.tiny) {
+                Button {
+                    editorMode = .create
+                } label: {
+                    Label(appState.strings.newConnection, systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(appState.strings.t("nav.newGroup")) {
+                    isAddingGroup = true
+                }
+
+                Menu(appState.strings.t("nav.importMenu")) {
+                    Button(appState.strings.t("nav.importSSHConfig")) {
+                        Task { await appState.importFromSSHConfig() }
+                    }
+                    Button(appState.strings.t("nav.importExternal")) {
+                        appState.isShowingImportSheet = true
+                    }
+                }
+
+                Menu {
+                    Button(appState.strings.t("conn.selectAll")) {
+                        appState.selectAllVisibleProfiles()
+                    }
+                    .disabled(appState.filteredProfiles.isEmpty)
+
+                    if let primary = appState.primarySelectedProfile {
+                        Button(appState.strings.t("common.edit")) {
+                            editorMode = .edit(primary)
+                        }
+                        Button(appState.strings.t("conn.cloneConnection")) {
+                            Task { _ = await appState.cloneProfile(primary) }
+                        }
+                    }
+
+                    Divider()
+
+                    Button(appState.strings.t("conn.deleteSelected"), role: .destructive) {
+                        requestDelete(ids: appState.selectedProfileIDs)
+                    }
+                    .disabled(appState.selectedProfileIDs.isEmpty)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 24)
+            }
+        }
+        .padding(SparkleTheme.Spacing.small)
+        .frame(maxWidth: .infinity)
+        .background(.ultraThinMaterial)
     }
 
     private func profileRow(_ profile: ConnectionProfile) -> some View {
@@ -150,170 +217,48 @@ public struct ConnectionManagerView: View {
                 .font(.caption2)
                 .foregroundStyle(SparkleTheme.Colors.secondaryText)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .tag(profile.id)
-        .contextMenu {
-            Button(appState.strings.connect) {
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
                 Task { await appState.connect(profile: profile) }
             }
-            Button("Edit") {
-                editingProfile = profile
-                isShowingEditor = true
+        )
+        .contextMenu {
+            profileContextMenu(for: profile)
+        }
+    }
+
+    @ViewBuilder
+    private func profileContextMenu(for profile: ConnectionProfile) -> some View {
+        Button(appState.strings.connect) {
+            Task { await appState.connect(profile: profile) }
+        }
+        Button(appState.strings.t("common.edit")) {
+            editorMode = .edit(profile)
+        }
+        Button(appState.strings.t("conn.cloneConnection")) {
+            Task { _ = await appState.cloneProfile(profile) }
+        }
+        Divider()
+        if appState.selectedProfileIDs.count > 1, appState.selectedProfileIDs.contains(profile.id) {
+            Button(
+                "\(appState.strings.t("conn.deleteSelected")) (\(appState.selectedProfileIDs.count))",
+                role: .destructive
+            ) {
+                requestDelete(ids: appState.selectedProfileIDs)
             }
-            Divider()
-            Button("Delete", role: .destructive) {
+        } else {
+            Button(appState.strings.t("common.delete"), role: .destructive) {
                 Task { await appState.deleteProfile(profile) }
             }
         }
     }
-}
 
-public struct ConnectionEditorView: View {
-    @ObservedObject var appState: AppState
-    let existingProfile: ConnectionProfile?
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name = ""
-    @State private var protocolType: ProtocolType = .sftp
-    @State private var host = ""
-    @State private var port = "22"
-    @State private var username = ""
-    @State private var authMethod: AuthMethod = .password
-    @State private var secretInput = ""
-    @State private var remotePath = "/"
-    @State private var isFavorite = false
-    @State private var requireTouchID = false
-    @State private var advanced = ConnectionAdvancedOptions()
-
-    public init(appState: AppState, existingProfile: ConnectionProfile?) {
-        self.appState = appState
-        self.existingProfile = existingProfile
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text(existingProfile == nil ? appState.strings.newConnection : appState.strings.t("nav.editConnection"))
-                .font(SparkleTheme.Typography.title)
-
-            if protocolType == .ftp {
-                SecurityWarningBanner(message: appState.strings.plaintextFTPWarning)
-            }
-
-            Form {
-                Section(appState.strings.t("conn.serverAndCreds")) {
-                    TextField(appState.strings.t("conn.profileName"), text: $name)
-                    Picker(appState.strings.t("conn.protocol"), selection: $protocolType) {
-                        ForEach(ProtocolType.allCases) { proto in
-                            Text(proto.displayName).tag(proto)
-                        }
-                    }
-                    .onChange(of: protocolType) { newProto in
-                        if existingProfile == nil {
-                            port = String(newProto.defaultPort)
-                        }
-                    }
-                    TextField(appState.strings.t("conn.host"), text: $host)
-                    TextField(appState.strings.t("conn.port"), text: $port)
-                    TextField(appState.strings.t("conn.username"), text: $username)
-                    Picker(appState.strings.t("conn.authentication"), selection: $authMethod) {
-                        ForEach(AuthMethod.allCases) { method in
-                            Text(method.rawValue).tag(method)
-                        }
-                    }
-                    if authMethod == .publicKey {
-                        TextEditor(text: $secretInput)
-                            .font(SparkleTheme.Typography.monoSmall)
-                            .frame(height: 80)
-                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(SparkleTheme.Colors.subtleBorder))
-                    } else if authMethod != .anonymous, authMethod != .sshAgent {
-                        SecureField(appState.strings.t("conn.passwordKeychain"), text: $secretInput)
-                    }
-                    TextField(appState.strings.t("conn.defaultRemotePath"), text: $remotePath)
-                    Toggle(appState.strings.t("nav.favorite"), isOn: $isFavorite)
-                    Toggle(appState.strings.t("conn.requireTouchID"), isOn: $requireTouchID)
-                }
-
-                ConnectionAdvancedSection(
-                    appState: appState,
-                    editingProfileID: existingProfile?.id,
-                    authMethod: authMethod,
-                    protocolType: protocolType,
-                    options: $advanced,
-                    secretInput: $secretInput
-                )
-            }
-            .formStyle(.grouped)
-
-            editorButtons
-        }
-        .padding(SparkleTheme.Spacing.large)
-        .frame(width: 520, height: 640)
-        .onAppear(perform: populateExistingFields)
-    }
-
-    private var editorButtons: some View {
-        HStack {
-            Spacer()
-            Button(appState.strings.t("common.cancel"), role: .cancel) { dismiss() }
-            Button(appState.strings.t("common.save")) { saveChanges() }
-                .buttonStyle(.borderedProminent)
-                .disabled(host.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-    }
-
-    private func populateExistingFields() {
-        guard let existing = existingProfile else { return }
-        name = existing.name
-        protocolType = existing.protocolType
-        host = existing.host
-        port = String(existing.port)
-        username = existing.username
-        authMethod = existing.authMethod
-        remotePath = existing.defaultRemotePath.rawValue
-        isFavorite = existing.isFavorite
-        requireTouchID = existing.requireTouchID
-        advanced.groupID = existing.groupID
-        advanced.defaultLocalPath = existing.defaultLocalPath ?? ""
-        advanced.proxyKind = existing.proxy.kind
-        advanced.proxyHost = existing.proxy.host
-        advanced.proxyPort = String(existing.proxy.port)
-        advanced.jumpHostProfileID = existing.jumpHostProfileID
-        advanced.privateKeyBookmarkData = existing.privateKeyBookmarkData
-    }
-
-    private func saveChanges() {
-        let localTrimmed = advanced.defaultLocalPath.trimmingCharacters(in: .whitespacesAndNewlines)
-        let proxyConfig = ProxyConfiguration(
-            kind: advanced.proxyKind,
-            host: advanced.proxyHost.trimmingCharacters(in: .whitespacesAndNewlines),
-            port: Int(advanced.proxyPort) ?? 1080
-        )
-        let built = ConnectionProfile(
-            id: existingProfile?.id ?? UUID(),
-            name: name.isEmpty ? host : name,
-            groupID: advanced.groupID,
-            protocolType: protocolType,
-            host: host,
-            port: Int(port) ?? protocolType.defaultPort,
-            username: username,
-            authMethod: authMethod,
-            passwordRef: existingProfile?.passwordRef,
-            privateKeyRef: existingProfile?.privateKeyRef,
-            passphraseRef: existingProfile?.passphraseRef,
-            privateKeyBookmarkData: advanced.privateKeyBookmarkData,
-            jumpHostProfileID: advanced.jumpHostProfileID,
-            proxy: proxyConfig,
-            defaultRemotePath: RemotePath(rawValue: remotePath),
-            defaultLocalPath: localTrimmed.isEmpty ? nil : localTrimmed,
-            isFavorite: isFavorite,
-            requireTouchID: requireTouchID
-        )
-        let secret = secretInput
-        let passphrase = advanced.passphraseInput
-        secretInput = ""
-        advanced.passphraseInput = ""
-        Task {
-            await appState.saveProfile(built, secretString: secret, passphraseString: passphrase)
-            dismiss()
-        }
+    private func requestDelete(ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        pendingDeleteIDs = ids
+        isConfirmingBatchDelete = true
     }
 }

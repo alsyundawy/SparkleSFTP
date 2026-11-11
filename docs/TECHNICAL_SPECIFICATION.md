@@ -143,15 +143,15 @@ SparkleSFTP/
 │   ├── FileManager/
 │   ├── Terminal/
 │   ├── Synchronization/
-│   └── DesignSystem/          # ThemePalette/Catalog (28 themes / 15 families), Resources/Locales/{en,id}.json (263 keys)
+│   └── DesignSystem/          # ThemePalette/Catalog (28 themes / 15 families), Resources/Locales/{en,id}.json (271 keys)
 ├── Features/
-│   ├── AppState*.swift        # Main coordinator + Connections/Operations/Imports/Settings/TransferHelpers extensions
+│   ├── AppState*.swift        # Main coordinator + Connections/ConnectionManagement/Operations/Imports/Settings/TransferHelpers extensions
 │   ├── MainWindowView.swift
 │   ├── Dashboard/
-│   ├── Connections/           # ConnectionViews, ConnectionAdvancedSection, SecuritySheets, ImportConnectionsSheet
+│   ├── Connections/           # ConnectionViews, ConnectionEditorView, ConnectionAdvancedSection, SecuritySheets, ImportConnectionsSheet
 │   ├── Commander/
 │   ├── Editor/                # Notepad2 Internal Editor (NSTextView + NSRulerView + syntax/find/transforms)
-│   ├── Transfers/
+│   ├── Transfers/             # TransferMonitor + TransferQueueView + ConflictResolutionSheet
 │   ├── Terminal/
 │   ├── Synchronization/       # SyncPreviewSheet (Local->Remote, Remote->Local, Bidirectional)
 │   └── Settings/              # PreferencesView + Theme, Localization & Auto-Update tabs
@@ -203,4 +203,4 @@ Full details live in [`docs/SECURITY_MODEL.md`](SECURITY_MODEL.md):
 | **M4 — Transfer, FileManager & Sync** | Actor `TransferQueue`, Scheduler, `ResumeValidator`, `SHA256Verifier`, `LocalFileService`, `SyncPlanner`/`Executor` | `Packages/TransferEngine`, `Packages/FileManager`, `Packages/Synchronization` | `TransferEngineTests`, `FileManagerTests`, `SynchronizationTests` |
 | **M5 — Terminal, AppKit/SwiftUI UI & App** | `SwiftTerm` wrapper, PTY session manager, port forwarding, dual-pane `NSTableView`, Quick Look, views, `App/` | `Packages/Terminal`, `Features/`, `App/` | `IntegrationTests`, `swift build` executable |
 | **M6 — Release Tooling, QA & CI Gates** | Docker test servers, Universal 2/notarize/DMG shell scripts, full linter & test verification | `Tools/`, `.github/`, docs | `swift test`, `swiftlint --strict`, `shellcheck`, `markdownlint-cli2`, `actionlint` |
-| **M7 — Multi-Themes, Auto-Update, JSON i18n, Preview Importers & Notepad2 Editor** | `28` SparkNotePad themes (`15` families), `263`-key EN/ID JSON catalogs, `AutoUpdateSettings` + GitHub Releases fallback, UTF-16 BOM FileZilla/WinSCP `ImportConnectionsSheet`, Notepad2 `NSTextView` internal editor, Bidirectional Sync (`TASK-108`) | `Packages/DesignSystem`, `Packages/Persistence`, `Packages/Synchronization`, `Features/Editor/`, `Features/Settings/`, `Features/Connections/` | `57 tests in 15 suites`, `swiftlint --strict` (`0/118`), `swiftformat --lint .` (`0/118`) |
+| **M7 — Themes, i18n, Importers, Editor, Connection UX & Perf** | `28` SparkNotePad themes (`15` families), `271`-key EN/ID JSON catalogs, `AutoUpdateSettings` + GitHub Releases fallback, FileZilla/WinSCP `ImportConnectionsSheet`, Notepad2 editor, Bidirectional Sync (`TASK-108`), double-click connect, atomic Edit sheet, Clone Connection, `⌘A` batch delete, non-deadlocking `applicationShouldTerminate` quit, `TransferMonitor` 10Hz isolation & single-`lstat` enumeration | `Packages/DesignSystem`, `Packages/Persistence`, `Packages/Synchronization`, `Features/*`, `App/` | `60 tests in 16 suites`, `swiftlint --strict` (`0/122`), `swiftformat --lint .` (`0/122`) |

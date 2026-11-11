@@ -1402,7 +1402,7 @@ jobs:
 
 ## ✅ Updated Acceptance Criteria Additions
 
-**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 57 tests in 15 suites, 118 Swift files):**
+**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 60 tests in 16 suites, 122 Swift files):**
 
 - [x] `swift-nio-ssh` version ≥ 0.14.1 (`0.15.1`, patch CVE-2026-43798 — lihat [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md))
 - [x] `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`, memblokir permukaan `libssh` — mitigasi CVE-2025-15224)
@@ -1415,7 +1415,7 @@ jobs:
 - [x] SHA-256 verification: tidak blocking main thread untuk file > 100MB (`TransferEngineTests`)
 - [x] Sparkle: unsigned/non-HTTPS update check dan placeholder `SUPublicEDKey` ditolak (`UpdateConfigurationValidator`, `SecurityTests`, `SparkleUpdaterService`); Ed25519 appcast signing dilakukan pada host rilis
 - [x] OSLog: tidak ada secret dalam log (`DiagnosticsLogger` + SwiftLint `no_password_in_logs`)
-- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/118 files), `swiftformat --lint .` (0/118 files), `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`
+- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/122 files), `swiftformat --lint .` (0/122 files), `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`
 
 ---
 

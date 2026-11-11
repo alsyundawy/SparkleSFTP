@@ -18,6 +18,12 @@ struct SparkleSFTPApp: App {
             MainWindowView(appState: appState)
                 .frame(minWidth: 980, minHeight: 620)
                 .onAppear {
+                    appDelegate.onPrepareFastShutdown = { [appState] in
+                        appState.prepareFastShutdown()
+                    }
+                    appDelegate.onShouldDelayTermination = { [appState] in
+                        appState.hasActiveAsyncCleanup
+                    }
                     appDelegate.onTerminateCleanup = { [environment] in
                         await environment.shutdown()
                     }

@@ -112,7 +112,7 @@ public struct FilePaneTableView: NSViewRepresentable {
             }
             tableView.menu = context.coordinator.buildContextMenu()
         }
-        if context.coordinator.cachedFiles != files {
+        if context.coordinator.cachedFiles.count != files.count || context.coordinator.cachedFiles != files {
             context.coordinator.cachedFiles = files
             context.coordinator.isProgrammaticUpdate = true
             tableView.reloadData()
@@ -123,14 +123,20 @@ public struct FilePaneTableView: NSViewRepresentable {
             context.coordinator.isProgrammaticUpdate = false
         }
     }
+}
 
+public extension FilePaneTableView {
     @MainActor
-    public final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         var parent: FilePaneTableView
         var cachedFiles: [RemoteFile] = []
         var cachedLocaleCode: String = ""
         weak var tableView: NSTableView?
         var isProgrammaticUpdate = false
+
+        private static let folderSymbol = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: nil)
+        private static let linkSymbol = NSImage(systemSymbolName: "link", accessibilityDescription: nil)
+        private static let fileSymbol = NSImage(systemSymbolName: "doc", accessibilityDescription: nil)
 
         private static let byteFormatter: ByteCountFormatter = {
             let formatter = ByteCountFormatter()
@@ -172,8 +178,13 @@ public struct FilePaneTableView: NSViewRepresentable {
             switch columnID {
             case "name":
                 cell.textField?.stringValue = item.name
-                let symbolName = item.isDirectory ? "folder.fill" : (item.isSymlink ? "link" : "doc")
-                cell.imageView?.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: item.name)
+                if item.isDirectory {
+                    cell.imageView?.image = Self.folderSymbol
+                } else if item.isSymlink {
+                    cell.imageView?.image = Self.linkSymbol
+                } else {
+                    cell.imageView?.image = Self.fileSymbol
+                }
             case "size":
                 let sizeLabel = item.isDirectory
                     ? "--"

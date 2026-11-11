@@ -41,17 +41,18 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 
 - [x] `T-021` Create `Tools/TestServers/` & `Tools/Release/` scripts
 - [x] `T-022` Reconcile `README.md`, `README-id.md`, `docs/*.md`, `CHANGELOG.md`, `TODO.md`
-- [x] `T-023` Run full build, tests (`57 tests in 15 suites`), SwiftLint (`118` files), SwiftFormat (`0/118`), YAMLlint, ShellCheck, Shfmt, Markdownlint, Actionlint
+- [x] `T-023` Run full build, tests (`60 tests in 16 suites`), SwiftLint (`122` files), SwiftFormat (`0/122`), YAMLlint, ShellCheck, Shfmt, Markdownlint, Actionlint
 - [x] `T-024` Build and verify Universal 2 (`x86_64 arm64`) `.app` + `SparkleSFTP-0.2.0-universal.dmg` + `.sha256` via `Tools/Release/build-universal.sh`, `create-dmg.sh`, and `.github/workflows/release.yml`
 
 ## Milestone 7: Post-MVP Quality-of-Life & Editor Enhancements (`T-025` – `T-030`)
 
 - [x] `T-025` Multi-theme engine (`SparkleThemePalette`, `28` themes / `15` families inspired by SparkNotePad, WCAG AA contrast, JSON import/export)
-- [x] `T-026` Maintainable JSON i18n system (`en.json` & `id.json` `263` keys, custom `Locales/` override directory, Preferences coverage inspector)
+- [x] `T-026` Maintainable JSON i18n system (`en.json` & `id.json` `271` keys, custom `Locales/` override directory, Preferences coverage inspector)
 - [x] `T-027` Full Auto-Update Preferences & community GitHub Releases API fallback check (`AutoUpdateSettings`, `PreferencesUpdatesTab`)
 - [x] `T-028` Enhanced FileZilla XML & WinSCP INI reader + `ImportConnectionsSheet` preview importer (BOM/UTF-16, nested folders, `FSProtocol`, `.ini` `UTType`)
 - [x] `T-029` Minimalist Notepad2 Internal File Editor (`Features/Editor/`, multi-tab `NSTextView` + line numbers + regex syntax/find/transforms/encodings + remote upload)
 - [x] `T-030` Bidirectional & Reverse Folder Synchronization (`TASK-108` across `SyncPlanner`, `SyncExecutor`, `SyncPreviewSheet`, `BidirectionalSyncTests`, `EditorAndSyncTests`)
+- [x] `T-032` Connection List double-click connect, atomic Edit sheet (`ConnectionEditorMode`), Clone Connection with Keychain secret duplication, `⌘A` Select All + batch Delete Selected, fast `applicationShouldTerminate` exit, `TransferMonitor` 10Hz decoupling, cached `strings`/`activePalette`, 2s SQLite checkpoint throttling & single-`lstat` POSIX listing (`ConnectionManagementAndPerfTests`)
 
 ## External Operational & Release Gates (Deferred to Release Environment)
 

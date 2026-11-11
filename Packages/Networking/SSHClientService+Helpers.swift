@@ -5,6 +5,23 @@ import NIOSSH
 import SparkleCore
 import SparkleSecurity
 
+private final class ShutdownResumeOnceBox: @unchecked Sendable { // JUSTIFICATION: NSLock protects resume.
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    init(_ continuation: CheckedContinuation<Void, Never>) {
+        self.continuation = continuation
+    }
+
+    func resumeOnce() {
+        lock.lock()
+        let pending = continuation
+        continuation = nil
+        lock.unlock()
+        pending?.resume()
+    }
+}
+
 extension SSHClientService {
     func makeBootstrap(
         group: MultiThreadedEventLoopGroup,
@@ -163,5 +180,38 @@ extension SSHClientService {
             return .connectionTimeout(host: host, seconds: 30)
         }
         return .transferFailed(reason: "SSH (\(host):\(port), \(authMethod.rawValue)): \(desc)")
+    }
+
+    /// Closes an NIO channel and shuts down its EventLoopGroup without hanging exit/disconnect on quietPeriod.
+    public static func closeChannelAndShutdownGroup(
+        _ channel: Channel?,
+        group: MultiThreadedEventLoopGroup?,
+        timeoutMilliseconds: Int = 200
+    ) async {
+        if let channel {
+            await waitBounded(timeoutMilliseconds: min(100, timeoutMilliseconds)) { done in
+                channel.close(mode: .all).whenComplete { _ in done() }
+            }
+        }
+        if let group {
+            await waitBounded(timeoutMilliseconds: timeoutMilliseconds) { done in
+                group.shutdownGracefully(queue: .global(qos: .utility)) { _ in done() }
+            }
+        }
+    }
+
+    private static func waitBounded(
+        timeoutMilliseconds: Int,
+        operation: (@escaping @Sendable () -> Void) -> Void
+    ) async {
+        await withCheckedContinuation { continuation in
+            let box = ShutdownResumeOnceBox(continuation)
+            operation { box.resumeOnce() }
+            DispatchQueue.global(qos: .utility).asyncAfter(
+                deadline: .now() + .milliseconds(max(25, timeoutMilliseconds))
+            ) {
+                box.resumeOnce()
+            }
+        }
     }
 }

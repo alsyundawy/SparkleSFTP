@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import SparkleCore
 
@@ -57,33 +58,32 @@ public actor LocalFileService {
     public init() {}
 
     public func listDirectory(at url: URL, showHidden: Bool = false) async throws -> [RemoteFile] {
-        let keys: [URLResourceKey] = [
-            .isDirectoryKey,
-            .isSymbolicLinkKey,
-            .fileSizeKey,
-            .contentModificationDateKey
-        ]
         let options: FileManager.DirectoryEnumerationOptions = showHidden ? [] : [.skipsHiddenFiles]
-        let contents = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: options)
+        let contents = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: options)
 
         return contents.compactMap { entryURL in
-            let values = try? entryURL.resourceValues(forKeys: Set(keys))
-            let attrs = try? fileManager.attributesOfItem(atPath: entryURL.path)
-            let isDir = values?.isDirectory ?? false
-            let isLink = values?.isSymbolicLink ?? false
-            let size = Int64(values?.fileSize ?? (attrs?[.size] as? NSNumber)?.intValue ?? 0)
-            let perms = (attrs?[.posixPermissions] as? NSNumber)?.uint32Value ?? (isDir ? 0o755 : 0o644)
-            let mtime = values?.contentModificationDate
-            let symlinkTarget = isLink ? (try? fileManager.destinationOfSymbolicLink(atPath: entryURL.path)) : nil
+            let pathString = entryURL.path
+            var statBuf = stat()
+            guard lstat(pathString, &statBuf) == 0 else { return nil }
+            let fileType = statBuf.st_mode & S_IFMT
+            let isDir = fileType == S_IFDIR
+            let isLink = fileType == S_IFLNK
+            let size = Int64(statBuf.st_size)
+            let perms = UInt32(statBuf.st_mode) & 0o7777
+            let mtime = Date(
+                timeIntervalSince1970: TimeInterval(statBuf.st_mtimespec.tv_sec)
+                    + TimeInterval(statBuf.st_mtimespec.tv_nsec) / 1_000_000_000.0
+            )
+            let symlinkTarget = isLink ? (try? fileManager.destinationOfSymbolicLink(atPath: pathString)) : nil
 
             return RemoteFile(
                 name: entryURL.lastPathComponent,
-                path: RemotePath(rawValue: entryURL.path),
+                path: RemotePath(rawValue: pathString),
                 size: size,
                 isDirectory: isDir,
                 isSymlink: isLink,
                 symlinkTarget: symlinkTarget,
-                permissions: perms & 0o7777,
+                permissions: perms,
                 modificationTime: mtime
             )
         }

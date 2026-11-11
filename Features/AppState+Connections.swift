@@ -147,26 +147,11 @@ public extension AppState {
         }
     }
 
-    func deleteProfile(_ profile: ConnectionProfile) async {
-        do {
-            await disconnect(sessionID: profile.id)
-            if let passRef = profile.passwordRef {
-                try? await credentialStore.deleteSecret(for: passRef)
-            }
-            if let keyRef = profile.privateKeyRef {
-                try? await credentialStore.deleteSecret(for: keyRef)
-            }
-            if let phraseRef = profile.passphraseRef {
-                try? await credentialStore.deleteSecret(for: phraseRef)
-            }
-            try await connectionStore.deleteProfile(id: profile.id)
-            await refreshProfilesAndGroups()
-        } catch {
-            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
-        }
-    }
-
     func connect(profile: ConnectionProfile) async {
+        guard !connectingProfileIDs.contains(profile.id) else { return }
+        connectingProfileIDs.insert(profile.id)
+        defer { connectingProfileIDs.remove(profile.id) }
+
         guard await authenticateBiometricsIfNeeded(for: profile) else { return }
         let created = buildRemoteService(for: profile)
 

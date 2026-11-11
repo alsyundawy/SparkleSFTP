@@ -36,7 +36,7 @@ SparkleSFTP handles high-privilege remote infrastructure access. Primary protect
 - Every Keychain write **MUST** specify `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`.
 - iCloud-syncable classes (`kSecAttrAccessibleAfterFirstUnlock`, `kSecAttrAccessibleWhenUnlocked`) are statically forbidden by `.swiftlint.yml` (`no_icloud_keychain_sync` at `severity: error`).
 - When biometric lock is enabled on a profile or app vault, `SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, .userPresence, nil)` gates access via `LAContext`.
-- On-disk JSON profiles (`ConnectionStore`) and SQLite records (`TransferJournal`) reference secrets solely via opaque `SecretReference` (`UUID`).
+- On-disk JSON profiles (`ConnectionStore`) and SQLite records (`TransferJournal`) reference secrets solely via opaque `SecretReference` (`UUID`). Cloning a connection profile (`AppState.cloneProfile`) duplicates stored secrets under fresh `SecretReference` IDs so deleting or rotating credentials on a clone never mutates or removes the original connection's Keychain items.
 
 ### 3.2 SSH Host Key TOFU State Machine (`LOG-001`)
 

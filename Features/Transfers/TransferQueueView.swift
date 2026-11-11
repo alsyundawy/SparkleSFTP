@@ -5,6 +5,7 @@ import SwiftUI
 
 public struct TransferQueueView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject var monitor: TransferMonitor
 
     private static let byteFormatter: ByteCountFormatter = {
         let formatter = ByteCountFormatter()
@@ -14,6 +15,7 @@ public struct TransferQueueView: View {
 
     public init(appState: AppState) {
         self.appState = appState
+        _monitor = ObservedObject(wrappedValue: appState.transferMonitor)
     }
 
     public var body: some View {
@@ -22,10 +24,10 @@ public struct TransferQueueView: View {
                 Label(appState.strings.transfers, systemImage: "arrow.up.arrow.down.circle")
                     .font(SparkleTheme.Typography.headline)
                 Spacer()
-                Text("\(appState.transferSnapshots.count) \(appState.strings.t("transfers.items"))")
+                Text("\(monitor.snapshots.count) \(appState.strings.t("transfers.items"))")
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
-                if appState.transferSnapshots.contains(where: \.status.isTerminal) {
+                if monitor.snapshots.contains(where: \.status.isTerminal) {
                     Button(appState.strings.t("transfers.clearFinished")) {
                         Task { await appState.transferQueue.clearFinished() }
                     }
@@ -37,14 +39,14 @@ public struct TransferQueueView: View {
             .padding(.vertical, SparkleTheme.Spacing.tiny)
             .background(SparkleTheme.Colors.panelBackground)
 
-            if appState.transferSnapshots.isEmpty {
+            if monitor.snapshots.isEmpty {
                 Text(appState.strings.t("transfers.noTransfers"))
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding()
             } else {
-                List(appState.transferSnapshots) { snapshot in
+                List(monitor.snapshots) { snapshot in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(

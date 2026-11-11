@@ -24,9 +24,9 @@ final class SSHJumpTunnelHandle: @unchecked Sendable { // JUSTIFICATION: Synchro
     }
 
     func stop() async {
-        try? await serverChannel.close().get()
+        await SSHClientService.closeChannelAndShutdownGroup(serverChannel, group: nil)
         try? await bastionClient.disconnect(policy: .cancelAllTransfers)
-        try? await group.shutdownGracefully()
+        await SSHClientService.closeChannelAndShutdownGroup(nil, group: group)
     }
 }
 
@@ -198,7 +198,7 @@ extension SSHClientService {
                 listeningPort: port
             )
         } catch {
-            try? await group.shutdownGracefully()
+            await SSHClientService.closeChannelAndShutdownGroup(nil, group: group)
             try? await bastion.disconnect(policy: .cancelAllTransfers)
             throw error
         }

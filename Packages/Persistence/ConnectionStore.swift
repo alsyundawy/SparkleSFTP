@@ -68,6 +68,13 @@ public actor ConnectionStore: ConnectionStoreProtocol {
         try persist(snapshot)
     }
 
+    public func deleteProfiles(ids: Set<UUID>) async throws {
+        guard !ids.isEmpty else { return }
+        var snapshot = try loadSnapshot()
+        snapshot.profiles.removeAll { ids.contains($0.id) }
+        try persist(snapshot)
+    }
+
     public func loadGroups() async throws -> [ServerGroup] {
         try loadSnapshot().groups.sorted { $0.sortOrder < $1.sortOrder }
     }

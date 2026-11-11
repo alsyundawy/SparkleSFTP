@@ -49,7 +49,7 @@ public struct ActiveSessionModel: Identifiable, Sendable {
 public final class AppState: ObservableObject {
     @Published public var profiles: [ConnectionProfile] = []
     @Published public var groups: [ServerGroup] = []
-    @Published public var selectedProfileID: UUID?
+    @Published public var selectedProfileIDs: Set<UUID> = []
     @Published public var searchText: String = ""
 
     @Published public var activeSessions: [ActiveSessionModel] = []
@@ -64,7 +64,7 @@ public final class AppState: ObservableObject {
     )
     @Published public var activePane: PaneSide = .left
 
-    @Published public var transferSnapshots: [TransferSnapshot] = []
+    public let transferMonitor = TransferMonitor()
     @Published public var trustedHosts: [String: HostTrustStore.Entry] = [:]
     @Published public var snippets: [CommandSnippet] = CommandSnippetStore.builtInDefaults
     @Published public var activeTunnels: [PortForwardingManager.ActiveTunnel] = []
@@ -84,28 +84,40 @@ public final class AppState: ObservableObject {
             if activeLocaleCode != language.rawValue {
                 activeLocaleCode = language.rawValue
             }
+            refreshLocalizedStrings()
             savePreferencesIfLoaded()
         }
     }
 
     @Published public var activeLocaleCode: String = "en" {
-        didSet { savePreferencesIfLoaded() }
+        didSet {
+            refreshLocalizedStrings()
+            savePreferencesIfLoaded()
+        }
     }
 
-    @Published public var availableLocales: [LocaleDocument] = LocalizationCatalog.loadAvailableLocales()
+    @Published public var availableLocales: [LocaleDocument] {
+        didSet { refreshLocalizedStrings() }
+    }
 
     @Published public var appearanceMode: ThemeAppearanceMode = .auto {
         didSet {
             applyAppearanceToApplication()
+            refreshActivePalette()
             savePreferencesIfLoaded()
         }
     }
 
     @Published public var selectedThemeID: String = SparkleThemeCatalog.defaultLight.id {
-        didSet { savePreferencesIfLoaded() }
+        didSet {
+            refreshActivePalette()
+            savePreferencesIfLoaded()
+        }
     }
 
-    @Published public var availableThemes: [SparkleThemePalette] = SparkleThemeStore.loadAllPalettes()
+    @Published public var availableThemes: [SparkleThemePalette] {
+        didSet { refreshActivePalette() }
+    }
 
     @Published public var autoUpdateSettings = AutoUpdateSettings() {
         didSet { savePreferencesIfLoaded() }
@@ -137,21 +149,10 @@ public final class AppState: ObservableObject {
     @Published public var syncComparisonMode: SyncComparisonMode = .sizeAndMtime
     @Published public var syncDirection: SyncDirection = .localToRemote
 
-    public var strings: AppStrings {
-        AppStrings(language: language, localeCode: activeLocaleCode, availableLocales: availableLocales)
-    }
+    public internal(set) var strings: AppStrings
+    public internal(set) var activePalette: SparkleThemePalette
 
-    public var activePalette: SparkleThemePalette {
-        let isDarkSystem = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        return SparkleThemeCatalog.palette(
-            id: selectedThemeID,
-            appearanceMode: appearanceMode,
-            systemIsDark: isDarkSystem,
-            available: availableThemes
-        )
-    }
-
-    public let credentialStore: KeychainService
+    public let credentialStore: any CredentialStoreProtocol
     public let hostTrustStore: HostTrustStore
     public let connectionStore: ConnectionStore
     public let localFileService: LocalFileService
@@ -171,6 +172,7 @@ public final class AppState: ObservableObject {
     var conflictContinuation: CheckedContinuation<TransferConflictResolution, Never>?
     var remoteEditWatches: [URL: LocalDirectoryWatcher] = [:]
     var notifiedTerminalTransferIDs: Set<UUID> = []
+    var connectingProfileIDs: Set<UUID> = []
     var didLoadPreferences = false
     let performUpdateCheckAction: @MainActor (AutoUpdateSettings, Bool) async -> AutoUpdateCheckStatus
     let applyAutoUpdateSettingsAction: @MainActor (AutoUpdateSettings) -> Void
@@ -198,7 +200,7 @@ public final class AppState: ObservableObject {
     }
 
     public init(
-        credentialStore: KeychainService = KeychainService(),
+        credentialStore: any CredentialStoreProtocol = KeychainService(),
         hostTrustStore: HostTrustStore = HostTrustStore(),
         connectionStore: ConnectionStore = ConnectionStore(),
         transferJournal: TransferJournal? = try? TransferJournal(),
@@ -215,6 +217,17 @@ public final class AppState: ObservableObject {
             },
         applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
+        let initialLocales = LocalizationCatalog.loadAvailableLocales()
+        let initialThemes = SparkleThemeStore.loadAllPalettes()
+        _availableLocales = Published(initialValue: initialLocales)
+        _availableThemes = Published(initialValue: initialThemes)
+        strings = AppStrings(language: .english, localeCode: "en", availableLocales: initialLocales)
+        activePalette = SparkleThemeCatalog.palette(
+            id: SparkleThemeCatalog.defaultLight.id,
+            appearanceMode: .auto,
+            systemIsDark: NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
+            available: initialThemes
+        )
         self.credentialStore = credentialStore
         self.hostTrustStore = hostTrustStore
         self.connectionStore = connectionStore
@@ -230,6 +243,8 @@ public final class AppState: ObservableObject {
         self.performUpdateCheckAction = performUpdateCheckAction
         self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction
         loadPersistedPreferences()
+        refreshLocalizedStrings()
+        refreshActivePalette()
         applyAppearanceToApplication()
     }
 
@@ -239,26 +254,6 @@ public final class AppState: ObservableObject {
         for (dirURL, watcher) in remoteEditWatches {
             watcher.stopWatching()
             try? FileManager.default.removeItem(at: dirURL)
-        }
-    }
-
-    public var currentSession: ActiveSessionModel? {
-        activeSessions.first { $0.id == activeSessionID }
-    }
-
-    public var recentProfiles: [ConnectionProfile] {
-        profiles
-            .filter { $0.lastConnectedAt != nil }
-            .sorted { ($0.lastConnectedAt ?? .distantPast) > ($1.lastConnectedAt ?? .distantPast) }
-    }
-
-    public var filteredProfiles: [ConnectionProfile] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return profiles }
-        return profiles.filter {
-            $0.name.localizedCaseInsensitiveContains(trimmed)
-                || $0.host.localizedCaseInsensitiveContains(trimmed)
-                || $0.username.localizedCaseInsensitiveContains(trimmed)
         }
     }
 

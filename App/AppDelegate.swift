@@ -3,7 +3,10 @@ import UserNotifications
 
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
+    var onPrepareFastShutdown: (() -> Void)?
+    var onShouldDelayTermination: (() -> Bool)?
     var onTerminateCleanup: (() async -> Void)?
+    private var didReplyTermination = false
 
     public func applicationDidFinishLaunching(_: Notification) {
         if Bundle.main.bundleURL.pathExtension == "app" {
@@ -26,13 +29,27 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    public func applicationWillTerminate(_: Notification) {
-        guard let cleanup = onTerminateCleanup else { return }
-        let semaphore = DispatchSemaphore(value: 0)
-        Task {
-            await cleanup()
-            semaphore.signal()
+    public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        onPrepareFastShutdown?()
+        guard let cleanup = onTerminateCleanup, onShouldDelayTermination?() == true else {
+            return .terminateNow
         }
-        _ = semaphore.wait(timeout: .now() + 2)
+
+        didReplyTermination = false
+        Task { @MainActor [weak self] in
+            await cleanup()
+            self?.finishDelayedTermination(sender)
+        }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(350))
+            self?.finishDelayedTermination(sender)
+        }
+        return .terminateLater
+    }
+
+    private func finishDelayedTermination(_ sender: NSApplication) {
+        guard !didReplyTermination else { return }
+        didReplyTermination = true
+        sender.reply(toApplicationShouldTerminate: true)
     }
 }

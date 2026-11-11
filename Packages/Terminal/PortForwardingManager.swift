@@ -83,9 +83,8 @@ public actor PortForwardingManager {
 
     public func stopTunnel(id: UUID) async {
         if let listener = localListeners.removeValue(forKey: id) {
-            try? await listener.serverChannel.close().get()
             await listener.registry.closeAll()
-            try? await listener.group.shutdownGracefully()
+            await SSHClientService.closeChannelAndShutdownGroup(listener.serverChannel, group: listener.group)
         }
         if let remote = remoteForwards.removeValue(forKey: id) {
             await remote.sshClient.stopRemotePortForward(
@@ -97,8 +96,12 @@ public actor PortForwardingManager {
 
     public func stopAll() async {
         let ids = Array(localListeners.keys) + Array(remoteForwards.keys)
-        for id in ids {
-            await stopTunnel(id: id)
+        await withTaskGroup(of: Void.self) { group in
+            for id in ids {
+                group.addTask {
+                    await self.stopTunnel(id: id)
+                }
+            }
         }
     }
 

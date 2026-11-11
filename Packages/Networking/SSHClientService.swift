@@ -270,10 +270,7 @@ public actor SSHClientService {
                 "SSH connected to \(connectedHost, privacy: .private):\(connectedPort, privacy: .public)"
             )
         } catch {
-            if let connectedChannel {
-                try? await connectedChannel.close().get()
-            }
-            try? await attempt.group.shutdownGracefully()
+            await Self.closeChannelAndShutdownGroup(connectedChannel, group: attempt.group)
             await attempt.activeJump?.stop()
             let mapped = Self.mapSSHError(error, host: profile.host, port: profile.port, authMethod: profile.authMethod)
             connectionState = .failed(mapped)
@@ -282,19 +279,18 @@ public actor SSHClientService {
     }
 
     public func disconnect(policy _: DisconnectPolicy) async throws {
-        if let channel = rootChannel {
-            try? await channel.close().get()
-            rootChannel = nil
-        }
-        if let group = eventLoopGroup {
-            try? await group.shutdownGracefully()
-            eventLoopGroup = nil
-        }
-        if let activeJump = jumpTunnel {
-            jumpTunnel = nil
+        let channel = rootChannel
+        let group = eventLoopGroup
+        let activeJump = jumpTunnel
+        rootChannel = nil
+        eventLoopGroup = nil
+        jumpTunnel = nil
+        connectionState = .disconnected
+
+        await Self.closeChannelAndShutdownGroup(channel, group: group)
+        if let activeJump {
             await activeJump.stop()
         }
-        connectionState = .disconnected
     }
 
     public func executeCommand(_ command: String, timeoutSeconds: Int? = nil) async throws -> SSHCommandOutput {

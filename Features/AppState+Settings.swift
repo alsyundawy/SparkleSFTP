@@ -165,4 +165,27 @@ public extension AppState {
         autoUpdateSettings.customFeedURL = AutoUpdateSettings.defaultStableFeedURL
         applyAutoUpdateConfiguration()
     }
+
+    internal func refreshLocalizedStrings() {
+        strings = AppStrings(
+            language: language,
+            localeCode: activeLocaleCode,
+            availableLocales: availableLocales
+        )
+    }
+
+    func refreshActivePalette(emitChange: Bool = false) {
+        let isDarkSystem = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let updated = SparkleThemeCatalog.palette(
+            id: selectedThemeID,
+            appearanceMode: appearanceMode,
+            systemIsDark: isDarkSystem,
+            available: availableThemes
+        )
+        guard activePalette != updated else { return }
+        if emitChange {
+            objectWillChange.send()
+        }
+        activePalette = updated
+    }
 }

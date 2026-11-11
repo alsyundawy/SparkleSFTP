@@ -4,8 +4,8 @@ import SwiftUI
 
 public struct MainWindowView: View {
     @ObservedObject var appState: AppState
-    @State private var isShowingEditor = false
-    @State private var editingProfile: ConnectionProfile?
+    @Environment(\.colorScheme) private var systemColorScheme
+    @State private var editorMode: ConnectionEditorMode?
     @State private var isShowingSecurityDiagnostics = false
     @State private var isShowingSyncSheet = false
 
@@ -18,8 +18,7 @@ public struct MainWindowView: View {
         NavigationSplitView {
             ConnectionManagerView(
                 appState: appState,
-                isShowingEditor: $isShowingEditor,
-                editingProfile: $editingProfile
+                editorMode: $editorMode
             )
             .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
         } detail: {
@@ -51,17 +50,19 @@ public struct MainWindowView: View {
             appState.appearanceMode == .auto ? nil : (appState.appearanceMode == .dark ? .dark : .light)
         )
         .environment(\.sparklePalette, palette)
+        .onChange(of: systemColorScheme) { _ in
+            appState.refreshActivePalette(emitChange: true)
+        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
-                    if let selectedID = appState.selectedProfileID,
-                       let profile = appState.profiles.first(where: { $0.id == selectedID }) {
+                    if let profile = appState.primarySelectedProfile {
                         Task { await appState.connect(profile: profile) }
                     }
                 } label: {
                     Label(appState.strings.connect, systemImage: SparkleTheme.Symbols.connect)
                 }
-                .disabled(appState.selectedProfileID == nil)
+                .disabled(appState.primarySelectedProfile == nil)
 
                 if let current = appState.currentSession {
                     Button {
@@ -122,8 +123,15 @@ public struct MainWindowView: View {
         .task {
             await appState.bootstrap()
         }
-        .sheet(isPresented: $isShowingEditor) {
-            ConnectionEditorView(appState: appState, existingProfile: editingProfile)
+        .sheet(item: $editorMode) { mode in
+            switch mode {
+            case .create:
+                ConnectionEditorView(appState: appState, existingProfile: nil)
+                    .id(mode.id)
+            case let .edit(profile):
+                ConnectionEditorView(appState: appState, existingProfile: profile)
+                    .id(mode.id)
+            }
         }
         .sheet(isPresented: $appState.isShowingImportSheet) {
             ImportConnectionsSheet(appState: appState)
@@ -174,8 +182,10 @@ public struct MainWindowView: View {
             Text(appState.lastError?.errorDescription ?? "")
         }
     }
+}
 
-    private var sessionTabBar: some View {
+private extension MainWindowView {
+    var sessionTabBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
                 ForEach(appState.activeSessions) { session in
@@ -214,7 +224,7 @@ public struct MainWindowView: View {
         .background(.ultraThinMaterial)
     }
 
-    private var statusBar: some View {
+    var statusBar: some View {
         HStack(spacing: SparkleTheme.Spacing.medium) {
             if let session = appState.currentSession {
                 StatusPill(

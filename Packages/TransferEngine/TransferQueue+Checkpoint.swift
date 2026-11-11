@@ -24,6 +24,7 @@ extension TransferQueue {
     }
 
     func broadcastSnapshots() {
+        guard !streamContinuations.isEmpty else { return }
         let ordered = orderedSnapshots()
         for (_, cont) in streamContinuations {
             cont.yield(ordered)
@@ -42,6 +43,10 @@ extension TransferQueue {
             return 0
         }
         return (attrs[.size] as? NSNumber)?.int64Value ?? 0
+    }
+
+    func recordSeedSnapshotForTest(_ snapshot: TransferSnapshot) {
+        snapshots[snapshot.id] = snapshot
     }
 
     func updateStatus(id: UUID, status: TransferStatus) async {
@@ -63,7 +68,21 @@ extension TransferQueue {
             )
         )
         snapshots[id] = updated
-        await persistSnapshot(updated)
+        let now = Date()
+        let statusChanged = existing.status.statusCode != status.statusCode
+        let isPausedOrInterrupted = status == .paused || status == .interrupted
+        let shouldPersist = statusChanged
+            || status.isTerminal
+            || isPausedOrInterrupted
+            || (lastJournalPersistAt[id].map { now.timeIntervalSince($0) >= 2.0 } ?? true)
+        if shouldPersist {
+            await persistSnapshot(updated)
+            if status.isTerminal || isPausedOrInterrupted {
+                lastJournalPersistAt.removeValue(forKey: id)
+            } else {
+                lastJournalPersistAt[id] = now
+            }
+        }
         broadcastSnapshots()
     }
 

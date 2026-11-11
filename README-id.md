@@ -67,7 +67,9 @@
 - **Pengalaman Commander Dual-Pane**: Panel Lokal ↔ Remote maupun Remote ↔ Remote berbasis AppKit `NSTableView` untuk daftar 100.000+ berkas yang mulus, pintasan papan ketik (`Tab`, `F5`–`F8`), Quick Look (`QLPreviewPanel`), seret-lepas Finder, dan editor internal.
 - **Editor Berkas Internal Minimalis Notepad2 (`⌘E`)**: Editor multi-tab AppKit `NSTextView` (`Features/Editor/`) dengan nomor baris (`NSRulerView`), syntax highlighting mengikuti palet tema aktif, simbol spasi/tab (`¶`), word wrap, zoom `+/-/%`, mode hanya-baca, Cari & Ganti berbasis regex, lompat ke baris, transformasi teks (UPPER/lower/Title/Trim/Sort), konversi `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` + `LF`/`CRLF`, serta simpan & unggah otomatis ke server remote.
 - **Sistem Multi-Tema (`SparkNotePad` Palettes)**: `28` tema bawaan pada `15` keluarga palet (`NotepadNext`, `Catppuccin`, `Dracula`, `Tokyo Night`, `Nord`, `One Dark`, `Gruvbox`, `Solarized`, `GitHub`, `Monokai`, `Rosé Pine`, `Night Owl`, `SynthWave '84`, `Cobalt2`, `Tomorrow`) dengan mode `Auto / Terang / Gelap`, validasi kontras WCAG 2.1, serta impor/ekspor tema JSON kustom.
-- **i18n JSON Terkelola & Importer FileZilla / WinSCP**: Katalog JSON (`en.json` & `id.json`, `263` kunci sinkron) + direktori override lokal (`~/Library/Application Support/SparkleSFTP/Locales/`), inspektor cakupan terjemahan di Pengaturan, serta `ImportConnectionsSheet` untuk pratinjau selektif FileZilla XML (`<Folder>`, `base64`, penanda sandi terenkripsi) dan WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxy, subgrup bersarang).
+- **Manajemen Koneksi & Keluar Aplikasi Cepat**: Klik dua kali baris koneksi untuk langsung terhubung, modal Sunting Koneksi atomik (`ConnectionEditorMode`), **Duplikat Koneksi** dengan replikasi `SecretReference` Keychain terpisah, `⌘A` Pilih Semua & hapus massal dengan konfirmasi, serta mekanisme keluar non-deadlock instan via `applicationShouldTerminate` dan penutupan paralel SwiftNIO berbatas waktu.
+- **Arsitektur Runtime Ringan & Responsif**: `TransferMonitor` terpisah mengisolasi pembaruan progres 10Hz dari render ulang seluruh jendela SwiftUI, cache `AppStrings` & `SparkleThemePalette`, pembatasan penulisan checkpoint SQLite WAL 2 detik saat transfer aktif, serta pembacaan metadata POSIX single-`lstat` di `LocalFileService`.
+- **i18n JSON Terkelola & Importer FileZilla / WinSCP**: Katalog JSON (`en.json` & `id.json`, `271` kunci sinkron) + direktori override lokal (`~/Library/Application Support/SparkleSFTP/Locales/`), inspektor cakupan terjemahan di Pengaturan, serta `ImportConnectionsSheet` untuk pratinjau selektif FileZilla XML (`<Folder>`, `base64`, penanda sandi terenkripsi) dan WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxy, subgrup bersarang).
 - **Pengaturan Pembaruan Otomatis & Sinkronisasi Dua Arah**: Konfigurasi `AutoUpdateSettings` lengkap (periksa/unduh otomatis, frekuensi `Jam`/`Harian`/`Mingguan`/`Manual`, kanal `Stable`/`Beta`, validasi feed HTTPS, fallback pengecekan GitHub Releases API untuk build komunitas) dan dukungan penuh `SyncDirection` (`Local -> Remote`, `Remote -> Local`, `Bidirectional`).
 - **Dukungan Protokol Lengkap**: SFTP, Terminal SSH (PTY), FTPS Explicit/Implicit, FTP biasa (dengan peringatan keamanan eksplisit), serta fallback SCP terisolasi (`SCPCompatibilityAdapter`).
 - **Mesin Transfer Terisolasi Actor**: Konkurensi terbatas per-host dan global, jeda/lanjutkan berbasis checkpoint dengan revalidasi metadata remote, pemulihan crash `TransferJournal`, serta unggahan atomik (tulis sementara → verifikasi SHA-256 → ganti nama atomik).
@@ -152,7 +154,7 @@ SparkleSFTP/
 ├── Packages/
 │   ├── Clibcurl/              # Wrapper helper C non-variadik untuk libcurl sistem
 │   ├── Core/                  # Model domain, RemotePath, AppError, Protocols, FeatureFlags, UpdateModels
-│   ├── DesignSystem/          # 28 palet tema SparkNotePad (15 keluarga), komponen UI, katalog JSON i18n EN/ID (263 kunci)
+│   ├── DesignSystem/          # 28 palet tema SparkNotePad (15 keluarga), komponen UI, katalog JSON i18n EN/ID (271 kunci)
 │   ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
 │   ├── Networking/            # SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService, Proxy
 │   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), Importer FileZilla/WinSCP & SSH
@@ -161,7 +163,7 @@ SparkleSFTP/
 │   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, SessionManager, PortForwardingManager
 │   └── TransferEngine/        # TransferQueue actor, TransferScheduler, ResumeValidator, SHA256Verifier
 ├── Features/                  # View SwiftUI + AppKit (Commander, Connections, Editor Notepad2, Terminal, Transfers, Sync, Settings) & AppState
-├── Tests/                     # 8 target uji (57 test di 15 suite Swift Testing, termasuk loopback SSH/SFTP terenkripsi)
+├── Tests/                     # 8 target uji (60 test di 16 suite Swift Testing, termasuk loopback SSH/SFTP terenkripsi)
 ├── Tools/
 │   ├── Release/               # Skrip Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
 │   └── TestServers/           # Fixture Docker Compose (OpenSSH, vsftpd, ProFTPD) & skrip smoke test
@@ -182,7 +184,7 @@ SparkleSFTP/
 | **Fase 05** | Antarmuka Commander | `NSTableView` dual-pane, pintasan F5–F8, Quick Look, seret-lepas Finder *(Selesai)* |
 | **Fase 06** | Mesin Transfer | `TransferQueue` actor, limit per-host, `SQLite3` `TransferJournal`, unggah atomik SHA-256 *(Selesai)* |
 | **Fase 07** | Terminal & Sinkronisasi | PTY multi-tab/split `SwiftTerm`, port forwarding `-L`/`-R`, dry-run sync, EN/ID *(Selesai)* |
-| **Fase 08** | QA & Rilis | 57 test di 15 suite (118 berkas Swift), Pengaturan Pembaruan Otomatis + Multi-Tema + Editor Notepad2 + Sync Dua Arah, DMG Universal 2 (`release.yml`), CI/lint hijau; notarization produksi menunggu Developer ID *(Berjalan)* |
+| **Fase 08** | QA & Rilis | 60 test di 16 suite (122 berkas Swift), UX Koneksi + Exit Cepat + Optimasi Performa, Pengaturan Pembaruan Otomatis + Multi-Tema + Editor Notepad2 + Sync Dua Arah, DMG Universal 2 (`release.yml`), CI/lint hijau; notarization produksi menunggu Developer ID *(Berjalan)* |
 
 ---
 

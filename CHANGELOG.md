@@ -15,8 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `SparkleThemePalette`, `ThemeAppearanceMode` (`auto`/`light`/`dark`), WCAG 2.1 relative luminance & contrast ratio calculation, `SparkleThemeCatalog` + `ThemeCatalogExtended` (`28` curated developer palettes across `15` families), and `SparkleThemeStore` for runtime custom JSON theme loading, import, and export.
   - Added `PreferencesThemeTab` with live theme preview cards, family filter, appearance selector, WCAG contrast badge, and custom Themes JSON folder controls.
 - **Maintainable JSON i18n System (`Packages/DesignSystem/Resources/Locales/`)**:
-  - Replaced static localization tables with bundled `en.json` & `id.json` (`263` synchronized keys), `LocalizationCatalog` runtime override support (`~/Library/Application Support/SparkleSFTP/Locales/`), and `PreferencesLocalizationTab` showing translation coverage, missing keys, and JSON import/export tools.
+  - Replaced static localization tables with bundled `en.json` & `id.json` (`271` synchronized keys), `LocalizationCatalog` runtime override support (`~/Library/Application Support/SparkleSFTP/Locales/`), and `PreferencesLocalizationTab` showing translation coverage, missing keys, and JSON import/export tools.
   - Localized remaining Commander, Connections, Sync, Terminal, Transfer Queue, and Settings views/context menus via `AppStrings.t(_:fallback:)`.
+- **Connection List Ergonomics: Double-Click Connect, Clone Connection & Multi-Select Delete (`Features/Connections/`, `AppState+ConnectionManagement`)**:
+  - Added double-click-to-connect gesture on every Connection List row with concurrent per-profile connect guard (`connectingProfileIDs`).
+  - Added **Clone Connection** (`AppState.cloneProfile(_:)`) duplicating all connection metadata cleanly and re-issuing independent `SecretReference` Keychain entries so deleting or modifying a clone never affects the original profile's credentials.
+  - Upgraded Connection List selection to `Set<UUID>` (`selectedProfileIDs`), enabling native macOS `⌘A` Select All, **Select All** action menu control, `.onDeleteCommand`, batch **Delete Selected** confirmation dialog, and atomic multi-profile removal via `ConnectionStore.deleteProfiles(ids:)`.
 - **Minimalist Notepad2 Internal File Editor (`Features/Editor/`)**:
   - Added multi-tab AppKit `NSTextView` + `NSRulerView` editor (`NotepadTextView`, `NotepadLineNumberRuler`, `EditorSyntaxHighlighter`, `InternalEditorToolbar`, `InternalEditorBars`, `InternalEditorView`, `EditorWindowController`) accessible via `⌘E`, toolbar, double-click policy, and Commander context menu on both local and remote files.
   - Features theme-linked regex syntax highlighting (`Swift`, `JSON`, `YAML`, `XML/HTML`, `Shell`, `Markdown`, `INI/Conf`, `SQL`, `Log`), whitespace/tab symbol overlay (`¶`), word wrap, zoom `+/-/%`, read-only lock, Find & Replace (`Aa` / `.*`), Go-to-Line, text case/trim/sort transforms, `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` & `LF`/`CRLF` converters, live cursor/selection/byte status bar, and automatic remote upload on save.
@@ -29,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Fast Non-Deadlocking Quit & Runtime Performance Tuning (`AppDelegate`, `SSHClientService`, `TransferMonitor`, `LocalFileService`, `FilePaneTableView`)**:
+  - Fixed a guaranteed ~2-second `@MainActor` `DispatchSemaphore` quit deadlock in `AppDelegate.applicationWillTerminate` by adopting `applicationShouldTerminate` (instant `.terminateNow` when idle, bounded `<= 350ms` `.terminateLater` otherwise), synchronous `prepareFastShutdown()`, parallel session/tunnel teardown (`shutdownAsyncResources()`), and bounded channel/EventLoopGroup closure (`SSHClientService.closeChannelAndShutdownGroup`) preserving strict child-to-bastion `ProxyJump` teardown order.
+  - Fixed `ConnectionEditorView` Edit modal sometimes opening like "New Connection" by replacing dual `@State` sheet flags with an atomic `ConnectionEditorMode` `.sheet(item:)` + `.id(mode.id)` and initializing all `@State` fields directly in `ConnectionEditorView.init` & `ConnectionAdvancedOptions(profile:)`.
+  - Decoupled 10Hz transfer progress ticks from whole-window `AppState` invalidation via dedicated `TransferMonitor` (`TransferQueueView`), cached `AppState.strings` and `activePalette` (with OS `colorScheme` sync), throttled periodic SQLite `TransferJournal` writes during `.transferring` ticks to `>= 2.0s` (ignoring throughput-only fluctuations via `statusCode`), switched `LocalFileService.listDirectory` to single-`lstat` POSIX calls, cached static SF Symbol `NSImage`s in `FilePaneTableView`, and replaced N×M group scans with O(N) `Dictionary(grouping:)`.
 - **Long-Term Post-Release Review & Bundle Crash Fix (`docs/LONG_TERM_REVIEW_2026_11.md`, `ADR-006`)**:
   - Completed comprehensive 14-pillar / 14-skill post-completion review covering Swift 6 concurrency, SwiftUI/NSTableView performance, SFTP/SCP/FTP/FTPS security, SwiftTerm lifecycle, TransferJournal durability, Docker test gaps, and Sparkle/Developer ID release infrastructure.
   - Eliminated a critical `.app` packaging launch-crash hazard where `LocalizationCatalog.loadBundledStrings` and `AppDelegate.configureApplicationIcon` invoked SwiftPM's `Bundle.module` accessor directly while `Tools/Release/build-universal.sh` omitted `SparkleSFTP_*.bundle` artifacts from `Contents/Resources/` (added crash-safe `resolveResourceBundle()` lookup + `Contents/Resources/` bundle copying).
@@ -39,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Verification & Deferred Infrastructure
 
-- Verified `57 tests in 15 suites` passing via `swift test -j 2` (adding `ThemeAndLocalizationTests`, `ExternalImportersTests`, `BidirectionalSyncTests`, `EditorAndSyncTests`, and `UpdateConfigurationValidator` tests), `0` violations across `118` Swift files on `swiftlint lint --strict` & `swiftformat --lint .`.
+- Verified `60 tests in 16 suites` passing via `swift test -j 2` (including `ConnectionManagementAndPerfTests`, `ThemeAndLocalizationTests`, `ExternalImportersTests`, `BidirectionalSyncTests`, `EditorAndSyncTests`, and `UpdateConfigurationValidator` tests), `0` violations across `122` Swift files on `swiftlint lint --strict` & `swiftformat --lint .`.
 - External release/runtime tasks remain deferred to dedicated environments: Live Docker multi-server interop test execution (`Tools/TestServers/run-integration-tests.sh`) and Universal 2 (`arm64` + `x86_64`) Apple Developer ID notarization + signed Sparkle Ed25519 appcast publishing (`Tools/Release/notarize.sh`).
 
 ---

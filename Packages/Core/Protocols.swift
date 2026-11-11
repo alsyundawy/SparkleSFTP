@@ -76,6 +76,11 @@ public protocol CredentialStoreProtocol: Sendable {
     func loadSecret(for reference: SecretReference, prompt: String?) async throws -> Data
     func deleteSecret(for reference: SecretReference) async throws
     func hasSecret(for reference: SecretReference) async -> Bool
+    func evaluateBiometricPolicy(reason: String) async throws
+}
+
+public extension CredentialStoreProtocol {
+    func evaluateBiometricPolicy(reason _: String) async throws {}
 }
 
 /// Host key Trust-On-First-Use (TOFU) verification contract.
@@ -91,9 +96,18 @@ public protocol ConnectionStoreProtocol: Sendable {
     func loadProfiles() async throws -> [ConnectionProfile]
     func saveProfile(_ profile: ConnectionProfile) async throws
     func deleteProfile(id: UUID) async throws
+    func deleteProfiles(ids: Set<UUID>) async throws
     func loadGroups() async throws -> [ServerGroup]
     func saveGroup(_ group: ServerGroup) async throws
     func deleteGroup(id: UUID) async throws
+}
+
+public extension ConnectionStoreProtocol {
+    func deleteProfiles(ids: Set<UUID>) async throws {
+        for id in ids {
+            try await deleteProfile(id: id)
+        }
+    }
 }
 
 public struct TransferJournalRecord: Sendable, Equatable, Identifiable {

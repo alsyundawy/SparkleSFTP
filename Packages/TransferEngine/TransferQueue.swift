@@ -18,6 +18,7 @@ public actor TransferQueue {
     let fileSystemResolver: FileSystemResolver
 
     var snapshots: [UUID: TransferSnapshot] = [:]
+    var lastJournalPersistAt: [UUID: Date] = [:]
     var activeTasks: [UUID: Task<Void, Never>] = [:]
     var cancelledIDs: Set<UUID> = []
     var streamContinuations: [UUID: AsyncStream<[TransferSnapshot]>.Continuation] = [:]
