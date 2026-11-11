@@ -1,0 +1,139 @@
+name: Release Universal DMG
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading v (defaults to Info.plist CFBundleShortVersionString)"
+        required: false
+        type: string
+        default: ""
+      publish_release:
+        description: "Create or update GitHub Release for tag v<version>"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build & Package Universal macOS DMG
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      SPARKLE_BUILD_JOBS: "4"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Select Xcode toolchain and inspect version
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          swift --version
+          xcodebuild -version
+
+      - name: Run unit & loopback integration test suite
+        run: swift test -j 2
+
+      - name: Resolve release metadata
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            RAW_VERSION="${GITHUB_REF_NAME#v}"
+            TAG_NAME="${GITHUB_REF_NAME}"
+          elif [[ -n "${INPUT_VERSION}" ]]; then
+            RAW_VERSION="${INPUT_VERSION#v}"
+            TAG_NAME="v${RAW_VERSION}"
+          else
+            RAW_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Resources/Info.plist)"
+            TAG_NAME="v${RAW_VERSION}"
+          fi
+          if [[ ! "${RAW_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][A-Za-z0-9.]+)?$ ]]; then
+            echo "Invalid semantic version: ${RAW_VERSION}" >&2
+            exit 1
+          fi
+          {
+            echo "version=${RAW_VERSION}"
+            echo "tag=${TAG_NAME}"
+            echo "dmg_path=dist/SparkleSFTP-${RAW_VERSION}-universal.dmg"
+            echo "sha_path=dist/SparkleSFTP-${RAW_VERSION}-universal.dmg.sha256"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Build Universal 2 app bundle
+        run: bash ./Tools/Release/build-universal.sh
+
+      - name: Package Universal 2 DMG and SHA-256 checksum
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          bash ./Tools/Release/create-dmg.sh dist/SparkleSFTP.app "${RELEASE_VERSION}"
+          lipo -archs dist/SparkleSFTP.app/Contents/MacOS/SparkleSFTP
+          codesign --verify --deep --strict dist/SparkleSFTP.app
+
+      - name: Prepare release notes
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          SHA_PATH: ${{ steps.meta.outputs.sha_path }}
+        run: |
+          set -euo pipefail
+          SHA_VALUE="$(cat "${SHA_PATH}")"
+          {
+            echo "## SparkleSFTP ${RELEASE_TAG} (macOS Universal 2)"
+            echo ""
+            echo "Native macOS dual-pane SFTP / SCP / FTP / FTPS client with integrated SwiftTerm terminal, built for Apple Silicon (\`arm64\`) and Intel (\`x86_64\`)."
+            echo ""
+            echo "### Verification"
+            echo ""
+            echo "\`\`\`text"
+            echo "${SHA_VALUE}"
+            echo "\`\`\`"
+            echo ""
+            echo "> Note: Community CI builds are ad-hoc signed without a Developer ID certificate. After mounting the DMG and dragging \`SparkleSFTP.app\` to \`/Applications\`, clear quarantine if prompted by Gatekeeper: \`xattr -dr com.apple.quarantine /Applications/SparkleSFTP.app\`."
+          } > dist/release-notes.md
+
+      - name: Upload Universal DMG workflow artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: SparkleSFTP-${{ steps.meta.outputs.version }}-universal-dmg
+          path: |
+            dist/*.dmg
+            dist/*.sha256
+            dist/release-notes.md
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag' || inputs.publish_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          DMG_PATH: ${{ steps.meta.outputs.dmg_path }}
+          SHA_PATH: ${{ steps.meta.outputs.sha_path }}
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "${DMG_PATH}" "${SHA_PATH}" --clobber
+            gh release edit "${RELEASE_TAG}" --title "SparkleSFTP ${RELEASE_TAG}" --notes-file dist/release-notes.md
+          else
+            gh release create "${RELEASE_TAG}" "${DMG_PATH}" "${SHA_PATH}" \
+              --title "SparkleSFTP ${RELEASE_TAG}" \
+              --notes-file dist/release-notes.md \
+              --target "${GITHUB_SHA}"
+          fi

@@ -2,9 +2,11 @@
 # See docs/CODE_REVIEW_14_PILLARS.md (LINT-003).
 
 --swiftversion 6.0
+--exclude .build,.swiftpm,DerivedData,build,dist,.trunk
 --indent 4
 --maxwidth 120
 --wraparguments before-first
 --wrapparameters before-first
---disable redundantBackticks,redundantReturn
+--trailing-commas never
+--disable redundantBackticks,redundantReturn,wrapMultilineStatementBraces
 --enable blankLineAfterImports,sortedImports

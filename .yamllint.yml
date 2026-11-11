@@ -1,6 +1,15 @@
 ---
 extends: default
 
+ignore: |
+  .build/
+  .swiftpm/
+  DerivedData/
+  build/
+  dist/
+  .trunk/
+  megalinter-reports/
+
 rules:
   line-length: disable
   truthy: disable
