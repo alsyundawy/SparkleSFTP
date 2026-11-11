@@ -228,14 +228,14 @@ public extension FilePaneTableView {
                 guard let targetLocal = notification.userInfo?["isLocal"] as? Bool else { return }
                 let targetWindow = notification.object as? NSWindow
                 Task { @MainActor [weak self] in
-                    guard let self,
-                          let tableView,
+                    guard let coordinator = self,
+                          let tableView = coordinator.tableView,
                           let window = tableView.window,
                           targetWindow == nil || window === targetWindow,
-                          targetLocal == parent.isLocalPane
+                          targetLocal == coordinator.parent.isLocalPane
                     else { return }
                     window.makeFirstResponder(tableView)
-                    parent.onFocusPane()
+                    coordinator.parent.onFocusPane()
                 }
             }
         }
