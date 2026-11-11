@@ -45,6 +45,23 @@ public extension AppState {
         selectedProfileIDs = Set(filteredProfiles.map(\.id))
     }
 
+    func openAboutWindow() {
+        aboutWindowController.present(appState: self)
+    }
+
+    func hasSavedSecret(for profile: ConnectionProfile?) async -> Bool {
+        guard let profile else { return false }
+        let targetRef = profile.authMethod == .publicKey ? profile.privateKeyRef : profile.passwordRef
+        guard let targetRef else { return false }
+        return await credentialStore.hasSecret(for: targetRef)
+    }
+
+    func deleteProfileSecrets(_ profile: ConnectionProfile) async {
+        for ref in [profile.passwordRef, profile.privateKeyRef, profile.passphraseRef].compactMap(\.self) {
+            try? await credentialStore.deleteSecret(for: ref)
+        }
+    }
+
     func deleteProfile(_ profile: ConnectionProfile) async {
         await deleteProfiles(ids: [profile.id])
     }
@@ -147,12 +164,6 @@ public extension AppState {
             return targetRef
         } catch {
             return nil
-        }
-    }
-
-    private func deleteProfileSecrets(_ profile: ConnectionProfile) async {
-        for ref in [profile.passwordRef, profile.privateKeyRef, profile.passphraseRef].compactMap(\.self) {
-            try? await credentialStore.deleteSecret(for: ref)
         }
     }
 

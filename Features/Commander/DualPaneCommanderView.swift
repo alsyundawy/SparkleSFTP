@@ -56,6 +56,7 @@ public struct DualPaneCommanderView: View {
             PermissionsEditorSheet(file: file, strings: appState.strings) { mode in
                 Task { await appState.setRemotePermissions(mode, for: file) }
             }
+            .environment(\.sparklePalette, appState.activePalette)
         }
         .sheet(
             isPresented: Binding(
@@ -71,10 +72,12 @@ public struct DualPaneCommanderView: View {
                 RenameItemSheet(item: ctx.item, strings: appState.strings) { updatedName in
                     Task { await appState.renameItem(ctx.item, to: updatedName, isLocal: ctx.isLocal) }
                 }
+                .environment(\.sparklePalette, appState.activePalette)
             }
         }
         .sheet(item: $inspectorContext) { ctx in
             FileInspectorSheet(item: ctx.item, isLocal: ctx.isLocal, strings: appState.strings)
+                .environment(\.sparklePalette, appState.activePalette)
         }
     }
 
@@ -96,10 +99,12 @@ public struct DualPaneCommanderView: View {
         }
         .padding()
         .frame(width: 340)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 
     private var localPane: some View {
-        VStack(spacing: 0) {
+        let palette = appState.activePalette
+        return VStack(spacing: 0) {
             HStack(spacing: SparkleTheme.Spacing.tiny) {
                 Button {
                     appState.activePane = .left
@@ -145,13 +150,14 @@ public struct DualPaneCommanderView: View {
                 .help(appState.strings.t("nav.quickLook"))
             }
             .padding(SparkleTheme.Spacing.tiny)
-            .background(SparkleTheme.Colors.panelBackground)
+            .background(palette.windowColor)
 
             FilePaneTableView(
                 files: Array(appState.localFiles.visibleFiles),
                 selectedIDs: $appState.selectedLocalFileIDs,
                 isLocalPane: true,
                 strings: appState.strings,
+                palette: palette,
                 onActivateRow: { item in
                     if item.isDirectory {
                         Task { await appState.refreshLocalDirectory(URL(fileURLWithPath: item.path.rawValue)) }
@@ -160,6 +166,15 @@ public struct DualPaneCommanderView: View {
                     } else {
                         quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
                     }
+                },
+                onQuickLookRow: { item in
+                    if !item.isDirectory {
+                        quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
+                    }
+                },
+                onGoParent: {
+                    let parent = appState.localCurrentURL.deletingLastPathComponent()
+                    Task { await appState.refreshLocalDirectory(parent) }
                 },
                 onSortColumn: { field in
                     Task { await appState.sortLocalFiles(by: field) }
@@ -175,10 +190,12 @@ public struct DualPaneCommanderView: View {
             }
             commanderActionBar(isLocal: true)
         }
+        .background(palette.canvasColor)
     }
 
     private var remotePane: some View {
-        VStack(spacing: 0) {
+        let palette = appState.activePalette
+        return VStack(spacing: 0) {
             if let session = appState.currentSession {
                 if !session.profile.protocolType.isEncryptedByDefault {
                     SecurityWarningBanner(message: appState.strings.plaintextFTPWarning)
@@ -198,6 +215,7 @@ public struct DualPaneCommanderView: View {
                     ),
                     isLocalPane: false,
                     strings: appState.strings,
+                    palette: palette,
                     onActivateRow: { item in
                         if item.isDirectory {
                             Task { await appState.refreshRemoteDirectory(at: item.path) }
@@ -206,6 +224,18 @@ public struct DualPaneCommanderView: View {
                         } else {
                             Task { await appState.openRemoteFileInEditor(item) }
                         }
+                    },
+                    onQuickLookRow: { item in
+                        if !item.isDirectory {
+                            Task {
+                                if let url = await appState.quickLookRemoteFile(item) {
+                                    quickLookCoordinator.preview(url: url)
+                                }
+                            }
+                        }
+                    },
+                    onGoParent: {
+                        Task { await appState.refreshRemoteDirectory(at: session.currentRemotePath.parent) }
                     },
                     onSortColumn: { field in
                         Task { await appState.sortRemoteFiles(by: field) }
@@ -227,13 +257,15 @@ public struct DualPaneCommanderView: View {
                 VStack(spacing: SparkleTheme.Spacing.small) {
                     Image(systemName: "server.rack")
                         .font(.system(size: 34))
-                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                        .foregroundStyle(palette.secondaryTextColor)
                     Text(appState.strings.t("nav.selectConnectionPrompt"))
                         .font(SparkleTheme.Typography.body)
-                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                        .foregroundStyle(palette.secondaryTextColor)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(palette.canvasColor)
             }
         }
+        .background(palette.canvasColor)
     }
 }

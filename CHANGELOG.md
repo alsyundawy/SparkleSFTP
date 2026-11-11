@@ -11,12 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Multi-Theme Engine Inspired by `SparkNotePad` (`SparkleDesignSystem` & `Features/Settings`)**:
+- **Multi-Theme Engine Inspired by `SparkNotePad` & Full Workspace Propagation (`SparkleDesignSystem`, `Packages/Terminal`, `Features/*`)**:
   - Added `SparkleThemePalette`, `ThemeAppearanceMode` (`auto`/`light`/`dark`), WCAG 2.1 relative luminance & contrast ratio calculation, `SparkleThemeCatalog` + `ThemeCatalogExtended` (`28` curated developer palettes across `15` families), and `SparkleThemeStore` for runtime custom JSON theme loading, import, and export.
   - Added `PreferencesThemeTab` with live theme preview cards, family filter, appearance selector, WCAG contrast badge, and custom Themes JSON folder controls.
+  - Propagated live `SparkleThemePalette` surfaces (`surfaceColor`, `selectionColor`, `View.sparkleWorkspaceSurface(_:useCanvas:)`, `NSApp.windows` appearance/background sync, AppKit `ConnectionListTableView` & `InteractiveFileTableView` cell/header/selection styling, and `TerminalThemeColors` in `TerminalViewRepresentable` / `TerminalWorkspaceView`) across all Commander panes, Transfers, Snippets, Port Forwarding, Preferences tabs, Sync, Connection sheets, and Editor windows.
 - **Maintainable JSON i18n System (`Packages/DesignSystem/Resources/Locales/`)**:
-  - Replaced static localization tables with bundled `en.json` & `id.json` (`271` synchronized keys), `LocalizationCatalog` runtime override support (`~/Library/Application Support/SparkleSFTP/Locales/`), and `PreferencesLocalizationTab` showing translation coverage, missing keys, and JSON import/export tools.
-  - Localized remaining Commander, Connections, Sync, Terminal, Transfer Queue, and Settings views/context menus via `AppStrings.t(_:fallback:)`.
+  - Replaced static localization tables with bundled `en.json` & `id.json` (`285` synchronized keys), `LocalizationCatalog` runtime override support (`~/Library/Application Support/SparkleSFTP/Locales/`), and `PreferencesLocalizationTab` showing translation coverage, missing keys, and JSON import/export tools.
+  - Localized remaining Commander, Connections, About, Sync, Terminal, Transfer Queue, and Settings views/context menus via `AppStrings.t(_:fallback:)`.
+- **SparkNotePad-Style About Window & 1:1 Branded Logo (`Features/Dashboard/AboutView*`, `App/Resources/AppIcon.*`, `SparkleSFTPApp`)**:
+  - Added `AboutWindowController`, `AboutView`, and `AboutView+Tabs` featuring 6 structured tabs (`About`, `Maintainer`, `Credits`, `Diagnostics`, `Shortcuts`, `License`), copyable runtime diagnostics, GitHub/PayPal links, live theme styling, and macOS menu bar (`CommandGroup(replacing: .appInfo)`) + toolbar Info button integration.
+  - Updated `App/Resources/AppIcon.png` (`1024x1024` 1:1 squircle mask) and `App/Resources/AppIcon.icns` preserving the SparkleSFTP cloud/folder/arrows/bolt motif styled in SparkNotePad's blue, white, and pastel yellow pencil palette.
+- **Keychain Password Persistence & Runtime `FTPService` Prompt (`AppState`, `ConnectionEditorView`, `CredentialPromptSheet`, `FTPService`)**:
+  - Added explicit Keychain secret status indicator (`hasSavedSecret(for:)`), **Remember password in Apple Keychain** toggle, and explicit secret clearing (`clearStoredSecrets`, `deleteProfileSecrets(_:)`) in `ConnectionEditorView` and `CredentialPromptSheet`, wired through `resolveCredentialPrompt(_:remember:)` and `finalizeSuccessfulConnection` plus runtime `credentialPrompt` support in `FTPService`.
 - **Connection List Ergonomics: Double-Click Connect, Clone Connection & Multi-Select Delete (`Features/Connections/`, `AppState+ConnectionManagement`)**:
   - Added double-click-to-connect gesture on every Connection List row with concurrent per-profile connect guard (`connectingProfileIDs`).
   - Added **Clone Connection** (`AppState.cloneProfile(_:)`) duplicating all connection metadata cleanly and re-issuing independent `SecretReference` Keychain entries so deleting or modifying a clone never affects the original profile's credentials.
@@ -41,13 +47,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Completed comprehensive 14-pillar / 14-skill post-completion review covering Swift 6 concurrency, SwiftUI/NSTableView performance, SFTP/SCP/FTP/FTPS security, SwiftTerm lifecycle, TransferJournal durability, Docker test gaps, and Sparkle/Developer ID release infrastructure.
   - Eliminated a critical `.app` packaging launch-crash hazard where `LocalizationCatalog.loadBundledStrings` and `AppDelegate.configureApplicationIcon` invoked SwiftPM's `Bundle.module` accessor directly while `Tools/Release/build-universal.sh` omitted `SparkleSFTP_*.bundle` artifacts from `Contents/Resources/` (added crash-safe `resolveResourceBundle()` lookup + `Contents/Resources/` bundle copying).
   - Updated [ADR-001](docs/ADR/0001-tech-stack-and-protocols.md) and [ADR-003](docs/ADR/0003-metadata-persistence-swiftdata-vs-json.md) supersession headers and added [ADR-006](docs/ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md).
+- **Connection List & Commander Mouse/Keyboard Focus (`ConnectionTableView`, `FilePaneTableView`) & C/Clang IDE Config (`.clangd`, `.clang-format`)**:
+  - Replaced SwiftUI `List(selection:)` + dual-tap gesture conflicts (`ConnectionViews.swift`) with native AppKit `ConnectionListTableView` (`NSTableView`) using unique section/profile row keys (`ConnectionManagerView.buildTableRows`), instant click selection, native `doubleAction`, arrow-key / `Return` / `Backspace` / `NSMenu` interaction, plus `InteractiveFileTableView` immediate responder focus on `mouseDown`, `Return` activate, `Space` Quick Look, and `Backspace`/`⌘↑` parent navigation.
+  - Updated `.clang-format` (`SortIncludes: true`) and added `.clangd`, `Packages/Clibcurl/compile_flags.txt`, and `.vscode/c_cpp_properties.json` C11 configuration to eliminate `ClibcurlHelpers.c` and YAML header include diagnostics.
 - Fixed `FileZillaImporter` nested `<Folder>` parsing where child `<Folder>` or `<Server>` elements cleared buffered parent folder names prior to commit (`flushPendingFolderName()`).
 - Fixed `WinSCPIniImporter` BOM (`\u{FEFF}`) handling on line 1, `\`-first path splitting prior to percent-decoding, macOS `.fileImporter` `.ini` `UTType` selection filter, and `Optional<ImportedSecretStatus>.none` compiler warning.
 - Fixed Solarized Light `primaryTextHex` contrast to satisfy strict WCAG AA (`>= 4.5:1`) readability across all `28` built-in themes.
 
 ### Verification & Deferred Infrastructure
 
-- Verified `60 tests in 16 suites` passing via `swift test -j 2` (including `ConnectionManagementAndPerfTests`, `ThemeAndLocalizationTests`, `ExternalImportersTests`, `BidirectionalSyncTests`, `EditorAndSyncTests`, and `UpdateConfigurationValidator` tests), `0` violations across `122` Swift files on `swiftlint lint --strict` & `swiftformat --lint .`.
+- Verified `64 tests in 17 suites` passing via `swift test -j 2` (including `AboutAndThemePasswordTests`, `ConnectionManagementAndPerfTests`, `ThemeAndLocalizationTests`, `ExternalImportersTests`, `BidirectionalSyncTests`, `EditorAndSyncTests`, and `UpdateConfigurationValidator` tests), `0` violations across `129` Swift files on `swiftlint lint --strict` & `swiftformat --lint .`.
 - External release/runtime tasks remain deferred to dedicated environments: Live Docker multi-server interop test execution (`Tools/TestServers/run-integration-tests.sh`) and Universal 2 (`arm64` + `x86_64`) Apple Developer ID notarization + signed Sparkle Ed25519 appcast publishing (`Tools/Release/notarize.sh`).
 
 ---

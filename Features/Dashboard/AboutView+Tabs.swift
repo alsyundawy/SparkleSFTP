@@ -1,0 +1,256 @@
+import AppKit
+import SparkleDesignSystem
+import SwiftUI
+
+extension AboutView {
+    var aboutOverviewSection: some View {
+        let palette = appState.activePalette
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
+            HStack(alignment: .top, spacing: 14) {
+                appLogoImage
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 72, height: 72)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 8) {
+                        Text("SparkleSFTP v\(appState.installedAppVersion)")
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundStyle(palette.primaryTextColor)
+                        pillBadge("STABLE", background: palette.accentColor, foreground: .white)
+                        pillBadge(
+                            "macOS 13+ Universal 2",
+                            background: palette.windowColor,
+                            foreground: palette.primaryTextColor
+                        )
+                    }
+                    Text(appState.strings.t("about.tagline"))
+                        .font(SparkleTheme.Typography.headline)
+                        .foregroundStyle(palette.primaryTextColor)
+                    Text("Swift 6 • SwiftUI + AppKit NSTableView • Direct NIOSSH & libcurl FTPS")
+                        .font(SparkleTheme.Typography.caption)
+                        .foregroundStyle(palette.secondaryTextColor)
+                }
+            }
+
+            HStack(spacing: 6) {
+                featureBadge("\(appState.availableThemes.count) Themes", palette: palette)
+                featureBadge("Dual-Pane NSTableView", palette: palette)
+                featureBadge("Notepad2 Editor (⌘E)", palette: palette)
+                featureBadge("SwiftTerm PTY", palette: palette)
+                featureBadge("Keychain + TOFU", palette: palette)
+            }
+
+            accentCard(palette: palette) {
+                LabeledContent("GitHub") {
+                    linkText(
+                        "github.com/alsyundawy/SparkleSFTP",
+                        urlString: "https://github.com/alsyundawy/SparkleSFTP"
+                    )
+                }
+                LabeledContent("Maintainer") {
+                    Text("Harry Dertin Sutisna Alsyundawy (@alsyundawy) — ALSYUNDAWY IT SOLUTION")
+                }
+                LabeledContent("Engine & License") {
+                    Text("MIT License • swift-nio-ssh 0.15.1 • SwiftTerm 1.20.0 • SQLite3 WAL")
+                }
+            }
+
+            accentCard(palette: palette) {
+                Text("Independent Open-Source Project")
+                    .font(SparkleTheme.Typography.headline)
+                Text(
+                    "SparkleSFTP is built cleanly in Swift 6 with native macOS Security.framework, Keychain, "
+                        + "Touch ID, and SecTrust isolation — inspired by SparkNotePad and WinSCP workflows."
+                )
+                .font(SparkleTheme.Typography.caption)
+                .foregroundStyle(palette.secondaryTextColor)
+            }
+        }
+    }
+
+    var maintainerSection: some View {
+        let palette = appState.activePalette
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
+            Text("Maintainer & Official Channels")
+                .font(SparkleTheme.Typography.title)
+            accentCard(palette: palette) {
+                LabeledContent("Lead Architect", value: "HARRY DERTIN SUTISNA ALSYUNDAWY (@alsyundawy)")
+                LabeledContent("Organization", value: "ALSYUNDAWY IT SOLUTION")
+                LabeledContent("Website") {
+                    linkText("https://alsyundawy.com", urlString: "https://alsyundawy.com")
+                }
+                LabeledContent("Email") {
+                    linkText("alsyundawy@gmail.com", urlString: "mailto:alsyundawy@gmail.com")
+                }
+                LabeledContent("PayPal Support") {
+                    linkText("https://www.paypal.me/alsyundawy", urlString: "https://www.paypal.me/alsyundawy")
+                }
+            }
+        }
+    }
+
+    var creditsSection: some View {
+        let palette = appState.activePalette
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
+            Text("Open-Source Technologies & Design Credits")
+                .font(SparkleTheme.Typography.title)
+            accentCard(palette: palette) {
+                creditRow(
+                    "apple/swift-nio & swift-nio-ssh (0.15.1)",
+                    detail: "SSH transport, PTY & DirectTCPIP forwarding"
+                )
+                creditRow("apple/swift-crypto", detail: "Streaming SHA-256 verification & Ed25519 keys")
+                creditRow("migueldeicaza/SwiftTerm", detail: "Native xterm/VT100 terminal emulation")
+                creditRow("sparkle-project/Sparkle", detail: "Signed macOS application updates")
+                creditRow("Apple macOS SDK Frameworks", detail: "libcurl, SQLite3 WAL, Security, LocalAuthentication")
+                creditRow(
+                    "SparkNotePad & Notepad2 Inspiration",
+                    detail: "Developer color palettes, toolbar & editor ergonomics"
+                )
+            }
+        }
+    }
+
+    var diagnosticsSection: some View {
+        let palette = appState.activePalette
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
+            Text("Runtime, Theme & Security Diagnostics")
+                .font(SparkleTheme.Typography.title)
+            accentCard(palette: palette) {
+                Text(buildDiagnosticsText())
+                    .font(SparkleTheme.Typography.monoSmall)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    var shortcutsSection: some View {
+        let palette = appState.activePalette
+        let rows: [(String, String)] = [
+            ("Double-Click / Return", "Connect profile / Open directory / Edit file"),
+            ("↑ / ↓ Arrows", "Navigate connection list & file panes smoothly"),
+            ("Backspace / ⌘↑", "Open parent directory (File Pane)"),
+            ("Space", "Quick Look preview (File Pane)"),
+            ("Tab", "Switch active Dual-Pane side"),
+            ("⌘E / ⌘K", "Open Notepad2 Editor / Open SSH Terminal tab"),
+            ("⌘⇧S / ⌘R", "Directory Synchronize / Refresh directory"),
+            ("⌘A / Delete (⌫)", "Select All / Delete selected connections")
+        ]
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
+            Text("Key Productivity Shortcuts")
+                .font(SparkleTheme.Typography.title)
+            accentCard(palette: palette) {
+                ForEach(rows, id: \.0) { shortcut, desc in
+                    HStack {
+                        Text(shortcut)
+                            .font(SparkleTheme.Typography.monoSmall)
+                            .foregroundStyle(palette.accentColor)
+                            .frame(width: 190, alignment: .leading)
+                        Text(desc)
+                            .font(SparkleTheme.Typography.caption)
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    var licenseSection: some View {
+        let palette = appState.activePalette
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
+            Text("MIT License")
+                .font(SparkleTheme.Typography.title)
+            accentCard(palette: palette) {
+                Text(
+                    """
+                    MIT License — Copyright (c) 2026 Harry Dertin Sutisna Alsyundawy (ALSYUNDAWY IT SOLUTION)
+
+                    Permission is hereby granted, free of charge, to any person obtaining a copy of this \
+                    software and associated documentation files (the "Software"), to deal in the Software \
+                    without restriction, including without limitation the rights to use, copy, modify, merge, \
+                    publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons \
+                    to whom the Software is furnished to do so.
+                    """
+                )
+                .font(SparkleTheme.Typography.caption)
+                .textSelection(.enabled)
+            }
+        }
+    }
+
+    private var appLogoImage: Image {
+        if let appIcon = NSApplication.shared.applicationIconImage {
+            return Image(nsImage: appIcon)
+        }
+        return Image(systemName: SparkleTheme.Symbols.sftp)
+    }
+
+    @ViewBuilder
+    private func linkText(_ title: String, urlString: String) -> some View {
+        if let url = URL(string: urlString) {
+            Link(title, destination: url)
+        } else {
+            Text(title)
+        }
+    }
+
+    private func featureBadge(_ text: String, palette: SparkleThemePalette) -> some View {
+        Text(text)
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(palette.windowColor)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(palette.borderColor, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func pillBadge(_ text: String, background: Color, foreground: Color) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private func creditRow(_ title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(SparkleTheme.Typography.headline)
+            Text(detail)
+                .font(SparkleTheme.Typography.caption)
+                .foregroundStyle(appState.activePalette.secondaryTextColor)
+        }
+    }
+
+    private func accentCard(
+        palette: SparkleThemePalette,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            content()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(palette.windowColor)
+        .overlay(alignment: .leading) {
+            Rectangle().fill(palette.accentColor).frame(width: 4)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.borderColor, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    func buildDiagnosticsText() -> String {
+        let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        return """
+        App: SparkleSFTP v\(appState.installedAppVersion)
+        OS: \(osVersion)
+        Active Theme: \(appState.activePalette.displayName) (\(appState.activePalette.family))
+        Locale: \(appState.activeLocaleCode.uppercased()) (\(appState.availableLocales.count) catalogs)
+        Profiles: \(appState.profiles.count) · Active Sessions: \(appState.activeSessions.count)
+        Transfers: \(appState.transferSnapshots.count) · Trusted Hosts: \(appState.trustedHosts.count)
+        Security: Keychain WhenUnlockedThisDeviceOnly · 6-state TOFU · SecTrust TLS 1.2+
+        """
+    }
+}

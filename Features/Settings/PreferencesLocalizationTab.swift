@@ -74,7 +74,7 @@ struct PreferencesLocalizationTab: View {
                     if !missing.isEmpty {
                         Text(missing.prefix(8).joined(separator: ", "))
                             .font(SparkleTheme.Typography.monoSmall)
-                            .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                            .foregroundStyle(appState.activePalette.secondaryTextColor)
                     }
                 }
             }
@@ -103,6 +103,8 @@ struct PreferencesLocalizationTab: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(appState.activePalette.windowColor)
         .fileImporter(
             isPresented: $isImportingLocale,
             allowedContentTypes: [.json],

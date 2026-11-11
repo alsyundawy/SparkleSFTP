@@ -64,7 +64,7 @@ public struct InternalEditorView: View {
 
             editorCanvas(palette: palette)
         }
-        .background(palette.canvasColor)
+        .sparkleWorkspaceSurface(palette, useCanvas: true)
         .onAppear { editorManager.ensureAtLeastOneDocument() }
         .fileImporter(
             isPresented: $isPickingOpenFile,

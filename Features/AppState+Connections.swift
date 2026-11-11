@@ -106,11 +106,18 @@ public extension AppState {
     func saveProfile(
         _ profile: ConnectionProfile,
         secretString: String?,
-        passphraseString: String? = nil
+        passphraseString: String? = nil,
+        clearStoredSecrets: Bool = false
     ) async {
         do {
             var mutable = profile
-            if let secret = secretString, !secret.isEmpty {
+            if clearStoredSecrets {
+                await deleteProfileSecrets(mutable)
+                mutable.passwordRef = nil
+                mutable.privateKeyRef = nil
+                mutable.passphraseRef = nil
+            }
+            if !clearStoredSecrets, let secret = secretString, !secret.isEmpty {
                 let requireTouchID = mutable.requireTouchID
                 if mutable.authMethod == .publicKey {
                     let keyRef = mutable.privateKeyRef ?? SecretReference(kind: .privateKey)
@@ -130,7 +137,7 @@ public extension AppState {
                     mutable.passwordRef = ref
                 }
             }
-            if let passphrase = passphraseString, !passphrase.isEmpty {
+            if !clearStoredSecrets, let passphrase = passphraseString, !passphrase.isEmpty {
                 let passRef = mutable.passphraseRef ?? SecretReference(kind: .keyPassphrase)
                 try await credentialStore.saveSecret(
                     Data(passphrase.utf8),
@@ -150,7 +157,11 @@ public extension AppState {
     func connect(profile: ConnectionProfile) async {
         guard !connectingProfileIDs.contains(profile.id) else { return }
         connectingProfileIDs.insert(profile.id)
-        defer { connectingProfileIDs.remove(profile.id) }
+        pendingPromptedSecretToRemember = nil
+        defer {
+            connectingProfileIDs.remove(profile.id)
+            pendingPromptedSecretToRemember = nil
+        }
 
         guard await authenticateBiometricsIfNeeded(for: profile) else { return }
         let created = buildRemoteService(for: profile)
@@ -211,6 +222,17 @@ public extension AppState {
         created: (service: RemoteService, sshClient: SSHClientService?)
     ) async throws {
         var updatedProfile = profile
+        if let promptedSecret = pendingPromptedSecretToRemember, !promptedSecret.isEmpty {
+            let ref = updatedProfile.passwordRef ?? SecretReference(kind: .password)
+            if await (try? credentialStore.saveSecret(
+                Data(promptedSecret.utf8),
+                for: ref,
+                requireTouchID: updatedProfile.requireTouchID
+            )) != nil {
+                updatedProfile.passwordRef = ref
+            }
+            pendingPromptedSecretToRemember = nil
+        }
         updatedProfile.lastConnectedAt = Date()
         try? await connectionStore.saveProfile(updatedProfile)
         await refreshProfilesAndGroups()

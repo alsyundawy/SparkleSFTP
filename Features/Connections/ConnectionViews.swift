@@ -22,49 +22,33 @@ public struct ConnectionManagerView: View {
     }
 
     public var body: some View {
-        let filtered = appState.filteredProfiles
-        let profilesByGroup = Dictionary(grouping: filtered) { $0.groupID }
-        let validGroupIDs = Set(appState.groups.map(\.id))
-        let ungrouped = filtered.filter { profile in
-            guard let groupID = profile.groupID else { return true }
-            return !validGroupIDs.contains(groupID)
-        }
+        let palette = appState.activePalette
+        VStack(spacing: 0) {
+            searchBar(palette: palette)
 
-        List(selection: $appState.selectedProfileIDs) {
-            if appState.searchText.isEmpty, !appState.recentProfiles.isEmpty {
-                Section(appState.strings.t("nav.recent")) {
-                    ForEach(appState.recentProfiles.prefix(4)) { profile in
-                        profileRow(profile)
-                    }
-                }
-            }
+            ConnectionListTableView(
+                rows: Self.buildTableRows(
+                    filteredProfiles: appState.filteredProfiles,
+                    recentProfiles: appState.recentProfiles,
+                    groups: appState.groups,
+                    searchText: appState.searchText,
+                    strings: appState.strings
+                ),
+                selectedIDs: $appState.selectedProfileIDs,
+                strings: appState.strings,
+                palette: palette,
+                onConnect: { profile in Task { await appState.connect(profile: profile) } },
+                onEdit: { profile in editorMode = .edit(profile) },
+                onClone: { profile in Task { _ = await appState.cloneProfile(profile) } },
+                onRequestDelete: { ids in requestDelete(ids: ids) },
+                onDeleteGroup: { groupID in Task { await appState.deleteGroup(id: groupID) } }
+            )
 
-            ForEach(appState.groups) { group in
-                let members = profilesByGroup[group.id] ?? []
-                if !members.isEmpty || appState.searchText.isEmpty {
-                    Section {
-                        ForEach(members) { profile in
-                            profileRow(profile)
-                        }
-                    } header: {
-                        groupHeader(group)
-                    }
-                }
-            }
-
-            Section(appState.strings.connectionsTitle) {
-                ForEach(ungrouped) { profile in
-                    profileRow(profile)
-                }
-            }
+            bottomControls(palette: palette)
         }
-        .searchable(text: $appState.searchText)
-        .onDeleteCommand {
-            requestDelete(ids: appState.selectedProfileIDs)
-        }
-        .safeAreaInset(edge: .bottom) {
-            bottomControls
-        }
+        .background(palette.windowColor)
+        .foregroundStyle(palette.primaryTextColor)
+        .tint(palette.accentColor)
         .alert(appState.strings.t("nav.newGroupTitle"), isPresented: $isAddingGroup) {
             TextField(appState.strings.t("nav.groupName"), text: $newGroupName)
             Button(appState.strings.t("common.cancel"), role: .cancel) { newGroupName = "" }
@@ -75,9 +59,7 @@ public struct ConnectionManagerView: View {
             }
         }
         .alert(appState.strings.t("conn.confirmDeleteTitle"), isPresented: $isConfirmingBatchDelete) {
-            Button(appState.strings.t("common.cancel"), role: .cancel) {
-                pendingDeleteIDs = []
-            }
+            Button(appState.strings.t("common.cancel"), role: .cancel) { pendingDeleteIDs = [] }
             Button(appState.strings.t("common.delete"), role: .destructive) {
                 let ids = pendingDeleteIDs
                 pendingDeleteIDs = []
@@ -102,26 +84,37 @@ public struct ConnectionManagerView: View {
         }
     }
 
-    private func groupHeader(_ group: ServerGroup) -> some View {
-        HStack {
-            Text(group.name)
-            Spacer()
-            Button {
-                Task { await appState.deleteGroup(id: group.id) }
-            } label: {
-                Image(systemName: "trash").font(.caption2)
+    private func searchBar(palette: SparkleThemePalette) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(palette.secondaryTextColor)
+            TextField(appState.strings.connectionsTitle, text: $appState.searchText)
+                .textFieldStyle(.plain)
+            if !appState.searchText.isEmpty {
+                Button {
+                    appState.searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(palette.secondaryTextColor)
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(palette.canvasColor)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(palette.borderColor, lineWidth: 1))
+        .padding(SparkleTheme.Spacing.small)
     }
 
-    private var bottomControls: some View {
+    private func bottomControls(palette: SparkleThemePalette) -> some View {
         VStack(spacing: 6) {
             if appState.selectedProfileIDs.count > 1 {
                 HStack {
                     Text("\(appState.selectedProfileIDs.count) \(appState.strings.t("transfers.items"))")
                         .font(SparkleTheme.Typography.caption)
-                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                        .foregroundStyle(palette.secondaryTextColor)
                     Spacer()
                     Button(appState.strings.t("conn.deleteSelected"), role: .destructive) {
                         requestDelete(ids: appState.selectedProfileIDs)
@@ -152,108 +145,83 @@ public struct ConnectionManagerView: View {
                     }
                 }
 
-                Menu {
-                    Button(appState.strings.t("conn.selectAll")) {
-                        appState.selectAllVisibleProfiles()
-                    }
-                    .disabled(appState.filteredProfiles.isEmpty)
-
-                    if let primary = appState.primarySelectedProfile {
-                        Button(appState.strings.t("common.edit")) {
-                            editorMode = .edit(primary)
-                        }
-                        Button(appState.strings.t("conn.cloneConnection")) {
-                            Task { _ = await appState.cloneProfile(primary) }
-                        }
-                    }
-
-                    Divider()
-
-                    Button(appState.strings.t("conn.deleteSelected"), role: .destructive) {
-                        requestDelete(ids: appState.selectedProfileIDs)
-                    }
-                    .disabled(appState.selectedProfileIDs.isEmpty)
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .menuStyle(.borderlessButton)
-                .frame(width: 24)
+                connectionActionsMenu
             }
         }
         .padding(SparkleTheme.Spacing.small)
         .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+        .background(palette.windowColor)
+        .overlay(alignment: .top) {
+            palette.borderColor.frame(height: 1)
+        }
     }
 
-    private func profileRow(_ profile: ConnectionProfile) -> some View {
-        HStack(spacing: SparkleTheme.Spacing.small) {
-            Image(
-                systemName: profile.protocolType.isEncryptedByDefault
-                    ? SparkleTheme.Symbols.sftp
-                    : SparkleTheme.Symbols.ftpInsecure
-            )
-            .foregroundStyle(
-                profile.protocolType.isEncryptedByDefault
-                    ? SparkleTheme.Colors.encryptedBadge
-                    : SparkleTheme.Colors.danger
-            )
+    private var connectionActionsMenu: some View {
+        Menu {
+            Button(appState.strings.t("conn.selectAll")) {
+                appState.selectAllVisibleProfiles()
+            }
+            .disabled(appState.filteredProfiles.isEmpty)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(profile.name)
-                        .font(SparkleTheme.Typography.headline)
-                    if profile.isFavorite {
-                        Image(systemName: "star.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-                    }
+            if let primary = appState.primarySelectedProfile {
+                Button(appState.strings.t("common.edit")) {
+                    editorMode = .edit(primary)
                 }
-                Text("\(profile.username)@\(profile.host):\(profile.port)")
-                    .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                Button(appState.strings.t("conn.cloneConnection")) {
+                    Task { _ = await appState.cloneProfile(primary) }
+                }
             }
-            Spacer()
-            Text(profile.protocolType.rawValue.uppercased())
-                .font(.caption2)
-                .foregroundStyle(SparkleTheme.Colors.secondaryText)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .tag(profile.id)
-        .simultaneousGesture(
-            TapGesture(count: 2).onEnded {
-                Task { await appState.connect(profile: profile) }
-            }
-        )
-        .contextMenu {
-            profileContextMenu(for: profile)
-        }
-    }
 
-    @ViewBuilder
-    private func profileContextMenu(for profile: ConnectionProfile) -> some View {
-        Button(appState.strings.connect) {
-            Task { await appState.connect(profile: profile) }
-        }
-        Button(appState.strings.t("common.edit")) {
-            editorMode = .edit(profile)
-        }
-        Button(appState.strings.t("conn.cloneConnection")) {
-            Task { _ = await appState.cloneProfile(profile) }
-        }
-        Divider()
-        if appState.selectedProfileIDs.count > 1, appState.selectedProfileIDs.contains(profile.id) {
-            Button(
-                "\(appState.strings.t("conn.deleteSelected")) (\(appState.selectedProfileIDs.count))",
-                role: .destructive
-            ) {
+            Divider()
+
+            Button(appState.strings.t("conn.deleteSelected"), role: .destructive) {
                 requestDelete(ids: appState.selectedProfileIDs)
             }
-        } else {
-            Button(appState.strings.t("common.delete"), role: .destructive) {
-                Task { await appState.deleteProfile(profile) }
+            .disabled(appState.selectedProfileIDs.isEmpty)
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .menuStyle(.borderlessButton)
+        .frame(width: 24)
+    }
+
+    nonisolated static func buildTableRows(
+        filteredProfiles: [ConnectionProfile],
+        recentProfiles: [ConnectionProfile],
+        groups: [ServerGroup],
+        searchText: String,
+        strings: AppStrings
+    ) -> [ConnectionTableRowItem] {
+        let profilesByGroup = Dictionary(grouping: filteredProfiles) { $0.groupID }
+        let validGroupIDs = Set(groups.map(\.id))
+        var rows: [ConnectionTableRowItem] = []
+
+        if searchText.isEmpty, !recentProfiles.isEmpty {
+            rows.append(.section(id: "sec-recent", title: strings.t("nav.recent"), groupID: nil))
+            for profile in recentProfiles.prefix(4) {
+                rows.append(.profile(profile, rowKey: "recent-\(profile.id.uuidString)"))
             }
         }
+
+        for group in groups {
+            let members = profilesByGroup[group.id] ?? []
+            if !members.isEmpty || searchText.isEmpty {
+                rows.append(.section(id: "sec-\(group.id.uuidString)", title: group.name, groupID: group.id))
+                for profile in members {
+                    rows.append(.profile(profile, rowKey: "grp-\(group.id.uuidString)-\(profile.id.uuidString)"))
+                }
+            }
+        }
+
+        let ungrouped = filteredProfiles.filter { profile in
+            guard let groupID = profile.groupID else { return true }
+            return !validGroupIDs.contains(groupID)
+        }
+        rows.append(.section(id: "sec-connections", title: strings.connectionsTitle, groupID: nil))
+        for profile in ungrouped {
+            rows.append(.profile(profile, rowKey: "main-\(profile.id.uuidString)"))
+        }
+        return rows
     }
 
     private func requestDelete(ids: Set<UUID>) {

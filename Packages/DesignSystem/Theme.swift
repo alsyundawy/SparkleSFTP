@@ -35,6 +35,18 @@ public extension EnvironmentValues {
 
 // swiftformat:enable environmentEntry
 
+public extension View {
+    /// Applies active `SparkleThemePalette` surface colors cleanly across SwiftUI forms, lists, and sheets.
+    func sparkleWorkspaceSurface(_ palette: SparkleThemePalette, useCanvas: Bool = false) -> some View {
+        scrollContentBackground(.hidden)
+            .background(useCanvas ? palette.canvasColor : palette.windowColor)
+            .foregroundStyle(palette.primaryTextColor)
+            .tint(palette.accentColor)
+            .preferredColorScheme(palette.isDark ? .dark : .light)
+            .environment(\.sparklePalette, palette)
+    }
+}
+
 /// Semantic color and typography design tokens for SparkleSFTP (macOS 13+).
 public enum SparkleTheme {
     public enum Colors {

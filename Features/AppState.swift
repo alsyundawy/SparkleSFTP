@@ -162,6 +162,7 @@ public final class AppState: ObservableObject {
     public let featureFlags: FeatureFlags
     public let editorManager = EditorSessionManager()
     let editorWindowController = EditorWindowController()
+    let aboutWindowController = AboutWindowController()
 
     var transferQueueInstance: TransferQueue?
     var snapshotStreamTask: Task<Void, Never>?
@@ -173,6 +174,7 @@ public final class AppState: ObservableObject {
     var remoteEditWatches: [URL: LocalDirectoryWatcher] = [:]
     var notifiedTerminalTransferIDs: Set<UUID> = []
     var connectingProfileIDs: Set<UUID> = []
+    var pendingPromptedSecretToRemember: String?
     var didLoadPreferences = false
     let performUpdateCheckAction: @MainActor (AutoUpdateSettings, Bool) async -> AutoUpdateCheckStatus
     let applyAutoUpdateSettingsAction: @MainActor (AutoUpdateSettings) -> Void
@@ -263,7 +265,8 @@ public final class AppState: ObservableObject {
         hostChallengeContinuation = nil
     }
 
-    public func resolveCredentialPrompt(_ secret: String?) {
+    public func resolveCredentialPrompt(_ secret: String?, remember: Bool = false) {
+        pendingPromptedSecretToRemember = (remember && !(secret ?? "").isEmpty) ? secret : nil
         pendingCredentialPrompt = nil
         credentialPromptContinuation?.resume(returning: secret)
         credentialPromptContinuation = nil

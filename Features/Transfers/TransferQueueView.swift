@@ -26,7 +26,7 @@ public struct TransferQueueView: View {
                 Spacer()
                 Text("\(monitor.snapshots.count) \(appState.strings.t("transfers.items"))")
                     .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(appState.activePalette.secondaryTextColor)
                 if monitor.snapshots.contains(where: \.status.isTerminal) {
                     Button(appState.strings.t("transfers.clearFinished")) {
                         Task { await appState.transferQueue.clearFinished() }
@@ -37,14 +37,15 @@ public struct TransferQueueView: View {
             }
             .padding(.horizontal, SparkleTheme.Spacing.medium)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
-            .background(SparkleTheme.Colors.panelBackground)
+            .background(appState.activePalette.windowColor)
 
             if monitor.snapshots.isEmpty {
                 Text(appState.strings.t("transfers.noTransfers"))
                     .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(appState.activePalette.secondaryTextColor)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding()
+                    .background(appState.activePalette.canvasColor)
             } else {
                 List(monitor.snapshots) { snapshot in
                     VStack(alignment: .leading, spacing: 4) {
@@ -127,12 +128,16 @@ public struct TransferQueueView: View {
                             }
                         }
                         .font(SparkleTheme.Typography.caption)
-                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                        .foregroundStyle(appState.activePalette.secondaryTextColor)
                     }
                     .padding(.vertical, 2)
+                    .listRowBackground(appState.activePalette.canvasColor)
                 }
+                .scrollContentBackground(.hidden)
+                .background(appState.activePalette.canvasColor)
             }
         }
+        .sparkleWorkspaceSurface(appState.activePalette, useCanvas: true)
     }
 
     private func statusTint(_ status: TransferStatus) -> Color {
@@ -187,5 +192,6 @@ public struct ConflictResolutionSheet: View {
         }
         .padding(SparkleTheme.Spacing.large)
         .frame(width: 440)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 }

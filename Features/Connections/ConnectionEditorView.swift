@@ -30,6 +30,8 @@ public struct ConnectionEditorView: View {
     @State private var username: String
     @State private var authMethod: AuthMethod
     @State private var secretInput = ""
+    @State private var rememberPassword: Bool
+    @State private var hasStoredSecret = false
     @State private var remotePath: String
     @State private var isFavorite: Bool
     @State private var requireTouchID: Bool
@@ -45,6 +47,8 @@ public struct ConnectionEditorView: View {
         _port = State(initialValue: String(existingProfile?.port ?? defaultProto.defaultPort))
         _username = State(initialValue: existingProfile?.username ?? "")
         _authMethod = State(initialValue: existingProfile?.authMethod ?? .password)
+        let hadStoredRef = existingProfile?.passwordRef != nil || existingProfile?.privateKeyRef != nil
+        _rememberPassword = State(initialValue: existingProfile == nil ? true : hadStoredRef)
         _remotePath = State(initialValue: existingProfile?.defaultRemotePath.rawValue ?? "/")
         _isFavorite = State(initialValue: existingProfile?.isFavorite ?? false)
         _requireTouchID = State(initialValue: existingProfile?.requireTouchID ?? false)
@@ -89,6 +93,23 @@ public struct ConnectionEditorView: View {
                     } else if authMethod != .anonymous, authMethod != .sshAgent {
                         SecureField(appState.strings.t("conn.passwordKeychain"), text: $secretInput)
                     }
+                    if authMethod != .anonymous, authMethod != .sshAgent {
+                        Toggle(appState.strings.t("conn.rememberPassword"), isOn: $rememberPassword)
+                        if hasStoredSecret, secretInput.isEmpty, rememberPassword {
+                            HStack(spacing: 8) {
+                                Label(appState.strings.t("conn.savedInKeychain"), systemImage: "checkmark.seal.fill")
+                                    .font(SparkleTheme.Typography.caption)
+                                    .foregroundStyle(appState.activePalette.accentColor)
+                                Spacer()
+                                Button(appState.strings.t("conn.clearSavedSecret")) {
+                                    rememberPassword = false
+                                    hasStoredSecret = false
+                                }
+                                .buttonStyle(.borderless)
+                                .font(SparkleTheme.Typography.caption)
+                            }
+                        }
+                    }
                     TextField(appState.strings.t("conn.defaultRemotePath"), text: $remotePath)
                     Toggle(appState.strings.t("nav.favorite"), isOn: $isFavorite)
                     Toggle(appState.strings.t("conn.requireTouchID"), isOn: $requireTouchID)
@@ -109,6 +130,13 @@ public struct ConnectionEditorView: View {
         }
         .padding(SparkleTheme.Spacing.large)
         .frame(width: 520, height: 640)
+        .sparkleWorkspaceSurface(appState.activePalette)
+        .task {
+            hasStoredSecret = await appState.hasSavedSecret(for: existingProfile)
+            if hasStoredSecret {
+                rememberPassword = true
+            }
+        }
     }
 
     private var editorButtons: some View {
@@ -152,10 +180,16 @@ public struct ConnectionEditorView: View {
         )
         let secret = secretInput
         let passphrase = advanced.passphraseInput
+        let shouldClearSecrets = !rememberPassword
         secretInput = ""
         advanced.passphraseInput = ""
         Task {
-            await appState.saveProfile(built, secretString: secret, passphraseString: passphrase)
+            await appState.saveProfile(
+                built,
+                secretString: secret,
+                passphraseString: passphrase,
+                clearStoredSecrets: shouldClearSecrets
+            )
             dismiss()
         }
     }

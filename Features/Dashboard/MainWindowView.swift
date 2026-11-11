@@ -45,6 +45,8 @@ public struct MainWindowView: View {
                 statusBar
             }
             .background(palette.windowColor)
+            .foregroundStyle(palette.primaryTextColor)
+            .tint(palette.accentColor)
         }
         .preferredColorScheme(
             appState.appearanceMode == .auto ? nil : (appState.appearanceMode == .dark ? .dark : .light)
@@ -118,6 +120,13 @@ public struct MainWindowView: View {
                     Label(appState.strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme)
                 }
                 .help(appState.activePalette.displayName)
+
+                Button {
+                    appState.openAboutWindow()
+                } label: {
+                    Label(appState.strings.t("nav.about"), systemImage: "info.circle")
+                }
+                .help(appState.strings.t("nav.about"))
             }
         }
         .task {
@@ -186,7 +195,8 @@ public struct MainWindowView: View {
 
 private extension MainWindowView {
     var sessionTabBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        let palette = appState.activePalette
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
                 ForEach(appState.activeSessions) { session in
                     HStack(spacing: 6) {
@@ -209,8 +219,8 @@ private extension MainWindowView {
                     .padding(.vertical, 5)
                     .background(
                         appState.activeSessionID == session.id
-                            ? SparkleTheme.Colors.accent.opacity(0.2)
-                            : SparkleTheme.Colors.panelBackground
+                            ? palette.accentColor.opacity(0.22)
+                            : palette.canvasColor
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .onTapGesture {
@@ -221,11 +231,12 @@ private extension MainWindowView {
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, 4)
         }
-        .background(.ultraThinMaterial)
+        .background(palette.windowColor)
     }
 
     var statusBar: some View {
-        HStack(spacing: SparkleTheme.Spacing.medium) {
+        let palette = appState.activePalette
+        return HStack(spacing: SparkleTheme.Spacing.medium) {
             if let session = appState.currentSession {
                 StatusPill(
                     title: session.profile.protocolType.displayName,
@@ -241,20 +252,20 @@ private extension MainWindowView {
             } else {
                 Text(appState.strings.t("nav.disconnected"))
                     .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(palette.secondaryTextColor)
             }
 
             if let message = appState.statusBannerMessage {
                 Text("· \(message)")
                     .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(palette.secondaryTextColor)
             }
 
             Spacer()
 
-            Text(appState.activePalette.displayName)
+            Text(palette.displayName)
                 .font(SparkleTheme.Typography.caption)
-                .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                .foregroundStyle(palette.secondaryTextColor)
 
             Toggle(appState.strings.t("nav.terminal"), isOn: $appState.isTerminalVisible)
                 .toggleStyle(.button)
@@ -275,6 +286,6 @@ private extension MainWindowView {
         }
         .padding(.horizontal, SparkleTheme.Spacing.medium)
         .padding(.vertical, SparkleTheme.Spacing.tiny)
-        .background(SparkleTheme.Colors.panelBackground)
+        .background(palette.windowColor)
     }
 }

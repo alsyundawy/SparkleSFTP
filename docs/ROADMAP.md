@@ -23,8 +23,8 @@ This document tracks the 8-phase delivery plan, Workground mapping, and mandator
 | **Phase 01–02** | Research, Architecture & Foundation | ✅ Audited dependencies ([ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md)), `Package.swift`, `SparkleCore`, `SparkleDesignSystem` |
 | **Phase 03–04** | Security, Persistence & Protocol Engines | ✅ `SparkleSecurity`, `SparklePersistence` (`SQLite3` + JSON + FileZilla/WinSCP Preview Importer), `SparkleNetworking` (`NIOSSH 0.15.1` + SFTP v3 + SCP + `Clibcurl` FTPS) |
 | **Phase 05–06** | Commander UI & Transfer Engine | ✅ Dual-pane `NSTableView`, Notepad2 Internal Editor (`Features/Editor/`), Quick Look, drag-drop, actor `TransferQueue` + `TransferScheduler` + `SHA256Verifier` |
-| **Phase 07** | Terminal, Sync & Localization | ✅ `SwiftTerm` PTY tabs/splits, local & `-R` port forwarding, One-Way & Bidirectional `SyncPlanner`/`Executor`, `28` SparkNotePad themes, `271`-key JSON i18n |
-| **Phase 08** | QA & Release Tooling | ✅ `60 tests in 16 suites`, `122` Swift files pass SwiftLint/SwiftFormat, Connection UX + Fast Exit + Perf tuning, Auto-Update Preferences + community fallback, Universal 2 DMG (`release.yml`), Docker fixtures *(production notarization pending Developer ID)* |
+| **Phase 07** | Terminal, Sync & Localization | ✅ `SwiftTerm` PTY tabs/splits, local & `-R` port forwarding, One-Way & Bidirectional `SyncPlanner`/`Executor`, `28` SparkNotePad themes + full workspace propagation, `285`-key JSON i18n |
+| **Phase 08** | QA & Release Tooling | ✅ `64 tests in 17 suites`, `129` Swift files pass SwiftLint/SwiftFormat, SparkNotePad 6-tab About + 1:1 pastel-yellow/blue/white `AppIcon`, Keychain Remember Password (`ConnectionEditorView`/`CredentialPromptSheet`/`FTPService`), AppKit `ConnectionListTableView` + `InteractiveFileTableView` navigation, Auto-Update Preferences + community fallback, Universal 2 DMG (`release.yml`), Docker fixtures *(production notarization pending Developer ID)* |
 
 ## Non-Negotiable MVP Release Gate
 

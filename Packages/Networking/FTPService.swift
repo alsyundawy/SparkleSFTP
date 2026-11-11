@@ -6,9 +6,12 @@ import SparkleSecurity
 /// FTP / Explicit FTPS / Implicit FTPS engine built over `Clibcurl` + `SecTrust` TLS validation (ADR-001, SEC-001).
 /// Strictly locks `CURLOPT_PROTOCOLS_STR` to `"ftp,ftps"` to prevent any `libssh` surface (CVE-2025-15224).
 public actor FTPService: RemoteConnection, RemoteFileSystem {
+    public typealias CredentialPromptHandler = @Sendable (CredentialPromptRequest) async -> String?
+
     public nonisolated let profile: ConnectionProfile
     private let credentialStore: any CredentialStoreProtocol
     private let tlsValidator: TLSCertificateValidator
+    private let credentialPrompt: CredentialPromptHandler?
 
     public private(set) var connectionState: ConnectionState = .disconnected
     public private(set) var lastVerifiedCertificate: TLSCertificateInfo?
@@ -17,11 +20,13 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
     public init(
         profile: ConnectionProfile,
         credentialStore: any CredentialStoreProtocol,
-        tlsValidator: TLSCertificateValidator = TLSCertificateValidator()
+        tlsValidator: TLSCertificateValidator = TLSCertificateValidator(),
+        credentialPrompt: CredentialPromptHandler? = nil
     ) {
         self.profile = profile
         self.credentialStore = credentialStore
         self.tlsValidator = tlsValidator
+        self.credentialPrompt = credentialPrompt
     }
 
     public var capabilities: Set<RemoteCapability> {
@@ -32,12 +37,22 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         sparklesftp_curl_global_init_once()
         connectionState = .connecting
 
-        if let passwordRef = profile.passwordRef {
-            let data = try await credentialStore.loadSecret(
-                for: passwordRef,
-                prompt: profile.requireTouchID ? "Unlock FTP password for \(profile.name)" : nil
-            )
+        if let passwordRef = profile.passwordRef,
+           let data = try? await credentialStore.loadSecret(
+               for: passwordRef,
+               prompt: profile.requireTouchID ? "Unlock FTP password for \(profile.name)" : nil
+           ) {
             cachedPassword = String(data: data, encoding: .utf8)
+        } else if profile.authMethod == .password, let credentialPrompt {
+            let req = CredentialPromptRequest(
+                host: profile.host,
+                port: profile.port,
+                username: profile.username,
+                authMethod: profile.authMethod,
+                promptTitle: "Enter \(profile.protocolType.displayName) password for "
+                    + "\(profile.username)@\(profile.host)"
+            )
+            cachedPassword = await credentialPrompt(req)
         } else {
             cachedPassword = nil
         }

@@ -35,8 +35,8 @@ public struct TerminalWorkspaceView: View {
                             .padding(.vertical, 4)
                             .background(
                                 terminalManager.selectedSessionID == session.id
-                                    ? SparkleTheme.Colors.accent.opacity(0.2)
-                                    : SparkleTheme.Colors.panelBackground
+                                    ? appState.activePalette.accentColor.opacity(0.22)
+                                    : appState.activePalette.canvasColor
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 5))
                             .onTapGesture {
@@ -64,13 +64,13 @@ public struct TerminalWorkspaceView: View {
             }
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
-            .background(SparkleTheme.Colors.panelBackground)
+            .background(appState.activePalette.windowColor)
 
             if terminalManager.sessions.isEmpty {
                 VStack(spacing: SparkleTheme.Spacing.tiny) {
                     Text(appState.strings.t("nav.noActivePTY"))
                         .font(SparkleTheme.Typography.body)
-                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                        .foregroundStyle(appState.activePalette.secondaryTextColor)
                     if appState.currentSession?.sshClient != nil {
                         Button(appState.strings.t("nav.openPTYShell")) {
                             Task { await appState.openTerminalTab() }
@@ -78,15 +78,32 @@ public struct TerminalWorkspaceView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(appState.activePalette.canvasColor)
             } else if appState.splitTerminalMode, terminalManager.sessions.count >= 2 {
+                let palette = appState.activePalette
+                let termTheme = TerminalThemeColors(
+                    backgroundHex: palette.canvasHex,
+                    foregroundHex: palette.primaryTextHex,
+                    caretHex: palette.accentHex,
+                    selectionHex: palette.accentHex
+                )
                 HSplitView {
-                    TerminalViewRepresentable(session: terminalManager.sessions[0])
-                    TerminalViewRepresentable(session: terminalManager.sessions[1])
+                    TerminalViewRepresentable(session: terminalManager.sessions[0], themeColors: termTheme)
+                    TerminalViewRepresentable(session: terminalManager.sessions[1], themeColors: termTheme)
                 }
             } else if let selected = terminalManager.sessions.first(where: {
                 $0.id == terminalManager.selectedSessionID
             }) ?? terminalManager.sessions.last {
-                TerminalViewRepresentable(session: selected)
+                let palette = appState.activePalette
+                TerminalViewRepresentable(
+                    session: selected,
+                    themeColors: TerminalThemeColors(
+                        backgroundHex: palette.canvasHex,
+                        foregroundHex: palette.primaryTextHex,
+                        caretHex: palette.accentHex,
+                        selectionHex: palette.accentHex
+                    )
+                )
             }
         }
         .sheet(isPresented: $isShowingSnippets) {
@@ -95,6 +112,7 @@ public struct TerminalWorkspaceView: View {
         .sheet(isPresented: $isShowingForwarding) {
             PortForwardingSheet(appState: appState)
         }
+        .sparkleWorkspaceSurface(appState.activePalette, useCanvas: true)
     }
 }
 
@@ -151,10 +169,14 @@ public struct SnippetsSheet: View {
                     }
                     .buttonStyle(.borderless)
                 }
+                .listRowBackground(appState.activePalette.canvasColor)
             }
+            .scrollContentBackground(.hidden)
+            .background(appState.activePalette.canvasColor)
         }
         .padding()
         .frame(width: 540, height: 400)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 }
 
@@ -218,9 +240,13 @@ public struct PortForwardingSheet: View {
                         Task { await appState.stopPortForwarding(id: tunnel.id) }
                     }
                 }
+                .listRowBackground(appState.activePalette.canvasColor)
             }
+            .scrollContentBackground(.hidden)
+            .background(appState.activePalette.canvasColor)
         }
         .padding()
         .frame(width: 680, height: 360)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 }

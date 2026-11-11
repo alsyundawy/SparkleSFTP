@@ -53,14 +53,15 @@ extension DualPaneCommanderView {
             .help(appState.strings.refresh)
         }
         .padding(SparkleTheme.Spacing.tiny)
-        .background(SparkleTheme.Colors.panelBackground)
+        .background(appState.activePalette.windowColor)
     }
 
     func paginationBanner(isLocal: Bool) -> some View {
-        HStack {
+        let palette = appState.activePalette
+        return HStack {
             Text(appState.strings.t("nav.showingFirstPage"))
                 .font(SparkleTheme.Typography.caption)
-                .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                .foregroundStyle(palette.secondaryTextColor)
             Spacer()
             Button(appState.strings.t("nav.loadMore")) {
                 appState.activePane = isLocal ? .left : .right
@@ -71,7 +72,7 @@ extension DualPaneCommanderView {
         }
         .padding(.horizontal, SparkleTheme.Spacing.small)
         .padding(.vertical, 3)
-        .background(SparkleTheme.Colors.panelBackground.opacity(0.7))
+        .background(palette.windowColor)
     }
 
     func commanderActionBar(isLocal: Bool, session _: ActiveSessionModel? = nil) -> some View {
@@ -120,7 +121,7 @@ extension DualPaneCommanderView {
         }
         .padding(.horizontal, SparkleTheme.Spacing.small)
         .padding(.vertical, SparkleTheme.Spacing.tiny)
-        .background(SparkleTheme.Colors.panelBackground)
+        .background(appState.activePalette.windowColor)
     }
 
     func selectedFile(isLocal: Bool) -> RemoteFile? {
@@ -207,7 +208,7 @@ extension DualPaneCommanderView {
 
     func paneFocusBorder(isFocused: Bool) -> some View {
         RoundedRectangle(cornerRadius: 2)
-            .stroke(isFocused ? SparkleTheme.Colors.accent.opacity(0.6) : Color.clear, lineWidth: 1.5)
+            .stroke(isFocused ? appState.activePalette.accentColor.opacity(0.75) : Color.clear, lineWidth: 1.5)
     }
 
     func handleDrop(providers: [NSItemProvider]) -> Bool {

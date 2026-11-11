@@ -78,13 +78,15 @@ struct PreferencesUpdatesTab: View {
                         .formatted(date: .abbreviated, time: .shortened) ?? strings.t("prefs.never")
                     Text("\(strings.t("prefs.lastChecked")): \(checkedLabel)")
                         .font(SparkleTheme.Typography.caption)
-                        .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                        .foregroundStyle(appState.activePalette.secondaryTextColor)
                 }
 
                 checkActionsRow
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(appState.activePalette.windowColor)
     }
 
     private var checkActionsRow: some View {

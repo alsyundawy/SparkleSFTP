@@ -73,14 +73,20 @@ public extension AppState {
     }
 
     func applyAppearanceToApplication() {
-        guard NSApp != nil else { return }
-        switch appearanceMode {
+        guard let app = NSApp else { return }
+        let targetAppearance: NSAppearance? = switch appearanceMode {
         case .auto:
-            NSApp.appearance = nil
+            nil
         case .light:
-            NSApp.appearance = NSAppearance(named: .aqua)
+            NSAppearance(named: .aqua)
         case .dark:
-            NSApp.appearance = NSAppearance(named: .darkAqua)
+            NSAppearance(named: .darkAqua)
+        }
+        app.appearance = targetAppearance
+        let windowBg = NSColor(hex: activePalette.windowHex)
+        for window in app.windows {
+            window.appearance = targetAppearance
+            window.backgroundColor = windowBg
         }
     }
 
@@ -91,6 +97,31 @@ public extension AppState {
 
     func reloadThemes() {
         availableThemes = SparkleThemeStore.loadAllPalettes()
+    }
+
+    func refreshLocalizedStrings() {
+        strings = AppStrings(
+            language: language,
+            localeCode: activeLocaleCode,
+            availableLocales: availableLocales
+        )
+    }
+
+    func refreshActivePalette(emitChange: Bool = false) {
+        let isDarkSystem = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let updated = SparkleThemeCatalog.palette(
+            id: selectedThemeID,
+            appearanceMode: appearanceMode,
+            systemIsDark: isDarkSystem,
+            available: availableThemes
+        )
+        let windowBg = NSColor(hex: updated.windowHex)
+        NSApp?.windows.forEach { $0.backgroundColor = windowBg }
+        guard activePalette != updated else { return }
+        if emitChange {
+            objectWillChange.send()
+        }
+        activePalette = updated
     }
 
     func importThemeFile(from url: URL) {
@@ -164,28 +195,5 @@ public extension AppState {
     func resetAutoUpdateFeedURL() {
         autoUpdateSettings.customFeedURL = AutoUpdateSettings.defaultStableFeedURL
         applyAutoUpdateConfiguration()
-    }
-
-    internal func refreshLocalizedStrings() {
-        strings = AppStrings(
-            language: language,
-            localeCode: activeLocaleCode,
-            availableLocales: availableLocales
-        )
-    }
-
-    func refreshActivePalette(emitChange: Bool = false) {
-        let isDarkSystem = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let updated = SparkleThemeCatalog.palette(
-            id: selectedThemeID,
-            appearanceMode: appearanceMode,
-            systemIsDark: isDarkSystem,
-            available: availableThemes
-        )
-        guard activePalette != updated else { return }
-        if emitChange {
-            objectWillChange.send()
-        }
-        activePalette = updated
     }
 }

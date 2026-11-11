@@ -30,6 +30,12 @@ struct SparkleSFTPApp: App {
                 }
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(appState.strings.t("nav.about")) {
+                    appState.openAboutWindow()
+                }
+            }
+
             CommandGroup(after: .appInfo) {
                 Button(appState.strings.t("prefs.checkNow")) {
                     Task { await appState.checkForUpdates(manual: true) }

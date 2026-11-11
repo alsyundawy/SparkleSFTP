@@ -1,0 +1,10 @@
+CompileFlags:
+  Remove:
+    - "-std=c++*"
+    - "-std=gnu++*"
+  Add:
+    - "-xc"
+    - "-std=c11"
+    - "-I/Users/alsyundawy/Downloads/GitHub/SparkleSFTP/Packages/Clibcurl/include"
+    - "-isysroot"
+    - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"

@@ -4,12 +4,59 @@ import SparkleNetworking
 import SwiftTerm
 import SwiftUI
 
+/// Portable theme color bundle applied to AppKit `SwiftTerm.TerminalView` without adding DesignSystem coupling.
+public struct TerminalThemeColors: Sendable, Equatable {
+    public let backgroundHex: String
+    public let foregroundHex: String
+    public let caretHex: String
+    public let selectionHex: String
+
+    public init(backgroundHex: String, foregroundHex: String, caretHex: String, selectionHex: String) {
+        self.backgroundHex = backgroundHex
+        self.foregroundHex = foregroundHex
+        self.caretHex = caretHex
+        self.selectionHex = selectionHex
+    }
+
+    fileprivate var backgroundNSColor: NSColor {
+        Self.nsColor(hex: backgroundHex, fallback: .textBackgroundColor)
+    }
+
+    fileprivate var foregroundNSColor: NSColor {
+        Self.nsColor(hex: foregroundHex, fallback: .textColor)
+    }
+
+    fileprivate var caretNSColor: NSColor {
+        Self.nsColor(hex: caretHex, fallback: .selectedControlColor)
+    }
+
+    fileprivate var selectionNSColor: NSColor {
+        Self.nsColor(hex: selectionHex, fallback: .selectedControlColor).withAlphaComponent(0.32)
+    }
+
+    private static func nsColor(hex: String, fallback: NSColor) -> NSColor {
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("#") {
+            cleaned.removeFirst()
+        }
+        guard cleaned.count == 6, let value = UInt64(cleaned, radix: 16) else {
+            return fallback
+        }
+        let red = CGFloat((value >> 16) & 0xFF) / 255.0
+        let green = CGFloat((value >> 8) & 0xFF) / 255.0
+        let blue = CGFloat(value & 0xFF) / 255.0
+        return NSColor(srgbRed: red, green: green, blue: blue, alpha: 1.0)
+    }
+}
+
 /// SwiftUI NSViewRepresentable wrapper over `SwiftTerm.TerminalView` with strict PTY delegate teardown (MEM-002).
 public struct TerminalViewRepresentable: NSViewRepresentable {
     public let session: TerminalTabSession
+    public let themeColors: TerminalThemeColors?
 
-    public init(session: TerminalTabSession) {
+    public init(session: TerminalTabSession, themeColors: TerminalThemeColors? = nil) {
         self.session = session
+        self.themeColors = themeColors
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -19,7 +66,8 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     public func makeNSView(context: Context) -> TerminalView {
         let view = TerminalView(frame: .zero)
         view.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        view.configureNativeColors()
+        applyTheme(themeColors, to: view)
+        context.coordinator.cachedThemeColors = themeColors
         view.optionAsMetaKey = true
         view.allowMouseReporting = true
         view.terminalDelegate = context.coordinator
@@ -31,6 +79,21 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         if nsView.terminalDelegate !== context.coordinator {
             nsView.terminalDelegate = context.coordinator
         }
+        if context.coordinator.cachedThemeColors != themeColors {
+            context.coordinator.cachedThemeColors = themeColors
+            applyTheme(themeColors, to: nsView)
+        }
+    }
+
+    private func applyTheme(_ colors: TerminalThemeColors?, to view: TerminalView) {
+        if let colors {
+            view.nativeBackgroundColor = colors.backgroundNSColor
+            view.nativeForegroundColor = colors.foregroundNSColor
+            view.caretColor = colors.caretNSColor
+            view.selectedTextBackgroundColor = colors.selectionNSColor
+        } else {
+            view.configureNativeColors()
+        }
     }
 
     public static func dismantleNSView(_ nsView: TerminalView, coordinator: Coordinator) {
@@ -41,6 +104,7 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     @MainActor
     public final class Coordinator: NSObject, TerminalViewDelegate {
         private weak var session: TerminalTabSession?
+        var cachedThemeColors: TerminalThemeColors?
 
         init(session: TerminalTabSession) {
             self.session = session

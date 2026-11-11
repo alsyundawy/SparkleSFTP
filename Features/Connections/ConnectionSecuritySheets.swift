@@ -28,7 +28,7 @@ public struct HostKeyVerificationSheet: View {
             .font(SparkleTheme.Typography.monoSmall)
             .padding(SparkleTheme.Spacing.small)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(SparkleTheme.Colors.panelBackground)
+            .background(appState.activePalette.canvasColor)
             .clipShape(RoundedRectangle(cornerRadius: 6))
 
             HStack {
@@ -44,6 +44,7 @@ public struct HostKeyVerificationSheet: View {
         }
         .padding(SparkleTheme.Spacing.large)
         .frame(width: 480)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 }
 
@@ -96,13 +97,17 @@ public struct SecurityDiagnosticsView: View {
                                     }
                                 }
                             }
+                            .listRowBackground(appState.activePalette.canvasColor)
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background(appState.activePalette.canvasColor)
                 .frame(minHeight: 160)
             }
         }
         .padding(SparkleTheme.Spacing.large)
         .frame(width: 600, height: 420)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 }

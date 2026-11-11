@@ -63,7 +63,7 @@ SparkleSFTP/
 │   ├── Terminal/             # SparkleTerminal: SwiftTerm NSViewRepresentable, TerminalSessionManager, PortForwardingManager
 │   ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
 │   ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
-│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), WCAG contrast helpers, JSON i18n Locales (en.json / id.json, 271 keys)
+│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 285 keys)
 ├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views (Commander, Connections + ConnectionEditorView + ImportConnectionsSheet, Notepad2 Editor, Terminal, Transfers + TransferMonitor, Sync, Settings Tabs) & AppState ObservableObject
 ├── Tests/                    # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                    # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts

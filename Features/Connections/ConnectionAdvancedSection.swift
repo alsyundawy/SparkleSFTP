@@ -118,35 +118,41 @@ public struct CredentialPromptSheet: View {
     @ObservedObject var appState: AppState
     let request: CredentialPromptRequest
     @State private var secret = ""
+    @State private var rememberPassword: Bool
 
     public init(appState: AppState, request: CredentialPromptRequest) {
         self.appState = appState
         self.request = request
+        _rememberPassword = State(initialValue: request.authMethod == .password)
     }
 
     public var body: some View {
+        let palette = appState.activePalette
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Label("Authentication Prompt", systemImage: "key.fill")
+            Label(appState.strings.t("conn.authPrompt"), systemImage: "key.fill")
                 .font(SparkleTheme.Typography.title)
+                .foregroundStyle(palette.accentColor)
             Text(request.promptTitle)
                 .font(SparkleTheme.Typography.body)
-            SecureField("Password / Verification Code (2FA OTP)", text: $secret)
+            SecureField(appState.strings.t("conn.otpPlaceholder"), text: $secret)
                 .textFieldStyle(.roundedBorder)
+            Toggle(appState.strings.t("conn.rememberPassword"), isOn: $rememberPassword)
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) {
+                Button(appState.strings.t("common.cancel"), role: .cancel) {
                     secret = ""
-                    appState.resolveCredentialPrompt(nil)
+                    appState.resolveCredentialPrompt(nil, remember: false)
                 }
-                Button("Continue") {
+                Button(appState.strings.t("common.continue")) {
                     let value = secret
                     secret = ""
-                    appState.resolveCredentialPrompt(value)
+                    appState.resolveCredentialPrompt(value, remember: rememberPassword)
                 }
                 .buttonStyle(.borderedProminent)
             }
         }
         .padding(SparkleTheme.Spacing.large)
-        .frame(width: 420)
+        .frame(width: 440)
+        .sparkleWorkspaceSurface(palette)
     }
 }

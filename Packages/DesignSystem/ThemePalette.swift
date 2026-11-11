@@ -95,6 +95,14 @@ public struct SparkleThemePalette: Identifiable, Sendable, Codable, Equatable {
         Color(hex: accentHex)
     }
 
+    public var surfaceColor: Color {
+        isDark ? windowColor : canvasColor
+    }
+
+    public var selectionColor: Color {
+        accentColor.opacity(isDark ? 0.28 : 0.16)
+    }
+
     public var keywordColor: Color {
         Color(hex: keywordHex)
     }

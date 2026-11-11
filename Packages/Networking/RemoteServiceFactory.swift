@@ -37,7 +37,11 @@ public enum RemoteServiceFactory {
             return (RemoteService(connection: scp, fileSystem: scp), ssh)
 
         case .ftp, .ftpsExplicit, .ftpsImplicit:
-            let ftp = FTPService(profile: profile, credentialStore: credentialStore)
+            let ftp = FTPService(
+                profile: profile,
+                credentialStore: credentialStore,
+                credentialPrompt: credentialPrompt
+            )
             return (RemoteService(connection: ftp, fileSystem: ftp), nil)
         }
     }

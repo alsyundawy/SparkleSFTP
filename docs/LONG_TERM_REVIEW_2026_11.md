@@ -1,7 +1,7 @@
 # SparkleSFTP — Post-Completion Long-Term Architecture, Security & Sustainability Review
 
 - **Review Date:** 2026-11-11
-- **Reviewed Baseline:** Repository `main` (post-`v0.2.0` release, updated through Connection UX, Fast Exit & Performance Hardening across `60 tests in 16 suites` and `122` Swift files)
+- **Reviewed Baseline:** Repository `main` (post-`v0.2.0` release, updated through Full Workspace Theme Propagation, SparkNotePad About Window, Keychain Remember Password, AppKit Navigation & Performance Hardening across `64 tests in 17 suites` and `129` Swift files)
 - **Target Platform & Toolchain:** `macOS 13.0+` (`.macOS(.v13)`), Swift 6 (`swiftLanguageModes: [.v6]`, `swift-tools-version: 6.0`)
 - **Review Methodology:** All **14 Review Pillars** (`docs/CODE_REVIEW_14_PILLARS.md`) and **14 macOS Engineering Skills** grounded in empirical static scans, SwiftLint SonarQube reporter checks, live `swift test -j 2` verification, and source inspection.
 
@@ -29,8 +29,8 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
 
 | Tool / Gate | Scope | Command / Config | Empirical Result |
 | :--- | :--- | :--- | :--- |
-| **SwiftLint (Strict)** | 122 Swift files (`Package.swift`, `App/`, `Packages/`, `Features/`, `Tests/`) | `swiftlint lint --strict` (`.swiftlint.yml`) | `0` violations, `0` serious errors |
-| **SwiftFormat** | 122 Swift files | `swiftformat --lint .` (`.swiftformat`) | `0/122` files require formatting |
+| **SwiftLint (Strict)** | 129 Swift files (`Package.swift`, `App/`, `Packages/`, `Features/`, `Tests/`) | `swiftlint lint --strict` (`.swiftlint.yml`) | `0` violations, `0` serious errors |
+| **SwiftFormat** | 129 Swift files | `swiftformat --lint .` (`.swiftformat`) | `0/129` files require formatting |
 | **SwiftLint SonarQube Reporter** | All Swift files | `swiftlint lint --reporter sonarqube --quiet` | `sonarqube_issues=0` (valid JSON) |
 | **SonarQube Server / Scanner** | Project root | Check `sonar-project.properties` / `.github/` | **Gap: Not configured** (`NO_SONARQUBE_CONFIG_FOUND`) |
 | **MarkdownLint** | 24 Markdown files (`*.md`, `docs/`, `tasks/`) | `npx --yes markdownlint-cli2 "**/*.md" ...` | `0` issues in `0` files |
@@ -38,8 +38,8 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
 | **Actionlint** | `.github/workflows/*.yml` (5 workflows) | `actionlint` | `0` issues (exit `0`) |
 | **Bash / ShellCheck / Shfmt** | `Tools/Release/*.sh`, `Tools/TestServers/*.sh` | `bash -n`, `shellcheck -s bash`, `shfmt -d -i 2 -ci` | `0` issues across all 4 scripts |
 | **JSON / XML Validation** | `.json`, `.resolved`, `Info.plist`, `.entitlements` | `python3 -m json.tool`, `xmllint --noout` | `0` syntax errors |
-| **Clibcurl C Hygiene** | `Packages/Clibcurl/*` | `cppcheck` (`.mega-linter.yml` args), `clang-format --dry-run --Werror` | `0` errors / formatting issues |
-| **Swift Testing Suite** | 8 test targets (unit + live loopback SSH/SFTP) | `nice -n 10 swift test -j 2 --disable-xctest --enable-swift-testing` | **60 tests in 16 suites passed (`0.787s`)** |
+| **Clibcurl C Hygiene** | `Packages/Clibcurl/*`, `.clangd`, `.clang-format` | `cppcheck`, `clang-format --dry-run --Werror`, `clang -fsyntax-only -xc -std=c11` | `0` errors / formatting issues |
+| **Swift Testing Suite** | 8 test targets (unit + live loopback SSH/SFTP) | `nice -n 10 swift test -j 2 --disable-xctest --enable-swift-testing` | **64 tests in 17 suites passed (`0.992s`)** |
 
 > **SonarQube Configuration Gap Explicit Note:** Neither `sonar-project.properties` nor a `sonarcloud`/`sonarqube` GitHub Actions job is configured in `.github/workflows/`. Only `swiftlint lint --reporter sonarqube` format compatibility is verified locally (`0` issues). Notice also `.swiftlint.yml` uses SwiftLint's default `cyclomatic_complexity` (`warning: 10`, `error: 20`), whereas long-term maintainability prefers lowering `cyclomatic_complexity` warning to `<= 6`.
 
@@ -122,7 +122,7 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
 | Checklist Item | Status in SparkleSFTP | Empirical Location & Notes | Remediation Pattern & Debt |
 | :--- | :--- | :--- | :--- |
 | **No formatters instantiated inside `body`** | **Pass** | [`FilePaneTableView.swift:136-142`](../Features/Commander/FilePaneTableView.swift#L136-L142) and [`TransferQueueView.swift:9-13`](../Features/Transfers/TransferQueueView.swift#L9-L13) cache `static let` `ByteCountFormatter` / `DateFormatter`. | None needed (`FileInspectorSheet` `.formatted()` runs only in modal sheets). |
-| **No heavy sorting/filtering inside `body`** | **Partial** | Directory sorting runs off-MainActor via `FileSortDescriptor` + `DirectoryScanner`; **however**, `ConnectionViews.swift:36,58` filters `appState.filteredProfiles` per `ServerGroup` section on every render, and `DualPaneCommanderView.swift:151` copies `Array(appState.localFiles.visibleFiles)` on every re-eval. | Pre-compute grouped profile dictionary inside Connection store (`TD-01`). |
+| **No heavy sorting/filtering inside `body`** | **Mitigated (Partial)** | Directory sorting runs off-MainActor via `FileSortDescriptor` + `DirectoryScanner`; connection sidebar rows are pre-grouped cleanly in `ConnectionManagerView.buildTableRows` via `Dictionary(grouping:)` for AppKit `ConnectionListTableView`, while `DualPaneCommanderView` still slices array state on re-eval (`TD-01`). | Pre-compute visible array buffers when moving to `@Observable` (`TD-01`). |
 | **Stable identity (`ForEach` without index/`.self` misuse)** | **Pass** | Domain models conform to `Identifiable`; `.self` is used solely for distinct immutable string keys (`families`, `trustedHosts.keys.sorted()`). | None needed. |
 | **Avoid top-level conditional view swapping** | **Fail (`TerminalWorkspaceView`)** | [`MainWindowView.swift:35-38`](../Features/Dashboard/MainWindowView.swift#L35-L38) conditionally creates/destroys `TerminalWorkspaceView` via `if appState.isTerminalVisible`, tearing down `TerminalView` NSViews and losing scrollback. | Keep terminal view hosted cleanly or preserve NSView instances inside `TerminalSessionManager` (`TD-07`). |
 | **No synchronous image decoding on main thread** | **Pass (Warning)** | Icons use SF Symbols (`NSImage(systemSymbolName:)`); custom app icon decodes once on launch (`AppDelegate.swift`). Custom image previews defer to `QLPreviewPanel`. | None needed. |
@@ -140,7 +140,7 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
   1. **Scrollback Memory Growth:** Default `TerminalView` buffer behavior is unconfigured (`changeHistorySize`), risking sustained memory growth during multi-hour `tail -f` log sessions.
   2. **Lack of Burst Coalescing:** `attachPTYChannel` (`TerminalSessionManager.swift:75-90`) schedules a separate `MainActor.run` hop for every raw NIOSSH `outputStream` chunk. High-speed stdout floods should batch chunks over ~16ms frames.
   3. **Pane Lifecycle & State Loss:** Toggling `appState.isTerminalVisible` or `splitTerminalMode` (`TerminalWorkspaceView.swift:81-90`) recreates `TerminalView(frame: .zero)`, wiping scrollback and scroll position even though the underlying SSH channel stays alive.
-  4. **Missing Find-in-Terminal & Theme Sync:** `TerminalView` currently calls `view.configureNativeColors()` once at creation rather than syncing active `SparkleThemePalette` ANSI/cursor colors, and has no scrollback search bar yet.
+  4. **Missing Find-in-Terminal & Partial ANSI Styling:** `TerminalViewRepresentable` now syncs live `SparkleThemePalette` background, foreground, caret, and selection colors via `TerminalThemeColors`, though full 16-color ANSI palette customization and scrollback search remain future enhancements (`TD-07`).
   5. **Coupling:** `TerminalWorkspaceView` reads `appState.currentSession?.sshClient`, `appState.splitTerminalMode`, and `appState.snippets` directly through `@ObservedObject appState` instead of an isolated `TerminalCoordinator`.
 
 ### Transfer Engine & `TransferJournal` Durability (`Packages/TransferEngine/`, `Packages/Persistence/`)
@@ -158,7 +158,7 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
 
 ## (g) Test Coverage & Docker Fixture Gaps
 
-- **Current Verified Coverage (`60 tests across 16 suites`):** Strong unit and in-process encrypted loopback tests covering `RemotePath`, `AppStrings` & `271`-key `en`/`id` JSON parity, `28` SparkNotePad palettes WCAG AA contrast, `KeychainService`, 6-state TOFU & MITM blocking, `PathValidator`, self-signed X.509 rejection (`SecTrust`), `FileZilla`/`WinSCP` BOM/nested folder importers, `SFTPPacketCodec`, `ProxyJump`, `DirectTCPIP`/`tcpip-forward` `-R`, `SOCKS5`/`HTTP 200` proxy checks, `SCPCompatibilityAdapter` single-quote escaping, FTP `MLSD`/`LIST` parsing & `CWE-93` CRLF sanitizer, `TransferQueue` actor reentrancy / resume / conflicts / `100MB` SHA-256 / 2s journal checkpoint throttling, `SyncPlanner` one-way & bidirectional sync, Notepad2 editor models, connection cloning & multi-select batch deletion, single-`lstat` POSIX enumeration, and 100-tab `TerminalSessionManager` teardown.
+- **Current Verified Coverage (`64 tests across 17 suites`):** Strong unit and in-process encrypted loopback tests covering `RemotePath`, `AppStrings` & `285`-key `en`/`id` JSON parity, `28` SparkNotePad palettes WCAG AA contrast + full workspace theme sync & `TerminalThemeColors`, `AboutView` diagnostics, Keychain Remember Password & `FTPService` prompt flows, `KeychainService`, 6-state TOFU & MITM blocking, `PathValidator`, self-signed X.509 rejection (`SecTrust`), `FileZilla`/`WinSCP` BOM/nested folder importers, `SFTPPacketCodec`, `ProxyJump`, `DirectTCPIP`/`tcpip-forward` `-R`, `SOCKS5`/`HTTP 200` proxy checks, `SCPCompatibilityAdapter` single-quote escaping, FTP `MLSD`/`LIST` parsing & `CWE-93` CRLF sanitizer, `TransferQueue` actor reentrancy / resume / conflicts / `100MB` SHA-256 / 2s journal checkpoint throttling, `SyncPlanner` one-way & bidirectional sync, Notepad2 editor models, unique `ConnectionTableRowItem` section/profile keys, connection cloning & multi-select batch deletion, single-`lstat` POSIX enumeration, and 100-tab `TerminalSessionManager` teardown.
 - **Identified Regression Gaps:**
   1. **Docker Harness Disconnect (`TD-02`):** [`Tools/TestServers/run-integration-tests.sh`](../Tools/TestServers/run-integration-tests.sh) starts `atmoz/sftp`, `linuxserver/openssh-server`, `fauria/vsftpd`, and `instantlinux/proftpd` with `:latest` image tags and sets `SPARKLESFTP_LIVE_DOCKER_TESTS=1`, **but zero tests read `SPARKLESFTP_LIVE_DOCKER_TESTS`**. Furthermore, `Tools/TestServers/fixtures/` contains no TLS certificate/vsftpd.conf/proftpd.conf mounts for testing live Explicit/Implicit FTPS, nor deterministic host-key seeding files (`ssh-keyscan`) for non-interactive CI runs.
   2. **No Live SCP / FTP / FTPS Wire Protocol Execution:** `FTPService` and `SCPCompatibilityAdapter` are tested via parser/sanitizer unit tests rather than live local `vsftpd`/`proftpd`/`openssh` protocol handshakes.

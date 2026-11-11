@@ -1,0 +1,5 @@
+-xc
+-std=c11
+-Iinclude
+-isysroot
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk

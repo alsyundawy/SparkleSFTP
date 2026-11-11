@@ -11,6 +11,7 @@ public struct PermissionsEditorSheet: View {
     let strings: AppStrings
     let onApply: (UInt32) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sparklePalette) private var palette
     @State private var octalText: String
 
     public init(file: RemoteFile, strings: AppStrings = AppStrings(), onApply: @escaping (UInt32) -> Void) {
@@ -43,6 +44,7 @@ public struct PermissionsEditorSheet: View {
         }
         .padding()
         .frame(width: 320)
+        .sparkleWorkspaceSurface(palette)
     }
 }
 
@@ -51,6 +53,7 @@ public struct RenameItemSheet: View {
     let strings: AppStrings
     let onRename: (String) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sparklePalette) private var palette
     @State private var newName: String
 
     public init(item: RemoteFile, strings: AppStrings = AppStrings(), onRename: @escaping (String) -> Void) {
@@ -81,6 +84,7 @@ public struct RenameItemSheet: View {
         }
         .padding()
         .frame(width: 360)
+        .sparkleWorkspaceSurface(palette)
     }
 }
 
@@ -89,6 +93,7 @@ public struct FileInspectorSheet: View {
     let isLocal: Bool
     let strings: AppStrings
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sparklePalette) private var palette
     @State private var computedSHA256: String?
 
     public init(item: RemoteFile, isLocal: Bool, strings: AppStrings = AppStrings()) {
@@ -144,9 +149,12 @@ public struct FileInspectorSheet: View {
                 }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(palette.windowColor)
         }
         .padding()
         .frame(width: 480, height: 340)
+        .sparkleWorkspaceSurface(palette)
     }
 }
 

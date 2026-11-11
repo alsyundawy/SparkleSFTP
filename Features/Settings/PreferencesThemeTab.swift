@@ -73,8 +73,15 @@ struct PreferencesThemeTab: View {
 
             List(filteredThemes) { palette in
                 themeRow(palette)
+                    .listRowBackground(appState.activePalette.canvasColor)
             }
+            .scrollContentBackground(.hidden)
+            .background(appState.activePalette.canvasColor)
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(appState.activePalette.borderColor, lineWidth: 1)
+            )
 
             HStack(spacing: SparkleTheme.Spacing.small) {
                 Button(strings.t("prefs.importTheme")) {
@@ -112,6 +119,7 @@ struct PreferencesThemeTab: View {
             contentType: .json,
             defaultFilename: "\(appState.activePalette.id)-theme.json"
         ) { _ in }
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 
     private func themeRow(_ palette: SparkleThemePalette) -> some View {
@@ -133,7 +141,7 @@ struct PreferencesThemeTab: View {
                 Text(palette.displayName).font(SparkleTheme.Typography.headline)
                 Text("\(palette.family) · \(palette.isDark ? "Dark" : "Light")")
                     .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(appState.activePalette.secondaryTextColor)
             }
 
             Spacer()
@@ -147,7 +155,7 @@ struct PreferencesThemeTab: View {
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(SparkleTheme.Colors.accent)
+                    .foregroundStyle(appState.activePalette.accentColor)
             }
         }
         .contentShape(Rectangle())

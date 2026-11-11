@@ -6,7 +6,7 @@ This document maps every workground (domain work stream) to its SwiftPM module b
 
 | ID | Workground | SwiftPM Target(s) | Dependencies | Verification Gate | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **WG-1** | Project Foundation, SwiftPM Manifest, Multi-Themes (`28` SparkNotePad Palettes) & JSON i18n (`271` Keys) | `Package.swift`, `SparkleCore`, `SparkleDesignSystem` (`Resources/Locales/`) | — | `swift build`, `CoreTests` (`ThemeAndLocalizationTests`), `swiftlint --strict` | ✅ Implemented & Enhanced |
+| **WG-1** | Project Foundation, SwiftPM Manifest, Multi-Themes (`28` SparkNotePad Palettes) & JSON i18n (`285` Keys) | `Package.swift`, `SparkleCore`, `SparkleDesignSystem` (`Resources/Locales/`) | — | `swift build`, `CoreTests` (`ThemeAndLocalizationTests`), `swiftlint --strict` | ✅ Implemented & Enhanced |
 | **WG-2** | Core SSH, SFTP v3 Binary Engine & SCP Compatibility Adapter | `SparkleNetworking` (`SSHClientService`, `SFTPPacketCodec`, `SFTPService`, `SCPCompatibilityAdapter`) | WG-1, WG-7 | `NetworkingTests` (SFTP wire round-trip, SCP escaping, NIOSSH `0.15.1` pin) | ✅ Implemented in MVP |
 | **WG-3** | FTP & Explicit/Implicit FTPS Engine via `Clibcurl` + `SecTrust` | `Clibcurl`, `SparkleNetworking` (`FTPService`, `FTPListingParser`) | WG-1, WG-7 | `NetworkingTests` (FTP listing parser, FTPS TLS options, zero downgrade) | ✅ Implemented in MVP |
 | **WG-4** | SwiftUI + AppKit Dual-Pane Commander Shell & Minimalist Notepad2 Internal Editor | `SparkleFileManager`, `SparkleFeatures` (`Commander/`, `Editor/`), `SparkleSFTP` (`App/`) | WG-1 | `FileManagerTests`, `EditorAndSyncTests`, `swift build` macOS executable | ✅ Implemented & Enhanced |
@@ -14,7 +14,7 @@ This document maps every workground (domain work stream) to its SwiftPM module b
 | **WG-6** | Actor Transfer Engine & Durable SQLite Journal | `SparkleTransferEngine`, `SparkleFeatures/Transfers` | WG-1, WG-7 | `TransferEngineTests` (reentrancy, per-host cap, resume revalidation, SHA-256) | ✅ Implemented in MVP |
 | **WG-7** | Security Engine, Persistence & FileZilla/WinSCP Preview Importers | `SparkleSecurity`, `SparklePersistence` (`WinSCPAndFileReader`), `SparkleFeatures/Connections` | WG-1 | `SecurityTests`, `PersistenceTests`, `ExternalImportersTests` | ✅ Implemented & Enhanced |
 | **WG-8** | Directory Synchronization (`TASK-108` Bidirectional), Remote Editor Auto-Upload & Custom JSON Locales | `SparkleSynchronization`, `SparkleFeatures/Synchronization`, `SparkleDesignSystem` | WG-1, WG-6, WG-7 | `SynchronizationTests`, `BidirectionalSyncTests`, `EditorAndSyncTests` | ✅ Implemented & Enhanced |
-| **WG-9** | Docker Interop Fixtures, CI Hygiene, Auto-Update Preferences & Sparkle/DMG Release Tooling | `Tools/TestServers`, `Tools/Release`, `App/SparkleUpdaterService`, `.github/workflows/` | All | `markdownlint-cli2`, `actionlint`, `shellcheck`, `swift test` (`60 tests in 16 suites`) | ✅ Implemented & Enhanced |
+| **WG-9** | Docker Interop Fixtures, CI Hygiene, Auto-Update Preferences & Sparkle/DMG Release Tooling | `Tools/TestServers`, `Tools/Release`, `App/SparkleUpdaterService`, `.github/workflows/` | All | `markdownlint-cli2`, `actionlint`, `shellcheck`, `clang-format`, `swift test` (`64 tests in 17 suites`) | ✅ Implemented & Enhanced |
 
 ---
 

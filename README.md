@@ -66,10 +66,11 @@
 
 - **Dual-Pane Commander Experience**: Local ↔ Remote and Remote ↔ Remote panes backed by AppKit `NSTableView` for smooth 100K+ file browsing, keyboard shortcuts (`Tab`, `F5`–`F8`), Quick Look (`QLPreviewPanel`), Finder drag-and-drop, and built-in multi-tab editing.
 - **Minimalist Notepad2 Internal File Editor (`⌘E`)**: Embedded multi-tab AppKit `NSTextView` editor (`Features/Editor/`) with `NSRulerView` line numbers, active palette syntax highlighting, whitespace glyph overlay (`¶`), word wrap, zoom `+/-/%`, read-only lock, regex Find & Replace, Go-to-Line, text transforms (UPPER/lower/Title/Trim/Sort), `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` + `LF`/`CRLF` converters, and remote save + auto-upload.
-- **Multi-Theme Engine (`SparkNotePad` Palettes)**: `28` curated themes across `15` developer families (`NotepadNext`, `Catppuccin`, `Dracula`, `Tokyo Night`, `Nord`, `One Dark`, `Gruvbox`, `Solarized`, `GitHub`, `Monokai`, `Rosé Pine`, `Night Owl`, `SynthWave '84`, `Cobalt2`, `Tomorrow`) with `Auto / Light / Dark` mode, WCAG 2.1 contrast validation, and custom JSON theme directory import/export.
-- **Connection Manager & Fast Shutdown**: Double-click rows to connect, atomic Edit Connection modal (`ConnectionEditorMode`), **Clone Connection** with independent Keychain secret duplication, `⌘A` Select All & batch Delete Selected confirmation, plus instant non-deadlocking quit via `applicationShouldTerminate` and bounded parallel NIO teardown.
+- **Multi-Theme Engine (`SparkNotePad` Palettes) & Full Workspace Sync**: `28` curated themes across `15` developer families (`NotepadNext`, `Catppuccin`, `Dracula`, `Tokyo Night`, `Nord`, `One Dark`, `Gruvbox`, `Solarized`, `GitHub`, `Monokai`, `Rosé Pine`, `Night Owl`, `SynthWave '84`, `Cobalt2`, `Tomorrow`) with `Auto / Light / Dark` mode, WCAG 2.1 contrast validation, custom JSON theme import/export, and live propagation (`sparkleWorkspaceSurface`, `TerminalThemeColors`, AppKit tables, `NSApp.windows`) across Commander, Terminal, Transfers, Snippets, Sync, Preferences, and About dialogs.
+- **Connection Manager, AppKit Cursor Focus & Keychain Password Memory**: Native AppKit `ConnectionListTableView` (`NSTableView` with unique row keys) + `InteractiveFileTableView` click/arrow-key focus navigation, double-click connect, atomic Edit Connection (`ConnectionEditorMode`), **Clone Connection**, `⌘A` Select All & batch Delete Selected, Keychain **Remember Password** / clear secret controls (`ConnectionEditorView`, `CredentialPromptSheet`, `FTPService`), and instant non-deadlocking quit via `applicationShouldTerminate`.
+- **SparkNotePad-Style About Dialog & 1:1 Branded AppIcon**: 6-tab About window (`AboutView`, `AboutView+Tabs`, `AboutWindowController`) featuring system/theme/session copyable diagnostics, GitHub/maintainer/PayPal info, shortcuts, license, and a 1:1 squircle `AppIcon.png`/`.icns` styled in SparkNotePad's blue, white, and pastel yellow pencil palette.
 - **Responsive Runtime Architecture**: Dedicated `TransferMonitor` isolating 10Hz transfer updates from whole-window SwiftUI re-renders, cached `AppStrings` & `SparkleThemePalette`, 2-second throttled SQLite WAL checkpoints during active transfers, and single-`lstat` POSIX local directory enumeration.
-- **Maintainable JSON i18n & Importers**: JSON locale catalogs (`en.json` & `id.json`, `271` synchronized keys) + runtime override directory (`~/Library/Application Support/SparkleSFTP/Locales/`), live coverage inspector, and preview-based FileZilla XML (`<Folder>`, `base64`, `crypt` protection) & WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxies, nested folders) importer (`ImportConnectionsSheet`).
+- **Maintainable JSON i18n & Importers**: JSON locale catalogs (`en.json` & `id.json`, `285` synchronized keys) + runtime override directory (`~/Library/Application Support/SparkleSFTP/Locales/`), live coverage inspector, and preview-based FileZilla XML (`<Folder>`, `base64`, `crypt` protection) & WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxies, nested folders) importer (`ImportConnectionsSheet`).
 - **Auto-Update Controls & Bidirectional Sync**: Configurable `AutoUpdateSettings` (auto-check/download, `Hourly`/`Daily`/`Weekly`/`Manual` frequency, `Stable`/`Beta` channel, HTTPS feed validation, community GitHub Releases API fallback check) and full `SyncDirection` (`Local -> Remote`, `Remote -> Local`, `Bidirectional Newest Wins`).
 - **Complete Protocol Coverage**: SFTP, SSH Terminal (PTY), Explicit/Implicit FTPS, Plain FTP (with explicit security warnings), and isolated SCP fallback (`SCPCompatibilityAdapter`).
 - **Actor-Isolated Transfer Engine**: Bounded global and per-host concurrency, checkpointed pause/resume with remote metadata revalidation, durable `TransferJournal` crash recovery, and atomic temporary-write + SHA-256 verification.
@@ -154,7 +155,7 @@ SparkleSFTP/
 ├── Packages/
 │   ├── Clibcurl/              # Non-variadic C helper bridge over system libcurl
 │   ├── Core/                  # Domain models, RemotePath, AppError, Protocols, FeatureFlags, UpdateModels
-│   ├── DesignSystem/          # SparkNotePad theme palettes (28 themes / 15 families), components, EN/ID JSON Locales (271 keys)
+│   ├── DesignSystem/          # SparkNotePad theme palettes (28 themes / 15 families), components, EN/ID JSON Locales (285 keys)
 │   ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
 │   ├── Networking/            # SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService, Proxy
 │   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), FileZilla/WinSCP & SSH Importers
@@ -162,13 +163,13 @@ SparkleSFTP/
 │   ├── Synchronization/       # DirectoryScanner, SyncPlanner (One-Way & Bidirectional, 60s TTL), SyncExecutor
 │   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, SessionManager, PortForwardingManager
 │   └── TransferEngine/        # TransferQueue actor, TransferScheduler, ResumeValidator, SHA256Verifier
-├── Features/                  # SwiftUI + AppKit Views (Commander, Connections, Notepad2 Editor, Terminal, Transfers, Sync, Settings) & AppState
-├── Tests/                     # 8 test targets (60 tests across 16 Swift Testing suites, incl. live loopback SSH/SFTP)
+├── Features/                  # SwiftUI + AppKit Views (Commander, ConnectionListTableView, About, Notepad2 Editor, Terminal, Transfers, Sync, Settings)
+├── Tests/                     # 8 test targets (64 tests across 17 Swift Testing suites, incl. live loopback SSH/SFTP)
 ├── Tools/
 │   ├── Release/               # Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
 │   └── TestServers/           # Docker Compose fixtures (OpenSSH, vsftpd, ProFTPD) & smoke runner
 ├── .github/workflows/         # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
-└── docs/                      # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, ADRs 0001–0005
+└── docs/                      # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, ADRs 0001–0006
 ```
 
 ---
@@ -184,7 +185,7 @@ SparkleSFTP/
 | **Phase 05** | Commander UI | Dual-pane `NSTableView`, F5–F8 shortcuts, Quick Look, Finder drag-drop *(Done)* |
 | **Phase 06** | Transfer Engine | Actor `TransferQueue`, per-host throttling, `SQLite3` `TransferJournal`, SHA-256 atomic write *(Done)* |
 | **Phase 07** | Terminal & Sync | `SwiftTerm` multi-tab/split PTY, `-L`/`-R` port forwarding, dry-run sync, EN/ID *(Done)* |
-| **Phase 08** | QA & Release | 60 tests in 16 suites (122 Swift files), Connection UX + Fast Exit + Perf tuning, Auto-Update controls + Multi-Themes + Notepad2 Editor + Bidirectional Sync, Universal 2 DMG (`release.yml`), CI/lint green; production notarization pending Developer ID *(In Progress)* |
+| **Phase 08** | QA & Release | 64 tests in 17 suites (129 Swift files), Full Workspace Themes + 6-Tab About + 1:1 Logo + Keychain Remember Password + AppKit Cursor Navigation + C11 IDE config, Universal 2 DMG (`release.yml`), CI/lint green; production notarization pending Developer ID *(In Progress)* |
 
 ---
 

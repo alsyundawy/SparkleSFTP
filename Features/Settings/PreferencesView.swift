@@ -37,7 +37,7 @@ public struct PreferencesView: View {
         }
         .padding(SparkleTheme.Spacing.medium)
         .frame(width: 640, height: 480)
-        .environment(\.sparklePalette, appState.activePalette)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 
     private var transfersAndBehaviorTab: some View {
@@ -80,5 +80,7 @@ public struct PreferencesView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(appState.activePalette.windowColor)
     }
 }

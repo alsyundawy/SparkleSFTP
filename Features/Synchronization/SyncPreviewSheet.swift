@@ -112,6 +112,8 @@ public struct SyncPreviewSheet: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background(appState.activePalette.canvasColor)
                 .frame(minHeight: 200)
 
                 Toggle(appState.strings.t("sync.dryRunOnly"), isOn: $dryRunOnly)
@@ -138,12 +140,13 @@ public struct SyncPreviewSheet: View {
             } else {
                 Text(appState.strings.t("sync.emptyPrompt"))
                     .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(appState.activePalette.secondaryTextColor)
                     .frame(maxWidth: .infinity, minHeight: 160)
             }
         }
         .padding(SparkleTheme.Spacing.large)
         .frame(width: 680)
+        .sparkleWorkspaceSurface(appState.activePalette)
     }
 
     private func actionRow(prefix: String, action: SyncAction) -> some View {

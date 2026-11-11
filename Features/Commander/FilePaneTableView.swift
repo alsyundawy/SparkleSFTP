@@ -22,13 +22,52 @@ private struct TableColumnSpec {
     let width: CGFloat
 }
 
+private final class InteractiveFileTableView: NSTableView {
+    var onActivateSelected: (() -> Void)?
+    var onQuickLookSelected: (() -> Void)?
+    var onGoParent: (() -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        super.mouseDown(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 36, 76:
+            onActivateSelected?()
+        case 49:
+            onQuickLookSelected?()
+        case 51:
+            onGoParent?()
+        case 126 where event.modifierFlags.contains(.command):
+            onGoParent?()
+        default:
+            super.keyDown(with: event)
+        }
+    }
+}
+
+private final class ThemedFileRowView: NSTableRowView {
+    var highlightColor = NSColor.selectedContentBackgroundColor
+
+    override func drawSelection(in _: NSRect) {
+        guard selectionHighlightStyle != .none, isSelected else { return }
+        highlightColor.setFill()
+        bounds.fill()
+    }
+}
+
 /// High-performance AppKit NSTableView wrapped for SwiftUI with strict cell dequeue reuse (MEM-004).
 public struct FilePaneTableView: NSViewRepresentable {
     public let files: [RemoteFile]
     @Binding public var selectedIDs: Set<String>
     public let isLocalPane: Bool
     public let strings: AppStrings
+    public let palette: SparkleThemePalette
     public let onActivateRow: (RemoteFile) -> Void
+    public let onQuickLookRow: ((RemoteFile) -> Void)?
+    public let onGoParent: (() -> Void)?
     public let onSortColumn: (FileSortField) -> Void
     public let onFocusPane: () -> Void
     public let onContextAction: (FilePaneContextAction, RemoteFile?) -> Void
@@ -38,7 +77,10 @@ public struct FilePaneTableView: NSViewRepresentable {
         selectedIDs: Binding<Set<String>>,
         isLocalPane: Bool = true,
         strings: AppStrings = AppStrings(),
+        palette: SparkleThemePalette = SparkleThemeCatalog.defaultLight,
         onActivateRow: @escaping (RemoteFile) -> Void,
+        onQuickLookRow: ((RemoteFile) -> Void)? = nil,
+        onGoParent: (() -> Void)? = nil,
         onSortColumn: @escaping (FileSortField) -> Void,
         onFocusPane: @escaping () -> Void,
         onContextAction: @escaping (FilePaneContextAction, RemoteFile?) -> Void = { _, _ in }
@@ -47,7 +89,10 @@ public struct FilePaneTableView: NSViewRepresentable {
         _selectedIDs = selectedIDs
         self.isLocalPane = isLocalPane
         self.strings = strings
+        self.palette = palette
         self.onActivateRow = onActivateRow
+        self.onQuickLookRow = onQuickLookRow
+        self.onGoParent = onGoParent
         self.onSortColumn = onSortColumn
         self.onFocusPane = onFocusPane
         self.onContextAction = onContextAction
@@ -62,16 +107,29 @@ public struct FilePaneTableView: NSViewRepresentable {
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.autohidesScrollers = true
+        scrollView.drawsBackground = true
 
-        let tableView = NSTableView()
-        tableView.usesAlternatingRowBackgroundColors = true
+        let tableView = InteractiveFileTableView()
+        tableView.usesAlternatingRowBackgroundColors = false
+        tableView.gridStyleMask = .solidHorizontalGridLineMask
         tableView.allowsMultipleSelection = true
+        tableView.allowsEmptySelection = true
+        tableView.allowsTypeSelect = true
         tableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         tableView.rowHeight = 22
         tableView.target = context.coordinator
         tableView.doubleAction = #selector(Coordinator.handleDoubleClick(_:))
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
+        tableView.onActivateSelected = { [weak coordinator = context.coordinator] in
+            coordinator?.activateCurrentSelection()
+        }
+        tableView.onQuickLookSelected = { [weak coordinator = context.coordinator] in
+            coordinator?.quickLookCurrentSelection()
+        }
+        tableView.onGoParent = { [weak coordinator = context.coordinator] in
+            coordinator?.parent.onGoParent?()
+        }
 
         let columns: [TableColumnSpec] = [
             TableColumnSpec(identifier: "name", title: strings.t("pane.name"), width: 240),
@@ -90,7 +148,9 @@ public struct FilePaneTableView: NSViewRepresentable {
         scrollView.documentView = tableView
         tableView.menu = context.coordinator.buildContextMenu()
         context.coordinator.cachedLocaleCode = strings.localeCode
+        context.coordinator.scrollView = scrollView
         context.coordinator.tableView = tableView
+        context.coordinator.applyTheme(palette)
         return scrollView
     }
 
@@ -98,28 +158,23 @@ public struct FilePaneTableView: NSViewRepresentable {
         context.coordinator.parent = self
         guard let tableView = context.coordinator.tableView else { return }
         if context.coordinator.cachedLocaleCode != strings.localeCode {
-            context.coordinator.cachedLocaleCode = strings.localeCode
-            let localizedTitles: [String: String] = [
-                "name": strings.t("pane.name"),
-                "size": strings.t("pane.size"),
-                "modified": strings.t("pane.modified"),
-                "permissions": strings.t("pane.permissions")
-            ]
-            for column in tableView.tableColumns {
-                if let title = localizedTitles[column.identifier.rawValue] {
-                    column.title = title
-                }
-            }
-            tableView.menu = context.coordinator.buildContextMenu()
+            context.coordinator.updateLocalizedHeadersAndMenu(for: tableView)
         }
-        if context.coordinator.cachedFiles.count != files.count || context.coordinator.cachedFiles != files {
+        let themeChanged = context.coordinator.cachedPalette != palette
+        if themeChanged {
+            context.coordinator.applyTheme(palette)
+        }
+        let filesChanged = context.coordinator.cachedFiles.count != files.count
+            || context.coordinator.cachedFiles != files
+        if filesChanged || themeChanged {
             context.coordinator.cachedFiles = files
             context.coordinator.isProgrammaticUpdate = true
             tableView.reloadData()
-            let matchingIndexes = IndexSet(
-                files.enumerated().compactMap { selectedIDs.contains($0.element.id) ? $0.offset : nil }
-            )
-            tableView.selectRowIndexes(matchingIndexes, byExtendingSelection: false)
+            context.coordinator.syncSelectionToTableView()
+            context.coordinator.isProgrammaticUpdate = false
+        } else if context.coordinator.lastSyncedSelection != selectedIDs {
+            context.coordinator.isProgrammaticUpdate = true
+            context.coordinator.syncSelectionToTableView()
             context.coordinator.isProgrammaticUpdate = false
         }
     }
@@ -130,7 +185,10 @@ public extension FilePaneTableView {
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         var parent: FilePaneTableView
         var cachedFiles: [RemoteFile] = []
+        var cachedPalette: SparkleThemePalette?
         var cachedLocaleCode: String = ""
+        var lastSyncedSelection: Set<String> = []
+        weak var scrollView: NSScrollView?
         weak var tableView: NSTableView?
         var isProgrammaticUpdate = false
 
@@ -154,10 +212,42 @@ public extension FilePaneTableView {
         init(parent: FilePaneTableView) {
             self.parent = parent
             cachedFiles = parent.files
+            lastSyncedSelection = parent.selectedIDs
+        }
+
+        func applyTheme(_ palette: SparkleThemePalette) {
+            cachedPalette = palette
+            let canvasColor = NSColor(hex: palette.canvasHex)
+            scrollView?.backgroundColor = canvasColor
+            tableView?.backgroundColor = canvasColor
+            tableView?.gridColor = NSColor(hex: palette.borderHex).withAlphaComponent(0.32)
+        }
+
+        func updateLocalizedHeadersAndMenu(for tableView: NSTableView) {
+            cachedLocaleCode = parent.strings.localeCode
+            let localizedTitles: [String: String] = [
+                "name": parent.strings.t("pane.name"),
+                "size": parent.strings.t("pane.size"),
+                "modified": parent.strings.t("pane.modified"),
+                "permissions": parent.strings.t("pane.permissions")
+            ]
+            for column in tableView.tableColumns {
+                if let title = localizedTitles[column.identifier.rawValue] {
+                    column.title = title
+                }
+            }
+            tableView.menu = buildContextMenu()
         }
 
         public func numberOfRows(in _: NSTableView) -> Int {
             cachedFiles.count
+        }
+
+        public func tableView(_: NSTableView, rowViewForRow _: Int) -> NSTableRowView? {
+            let rowView = ThemedFileRowView()
+            let accent = NSColor(hex: parent.palette.accentHex)
+            rowView.highlightColor = accent.withAlphaComponent(parent.palette.isDark ? 0.34 : 0.20)
+            return rowView
         }
 
         public func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
@@ -175,26 +265,31 @@ public extension FilePaneTableView {
                 Self.buildReusableCell(identifier: cellID, includeIcon: columnID == "name")
             }
 
+            let palette = parent.palette
             switch columnID {
             case "name":
                 cell.textField?.stringValue = item.name
+                cell.textField?.textColor = NSColor(hex: palette.primaryTextHex)
                 if item.isDirectory {
                     cell.imageView?.image = Self.folderSymbol
-                } else if item.isSymlink {
-                    cell.imageView?.image = Self.linkSymbol
+                    cell.imageView?.contentTintColor = NSColor(hex: palette.accentHex)
                 } else {
-                    cell.imageView?.image = Self.fileSymbol
+                    cell.imageView?.image = item.isSymlink ? Self.linkSymbol : Self.fileSymbol
+                    cell.imageView?.contentTintColor = NSColor(hex: palette.secondaryTextHex)
                 }
             case "size":
                 let sizeLabel = item.isDirectory
                     ? "--"
                     : Self.byteFormatter.string(fromByteCount: item.size)
                 cell.textField?.stringValue = sizeLabel
+                cell.textField?.textColor = NSColor(hex: palette.secondaryTextHex)
             case "modified":
                 let dateLabel = item.modificationTime.map { Self.dateFormatter.string(from: $0) } ?? "--"
                 cell.textField?.stringValue = dateLabel
+                cell.textField?.textColor = NSColor(hex: palette.secondaryTextHex)
             case "permissions":
                 cell.textField?.stringValue = POSIXPermissions(mode: item.permissions).symbolicString
+                cell.textField?.textColor = NSColor(hex: palette.secondaryTextHex)
             default:
                 break
             }
@@ -208,8 +303,20 @@ public extension FilePaneTableView {
             for row in tableView.selectedRowIndexes where row < cachedFiles.count {
                 ids.insert(cachedFiles[row].id)
             }
+            lastSyncedSelection = ids
             if parent.selectedIDs != ids {
                 parent.selectedIDs = ids
+            }
+        }
+
+        func syncSelectionToTableView() {
+            guard let tableView else { return }
+            lastSyncedSelection = parent.selectedIDs
+            let matchingIndexes = IndexSet(
+                cachedFiles.enumerated().compactMap { parent.selectedIDs.contains($0.element.id) ? $0.offset : nil }
+            )
+            if tableView.selectedRowIndexes != matchingIndexes {
+                tableView.selectRowIndexes(matchingIndexes, byExtendingSelection: false)
             }
         }
 
@@ -229,76 +336,14 @@ public extension FilePaneTableView {
             parent.onActivateRow(cachedFiles[row])
         }
 
-        func buildContextMenu() -> NSMenu {
-            let menu = NSMenu(title: "Commander Actions")
-            let specs: [(String, FilePaneContextAction)] = [
-                (parent.strings.t("common.open"), .open),
-                (parent.isLocalPane ? parent.strings.upload : parent.strings.download, .transfer),
-                (parent.strings.t("nav.quickLook"), .quickLook),
-                (parent.strings.t("pane.openInNotepad"), .edit),
-                (parent.strings.t("common.rename"), .rename),
-                (parent.strings.t("pane.chmod"), .permissions),
-                (parent.strings.t("pane.getInfo"), .inspect),
-                (parent.strings.newFolder, .newFolder),
-                (parent.strings.t("common.delete"), .delete)
-            ]
-            for (title, action) in specs {
-                if action == .permissions, parent.isLocalPane {
-                    continue
-                }
-                let item = NSMenuItem(title: title, action: #selector(handleContextMenuClick(_:)), keyEquivalent: "")
-                item.target = self
-                item.tag = action.rawValue
-                menu.addItem(item)
-            }
-            return menu
+        func activateCurrentSelection() {
+            guard let row = tableView?.selectedRow, row >= 0, row < cachedFiles.count else { return }
+            parent.onActivateRow(cachedFiles[row])
         }
 
-        @objc func handleContextMenuClick(_ sender: NSMenuItem) {
-            guard let action = FilePaneContextAction(rawValue: sender.tag) else { return }
-            parent.onFocusPane()
-            let clickedRow = tableView?.clickedRow ?? -1
-            let selectedRow = tableView?.selectedRow ?? -1
-            let targetIndex = clickedRow >= 0 ? clickedRow : selectedRow
-            let targetFile = (targetIndex >= 0 && targetIndex < cachedFiles.count) ? cachedFiles[targetIndex] : nil
-            parent.onContextAction(action, targetFile)
-        }
-
-        private static func buildReusableCell(
-            identifier: NSUserInterfaceItemIdentifier,
-            includeIcon: Bool
-        ) -> NSTableCellView {
-            let cell = NSTableCellView()
-            cell.identifier = identifier
-
-            let textField = NSTextField(labelWithString: "")
-            textField.lineBreakMode = .byTruncatingMiddle
-            textField.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(textField)
-            cell.textField = textField
-
-            if includeIcon {
-                let imageView = NSImageView()
-                imageView.translatesAutoresizingMaskIntoConstraints = false
-                cell.addSubview(imageView)
-                cell.imageView = imageView
-                NSLayoutConstraint.activate([
-                    imageView.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
-                    imageView.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: 16),
-                    imageView.heightAnchor.constraint(equalToConstant: 16),
-                    textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 6),
-                    textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
-                    textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-                ])
-            } else {
-                NSLayoutConstraint.activate([
-                    textField.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 6),
-                    textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -6),
-                    textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-                ])
-            }
-            return cell
+        func quickLookCurrentSelection() {
+            guard let row = tableView?.selectedRow, row >= 0, row < cachedFiles.count else { return }
+            parent.onQuickLookRow?(cachedFiles[row])
         }
     }
 }

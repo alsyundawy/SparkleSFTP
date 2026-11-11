@@ -77,12 +77,15 @@ public struct ImportConnectionsSheet: View {
 
                 List(Array(report.connections.enumerated()), id: \.offset) { idx, entry in
                     entryRow(index: idx, entry: entry)
+                        .listRowBackground(appState.activePalette.canvasColor)
                 }
+                .scrollContentBackground(.hidden)
+                .background(appState.activePalette.canvasColor)
                 .frame(minHeight: 240)
             } else {
                 Text(strings.t("import.noEntries"))
                     .font(SparkleTheme.Typography.body)
-                    .foregroundStyle(SparkleTheme.Colors.secondaryText)
+                    .foregroundStyle(appState.activePalette.secondaryTextColor)
                     .frame(maxWidth: .infinity, minHeight: 200)
             }
 
@@ -113,6 +116,7 @@ public struct ImportConnectionsSheet: View {
         }
         .padding(SparkleTheme.Spacing.large)
         .frame(width: 680, height: 520)
+        .sparkleWorkspaceSurface(appState.activePalette)
         .onAppear {
             selectAllCurrent()
         }
