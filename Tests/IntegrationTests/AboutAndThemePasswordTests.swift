@@ -146,7 +146,8 @@ struct AboutAndThemePasswordTests {
         let diagnostics = AboutView(appState: appState).buildDiagnosticsText()
         #expect(diagnostics.contains("SparkleSFTP v"))
         #expect(diagnostics.contains(darkPalette.displayName))
-        #expect(AboutTabKind.allCases.count == 6)
+        #expect(AboutTabKind.allCases.count == 7)
+        #expect(AboutTabKind.allCases.contains(.libraries))
 
         for code in ["en", "id"] {
             appState.selectLocale(code: code)

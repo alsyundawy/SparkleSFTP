@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import SparkleCore
 import SparkleDesignSystem
+import SparkleNetworking
 
 public extension AppState {
     private enum PreferenceKey {
@@ -11,6 +12,10 @@ public extension AppState {
         static let themeID = "sparklesftp.selectedThemeID"
         static let maxGlobal = "sparklesftp.maxGlobalTransfers"
         static let maxPerHost = "sparklesftp.maxPerHostTransfers"
+        static let pipelineDepth = "sparklesftp.transferPipelineDepth"
+        static let useZlib = "sparklesftp.useZlibCompression"
+        static let preferredShell = "sparklesftp.preferredShellPath"
+        static let externalTerminal = "sparklesftp.externalTerminalApp"
         static let conflictPolicy = "sparklesftp.conflictPolicy"
         static let openInternalEditor = "sparklesftp.openDoubleClickInInternalEditor"
         static let updateSettings = "sparklesftp.autoUpdateSettings"
@@ -18,6 +23,12 @@ public extension AppState {
 
     internal func loadPersistedPreferences() {
         let defaults = UserDefaults.standard
+        loadLocalizationAndThemePreferences(defaults)
+        loadTransferAndToolchainPreferences(defaults)
+        didLoadPreferences = true
+    }
+
+    private func loadLocalizationAndThemePreferences(_ defaults: UserDefaults) {
         if let rawLang = defaults.string(forKey: PreferenceKey.language),
            let loadedLang = AppLanguage(rawValue: rawLang) {
             language = loadedLang
@@ -34,13 +45,35 @@ public extension AppState {
         if let savedTheme = defaults.string(forKey: PreferenceKey.themeID), !savedTheme.isEmpty {
             selectedThemeID = savedTheme
         }
+        if let updateData = defaults.data(forKey: PreferenceKey.updateSettings),
+           let decoded = try? JSONDecoder().decode(AutoUpdateSettings.self, from: updateData) {
+            autoUpdateSettings = decoded
+        }
+    }
+
+    private func loadTransferAndToolchainPreferences(_ defaults: UserDefaults) {
         let storedGlobal = defaults.integer(forKey: PreferenceKey.maxGlobal)
-        if storedGlobal >= 1, storedGlobal <= 8 {
+        if storedGlobal >= 1, storedGlobal <= 16 {
             maxGlobalConcurrentTransfers = storedGlobal
         }
         let storedHost = defaults.integer(forKey: PreferenceKey.maxPerHost)
-        if storedHost >= 1, storedHost <= 4 {
+        if storedHost >= 1, storedHost <= 8 {
             maxPerHostConcurrentTransfers = storedHost
+        }
+        let storedDepth = defaults.integer(forKey: PreferenceKey.pipelineDepth)
+        if storedDepth >= 1, storedDepth <= 16 {
+            transferPipelineDepth = storedDepth
+        }
+        if defaults.object(forKey: PreferenceKey.useZlib) != nil {
+            useZlibCompression = defaults.bool(forKey: PreferenceKey.useZlib)
+        }
+        if let savedShell = defaults.string(forKey: PreferenceKey.preferredShell),
+           FileManager.default.isExecutableFile(atPath: savedShell) {
+            preferredShellPath = savedShell
+        }
+        if let rawTerm = defaults.string(forKey: PreferenceKey.externalTerminal),
+           let loadedTerm = ExternalTerminalApp(rawValue: rawTerm) {
+            externalTerminalApp = loadedTerm
         }
         if let rawPolicy = defaults.string(forKey: PreferenceKey.conflictPolicy),
            let policy = TransferConflictPolicy(rawValue: rawPolicy) {
@@ -49,11 +82,6 @@ public extension AppState {
         if defaults.object(forKey: PreferenceKey.openInternalEditor) != nil {
             openDoubleClickInInternalEditor = defaults.bool(forKey: PreferenceKey.openInternalEditor)
         }
-        if let updateData = defaults.data(forKey: PreferenceKey.updateSettings),
-           let decoded = try? JSONDecoder().decode(AutoUpdateSettings.self, from: updateData) {
-            autoUpdateSettings = decoded
-        }
-        didLoadPreferences = true
     }
 
     internal func savePreferencesIfLoaded() {
@@ -65,6 +93,10 @@ public extension AppState {
         defaults.set(selectedThemeID, forKey: PreferenceKey.themeID)
         defaults.set(maxGlobalConcurrentTransfers, forKey: PreferenceKey.maxGlobal)
         defaults.set(maxPerHostConcurrentTransfers, forKey: PreferenceKey.maxPerHost)
+        defaults.set(transferPipelineDepth, forKey: PreferenceKey.pipelineDepth)
+        defaults.set(useZlibCompression, forKey: PreferenceKey.useZlib)
+        defaults.set(preferredShellPath, forKey: PreferenceKey.preferredShell)
+        defaults.set(externalTerminalApp.rawValue, forKey: PreferenceKey.externalTerminal)
         defaults.set(defaultConflictPolicy.rawValue, forKey: PreferenceKey.conflictPolicy)
         defaults.set(openDoubleClickInInternalEditor, forKey: PreferenceKey.openInternalEditor)
         if let encoded = try? JSONEncoder().encode(autoUpdateSettings) {
@@ -195,5 +227,10 @@ public extension AppState {
     func resetAutoUpdateFeedURL() {
         autoUpdateSettings.customFeedURL = AutoUpdateSettings.defaultStableFeedURL
         applyAutoUpdateConfiguration()
+    }
+
+    func refreshToolchainReport() async {
+        let isSandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
+        toolchainReport = await ToolchainInspector.inspectHostToolchain(runSubprocesses: !isSandboxed)
     }
 }

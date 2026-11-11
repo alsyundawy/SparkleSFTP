@@ -7,11 +7,17 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
     public nonisolated let profile: ConnectionProfile
     private let sshClient: SSHClientService
     var bridge: SFTPChannelBridge?
-    let chunkSize = 64 * 1024
+    let chunkSize = 32 * 1024
+    private var pipelineDepth: Int
 
-    public init(profile: ConnectionProfile, sshClient: SSHClientService) {
+    public init(profile: ConnectionProfile, sshClient: SSHClientService, pipelineDepth: Int = 8) {
         self.profile = profile
         self.sshClient = sshClient
+        self.pipelineDepth = min(16, max(1, pipelineDepth))
+    }
+
+    public func updatePipelineDepth(_ depth: Int) {
+        pipelineDepth = min(16, max(1, depth))
     }
 
     public var capabilities: Set<RemoteCapability> {
@@ -147,6 +153,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             localURL: localURL,
             initialOffset: offset,
             totalBytes: total,
+            inFlightWindow: max(1, pipelineDepth) * 2,
             onProgress: onProgress
         )
         try await transferDownloadChunks(ctx)
@@ -183,6 +190,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             localURL: localURL,
             initialOffset: offset,
             totalBytes: total,
+            inFlightWindow: max(1, pipelineDepth) * 2,
             onProgress: onProgress
         )
         try await transferUploadChunks(ctx)

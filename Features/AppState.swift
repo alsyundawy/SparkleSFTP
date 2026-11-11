@@ -10,6 +10,11 @@ import SparkleSynchronization
 import SparkleTerminal
 import SparkleTransferEngine
 
+struct ConflictPromptEntry {
+    let context: ConflictContext
+    let continuation: CheckedContinuation<TransferConflictResolution, Never>
+}
+
 public struct ActiveSessionModel: Identifiable, Sendable {
     public let id: UUID
     public let profile: ConnectionProfile
@@ -73,6 +78,7 @@ public final class AppState: ObservableObject {
     @Published public var pendingCredentialPrompt: CredentialPromptRequest?
     @Published public var hostMismatchAlert: AppError?
     @Published public var pendingConflict: ConflictContext?
+    @Published public var hasActiveConflictQueueRules: Bool = false
     @Published public var pendingImportReport: ExternalImportReport?
     @Published public var isShowingImportSheet: Bool = false
     @Published public var syncPlan: SyncPlan?
@@ -134,13 +140,32 @@ public final class AppState: ObservableObject {
     @Published public var isTerminalVisible: Bool = false
     @Published public var isTransferDrawerVisible: Bool = true
     @Published public var splitTerminalMode: Bool = false
-    @Published public var maxGlobalConcurrentTransfers: Int = 3 {
+    @Published public var maxGlobalConcurrentTransfers: Int = 4 {
         didSet { savePreferencesIfLoaded() }
     }
 
-    @Published public var maxPerHostConcurrentTransfers: Int = 2 {
+    @Published public var maxPerHostConcurrentTransfers: Int = 3 {
         didSet { savePreferencesIfLoaded() }
     }
+
+    @Published public var transferPipelineDepth: Int = 8 {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var useZlibCompression: Bool = true {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var preferredShellPath: String = ToolchainInspector.detectAvailableShells().first
+        ?? "/usr/local/bin/bash" {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var externalTerminalApp: ExternalTerminalApp = .auto {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var toolchainReport = HostToolchainReport()
 
     @Published public var defaultConflictPolicy: TransferConflictPolicy = .ask {
         didSet { savePreferencesIfLoaded() }
@@ -170,7 +195,8 @@ public final class AppState: ObservableObject {
     var watchedLocalURL: URL?
     var hostChallengeContinuation: CheckedContinuation<Bool, Never>?
     var credentialPromptContinuation: CheckedContinuation<String?, Never>?
-    var conflictContinuation: CheckedContinuation<TransferConflictResolution, Never>?
+    var pendingConflictQueue: [ConflictPromptEntry] = []
+    var activeQueueConflictRules: [TransferConflictScope: TransferConflictPolicy] = [:]
     var remoteEditWatches: [URL: LocalDirectoryWatcher] = [:]
     var notifiedTerminalTransferIDs: Set<UUID> = []
     var connectingProfileIDs: Set<UUID> = []
@@ -272,10 +298,18 @@ public final class AppState: ObservableObject {
         credentialPromptContinuation = nil
     }
 
-    public func resolveConflict(_ resolution: TransferConflictResolution) {
-        pendingConflict = nil
-        conflictContinuation?.resume(returning: resolution)
-        conflictContinuation = nil
+    public func resolveConflict(
+        _ resolution: TransferConflictResolution,
+        applyToQueue: Bool = false,
+        queuePolicy: TransferConflictPolicy? = nil,
+        scope: TransferConflictScope = .all
+    ) {
+        handleConflictResolution(
+            resolution,
+            applyToQueue: applyToQueue,
+            queuePolicy: queuePolicy,
+            scope: scope
+        )
     }
 
     func resolveRemoteFileSystem(for profileID: UUID) throws -> any RemoteFileSystem {

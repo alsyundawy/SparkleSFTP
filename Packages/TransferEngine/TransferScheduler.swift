@@ -9,14 +9,14 @@ public actor TransferScheduler {
     private var pendingQueue: [TransferTaskMetadata] = []
     private var activePerHost: [String: Int] = [:]
 
-    public init(maxGlobalConcurrent: Int = 3, maxPerHostConcurrent: Int = 2) {
-        self.maxGlobalConcurrent = max(1, maxGlobalConcurrent)
-        self.maxPerHostConcurrent = max(1, maxPerHostConcurrent)
+    public init(maxGlobalConcurrent: Int = 4, maxPerHostConcurrent: Int = 3) {
+        self.maxGlobalConcurrent = min(16, max(1, maxGlobalConcurrent))
+        self.maxPerHostConcurrent = min(8, max(1, maxPerHostConcurrent))
     }
 
     public func updateLimits(maxGlobalConcurrent: Int, maxPerHostConcurrent: Int) {
-        self.maxGlobalConcurrent = max(1, maxGlobalConcurrent)
-        self.maxPerHostConcurrent = max(1, maxPerHostConcurrent)
+        self.maxGlobalConcurrent = min(16, max(1, maxGlobalConcurrent))
+        self.maxPerHostConcurrent = min(8, max(1, maxPerHostConcurrent))
     }
 
     public var totalActiveCount: Int {

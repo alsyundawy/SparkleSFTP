@@ -11,6 +11,26 @@ struct CurlRequestContext: Sendable {
 }
 
 enum CurlClientHelper {
+    private static let workerQueue = DispatchQueue(
+        label: "com.alsyundawy.SparkleSFTP.curl.worker",
+        qos: .userInitiated,
+        attributes: .concurrent
+    )
+
+    static func runOffCooperativePool<T: Sendable>(
+        _ operation: @escaping @Sendable () throws -> T
+    ) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            workerQueue.async {
+                do {
+                    try continuation.resume(returning: operation())
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     static func executeCurl(
         context: CurlRequestContext,
         performAutomatically: Bool = true,
@@ -30,6 +50,12 @@ enum CurlClientHelper {
         sparklesftp_curl_setopt_long(handle, CURLOPT_CONNECTTIMEOUT, 20)
         sparklesftp_curl_setopt_long(handle, CURLOPT_LOW_SPEED_LIMIT, 1)
         sparklesftp_curl_setopt_long(handle, CURLOPT_LOW_SPEED_TIME, 30)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_TCP_NODELAY, 1)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_TCP_KEEPALIVE, 1)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_TCP_KEEPIDLE, 30)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_TCP_KEEPINTVL, 15)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_BUFFERSIZE, 262_144)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_UPLOAD_BUFFERSIZE, 262_144)
 
         if context.proxy.kind != .none, !context.proxy.host.isEmpty {
             let scheme = context.proxy.kind == .socks5 ? "socks5h" : "http"

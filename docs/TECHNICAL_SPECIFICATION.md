@@ -74,7 +74,7 @@ Every third-party package and system framework below was inspected against upstr
 | **Cryptography** | `apple/swift-crypto` | `from: "3.12.3"` | Apache 2.0 | macOS 10.15+ | **APPROVED.** Hardware-accelerated SHA-256 streaming verification, Curve25519 / P-256 / P-384 / P-521 key support. |
 | **Terminal Emulator** | `migueldeicaza/SwiftTerm` | `"1.19.0" ..< "1.99.0"` (resolved `1.20.0`) | MIT | macOS 11+ | **APPROVED.** Stable Swift 6.0-manifest release (`v1.19.0`–`v1.20.0`) with AppKit `TerminalView` + `TerminalViewDelegate` (`v1.99.3` raises tools-version to 6.2 and adds `swift-png`). |
 | **Auto-Update** | `sparkle-project/Sparkle` | `"2.10.1" ..< "3.0.0"` | MIT | macOS 12+ | **APPROVED.** Binary `.xcframework` with HTTPS Appcast + Ed25519 (`SUPublicEDKey`) verification. Embedded into `.app/Contents/Frameworks` by release scripts. |
-| **FTP / FTPS Bridge** | System `libcurl` (`Clibcurl`) | macOS SDK (`8.7.1+`) | curl / MIT-like | macOS 13+ | **APPROVED.** Wrapped via non-variadic C helpers (`Packages/Clibcurl`) with `CURLOPT_PROTOCOLS_STR = "ftp,ftps"`, `CURLUSESSL_ALL`, TLS 1.2+. Does not use `libssh` (avoids **CVE-2025-15224**). |
+| **FTP / FTPS & Toolchain Bridge** | System `libcurl` + `zlib` (`Clibcurl`) | macOS SDK (`8.7.1+`, `zlib`) | curl / MIT-like | macOS 13+ | **APPROVED.** Non-variadic C11 helpers (`ClibcurlHelpers.c`, `ClibcurlSystemLibs.c`) with `256 KB` TCP keepalive buffers, GCD worker dispatch, `CWE-409` bounded `zlib`/`gzip`, `CURLOPT_PROTOCOLS_STR = "ftp,ftps"` (avoids **CVE-2025-15224**), and dynamic `dlopen` probe for optional Homebrew `libssh2`. |
 | **Keychain & Touch ID** | Apple `Security` + `LocalAuthentication` | macOS SDK | Apple System | macOS 13+ | **APPROVED.** Direct `SecItem*` + `LAContext` implementation enforcing `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. |
 | **Durable Journal** | macOS System `SQLite3` | macOS SDK (`libsqlite3.tbd`) | Public Domain | macOS 13+ | **APPROVED.** WAL-mode ACID checkpoints + bounded retention (`10,000` entries / `30` days). |
 | **TLS Validation** | Apple `Security` + `Network` (`SecTrust`) | macOS SDK | Apple System | macOS 13+ | **APPROVED.** `SecPolicyCreateSSL` + `SecPolicyCreateRevocation(kSecRevocationOCSPMethod)` + `SecTrustEvaluateWithError`. |
@@ -143,7 +143,7 @@ SparkleSFTP/
 │   ├── FileManager/
 │   ├── Terminal/
 │   ├── Synchronization/
-│   └── DesignSystem/          # ThemePalette/Catalog (28 themes / 15 families), Resources/Locales/{en,id}.json (285 keys)
+│   └── DesignSystem/          # ThemePalette/Catalog (28 themes / 15 families), Resources/Locales/{en,id}.json (309 keys)
 ├── Features/
 │   ├── AppState*.swift        # Main coordinator + Connections/ConnectionManagement/Operations/Imports/Settings/TransferHelpers extensions
 │   ├── MainWindowView.swift
@@ -152,9 +152,9 @@ SparkleSFTP/
 │   ├── Commander/
 │   ├── Editor/                # Notepad2 Internal Editor (NSTextView + NSRulerView + syntax/find/transforms)
 │   ├── Transfers/             # TransferMonitor + TransferQueueView + ConflictResolutionSheet
-│   ├── Terminal/
+│   ├── Terminal/              # TerminalWorkspaceView (remote PTY + local $SHELL + iTerm2/Terminal launcher)
 │   ├── Synchronization/       # SyncPreviewSheet (Local->Remote, Remote->Local, Bidirectional)
-│   └── Settings/              # PreferencesView + Theme, Localization & Auto-Update tabs
+│   └── Settings/              # PreferencesView + Theme, Localization card grid & Auto-Update tabs
 ├── Tests/
 │   ├── CoreTests/
 │   ├── SecurityTests/
@@ -168,7 +168,7 @@ SparkleSFTP/
 │   ├── TestServers/
 │   └── Release/
 └── docs/
-    ├── ADR/ (0001–0005)
+    ├── ADR/ (0001–0007)
     ├── ARCHITECTURE.md
     ├── CODE_REVIEW_14_PILLARS.md
     ├── IMPLEMENTATION_PLAN.md
@@ -203,4 +203,5 @@ Full details live in [`docs/SECURITY_MODEL.md`](SECURITY_MODEL.md):
 | **M4 — Transfer, FileManager & Sync** | Actor `TransferQueue`, Scheduler, `ResumeValidator`, `SHA256Verifier`, `LocalFileService`, `SyncPlanner`/`Executor` | `Packages/TransferEngine`, `Packages/FileManager`, `Packages/Synchronization` | `TransferEngineTests`, `FileManagerTests`, `SynchronizationTests` |
 | **M5 — Terminal, AppKit/SwiftUI UI & App** | `SwiftTerm` wrapper, PTY session manager, port forwarding, dual-pane `NSTableView`, Quick Look, views, `App/` | `Packages/Terminal`, `Features/`, `App/` | `IntegrationTests`, `swift build` executable |
 | **M6 — Release Tooling, QA & CI Gates** | Docker test servers, Universal 2/notarize/DMG shell scripts, full linter & test verification | `Tools/`, `.github/`, docs | `swift test`, `swiftlint --strict`, `shellcheck`, `markdownlint-cli2`, `actionlint` |
-| **M7 — Themes, i18n, Importers, Editor, Connection UX & Perf** | `28` SparkNotePad themes (`15` families) + full workspace sync, 6-tab About + 1:1 `AppIcon`, `285`-key EN/ID JSON catalogs, `AutoUpdateSettings` + GitHub Releases fallback, FileZilla/WinSCP `ImportConnectionsSheet`, Notepad2 editor, Bidirectional Sync (`TASK-108`), Remember Password Keychain + `FTPService` prompt, AppKit `ConnectionListTableView` + `InteractiveFileTableView` click/keyboard focus, Clone/batch delete, fast `applicationShouldTerminate` quit & `TransferMonitor` | `Packages/DesignSystem`, `Packages/Persistence`, `Packages/Synchronization`, `Features/*`, `App/` | `64 tests in 17 suites`, `swiftlint --strict` (`0/129`), `swiftformat --lint .` (`0/129`) |
+| **M7 — Themes, i18n, Importers, Editor, Connection UX & Perf** | `28` SparkNotePad themes (`15` families) + full workspace sync, 7-tab About + 1:1 `AppIcon`, `309`-key EN/ID JSON catalogs, `AutoUpdateSettings` + GitHub Releases fallback, FileZilla/WinSCP `ImportConnectionsSheet`, Notepad2 editor, Bidirectional Sync (`TASK-108`), Remember Password Keychain + `FTPService` prompt, AppKit `ConnectionListTableView` + `InteractiveFileTableView` click/keyboard focus, Clone/batch delete, fast `applicationShouldTerminate` quit & `TransferMonitor` | `Packages/DesignSystem`, `Packages/Persistence`, `Packages/Synchronization`, `Features/*`, `App/` | `AboutAndThemePasswordTests`, `ConnectionManagementAndPerfTests` |
+| **M8 — Toolchain Bridge, Pipelined Transfers & FileZilla Conflicts** | `Clibcurl` `-lcurl -lz` (`zlib`/`gzip` CWE-409), `CurlClientHelper` 256 KB + GCD workers, dynamic `libssh2` probe + `OpenSSL`/`OpenSSH`/POSIX shell detection (`ToolchainInspector`), `LocalShellTerminalRepresentable`, sanitized `ExternalTerminalLauncher` (`iTerm2`/`Terminal`), `SFTPPipelinedTransfer` (`8x`) + `TransferScheduler` (`4`/`3`), FileZilla `ConflictResolutionSheet` + FIFO `pendingConflictQueue`, card-grid + toolbar/menu language switcher | `Packages/Clibcurl`, `Packages/Core`, `Packages/Networking`, `Packages/Terminal`, `Packages/TransferEngine`, `Features/*` | `71 tests in 18 suites`, `swiftlint --strict` (`0/135`), `swiftformat --lint .` (`0/135`), `ToolchainAndConflictTests` |

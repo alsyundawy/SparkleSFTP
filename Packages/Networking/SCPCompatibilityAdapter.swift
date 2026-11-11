@@ -6,10 +6,12 @@ import SparkleSecurity
 public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     public nonisolated let profile: ConnectionProfile
     private let sshService: SSHClientService
+    private let useCompression: Bool
 
-    public init(profile: ConnectionProfile, sshService: SSHClientService) {
+    public init(profile: ConnectionProfile, sshService: SSHClientService, useCompression: Bool = true) {
         self.profile = profile
         self.sshService = sshService
+        self.useCompression = useCompression
     }
 
     public var capabilities: Set<RemoteCapability> {
@@ -92,6 +94,23 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     ) async throws {
         let quoted = try Self.escapePOSIXSingleQuoted(remotePath.rawValue)
         let meta = try await metadata(at: remotePath)
+        if offset == 0, useCompression, meta.size >= 4096,
+           let compressedResult = try? await sshService.executeCommand("gzip -c < \(quoted) | base64"),
+           compressedResult.exitCode == 0 {
+            let cleanCompressed = compressedResult.stdout.components(separatedBy: .whitespacesAndNewlines).joined()
+            if let gzData = Data(base64Encoded: cleanCompressed),
+               let plainData = try? ZlibCompressionCodec.decompress(gzData) {
+                try plainData.write(to: localURL, options: [.atomic])
+                onProgress(
+                    TransferProgress(
+                        bytesTransferred: Int64(plainData.count),
+                        totalBytes: max(meta.size, Int64(plainData.count)),
+                        bytesPerSecond: Int64(plainData.count)
+                    )
+                )
+                return
+            }
+        }
         let command = offset > 0 ? "tail -c +\(offset + 1) \(quoted) | base64" : "base64 < \(quoted)"
         let result = try await sshService.executeCommand(command)
         guard result.exitCode == 0 else {

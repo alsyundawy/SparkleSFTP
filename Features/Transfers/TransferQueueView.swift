@@ -27,6 +27,14 @@ public struct TransferQueueView: View {
                 Text("\(monitor.snapshots.count) \(appState.strings.t("transfers.items"))")
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(appState.activePalette.secondaryTextColor)
+                if appState.hasActiveConflictQueueRules {
+                    Button(appState.strings.t("transfers.resetConflictRules")) {
+                        Task { await appState.resetConflictQueueRules() }
+                    }
+                    .buttonStyle(.borderless)
+                    .font(SparkleTheme.Typography.caption)
+                    .foregroundStyle(appState.activePalette.accentColor)
+                }
                 if monitor.snapshots.contains(where: \.status.isTerminal) {
                     Button(appState.strings.t("transfers.clearFinished")) {
                         Task { await appState.transferQueue.clearFinished() }
@@ -147,51 +155,5 @@ public struct TransferQueueView: View {
         case .paused, .interrupted, .needsReview: return SparkleTheme.Colors.warning
         default: return SparkleTheme.Colors.accent
         }
-    }
-}
-
-public struct ConflictResolutionSheet: View {
-    @ObservedObject var appState: AppState
-    let conflict: ConflictContext
-    @State private var customName = ""
-
-    public init(appState: AppState, conflict: ConflictContext) {
-        self.appState = appState
-        self.conflict = conflict
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text(appState.strings.t("transfers.fileAlreadyExists")).font(SparkleTheme.Typography.title)
-            Text(conflict.destinationDisplayPath)
-                .font(SparkleTheme.Typography.monoSmall)
-            Text(
-                "\(appState.strings.t("transfers.existingSize")): \(conflict.existingSize) bytes · "
-                    + "\(appState.strings.t("transfers.incomingSize")): \(conflict.incomingSize) bytes"
-            )
-            .font(SparkleTheme.Typography.caption)
-
-            TextField(appState.strings.t("transfers.optionalRename"), text: $customName)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Button(appState.strings.t("common.skip")) { appState.resolveConflict(.skip) }
-                Button(appState.strings.t("common.rename")) {
-                    let existingName = URL(fileURLWithPath: conflict.destinationDisplayPath).lastPathComponent
-                    let chosen = customName.isEmpty
-                        ? ConflictResolver.uniqueName(from: existingName)
-                        : customName
-                    appState.resolveConflict(.rename(newFilename: chosen))
-                }
-                Spacer()
-                Button(appState.strings.t("transfers.overwrite"), role: .destructive) {
-                    appState.resolveConflict(.overwrite)
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(SparkleTheme.Spacing.large)
-        .frame(width: 440)
-        .sparkleWorkspaceSurface(appState.activePalette)
     }
 }

@@ -7,16 +7,47 @@ public struct ConflictContext: Identifiable, Sendable, Equatable {
     }
 
     public let taskID: UUID
+    public let direction: TransferDirection
+    public let sourceDisplayPath: String
     public let destinationDisplayPath: String
     public let existingSize: Int64
     public let incomingSize: Int64
+    public let existingModifiedAt: Date?
+    public let incomingModifiedAt: Date?
+
+    public init(
+        taskID: UUID,
+        direction: TransferDirection = .upload,
+        sourceDisplayPath: String = "",
+        destinationDisplayPath: String,
+        existingSize: Int64,
+        incomingSize: Int64,
+        existingModifiedAt: Date? = nil,
+        incomingModifiedAt: Date? = nil
+    ) {
+        self.taskID = taskID
+        self.direction = direction
+        self.sourceDisplayPath = sourceDisplayPath
+        self.destinationDisplayPath = destinationDisplayPath
+        self.existingSize = existingSize
+        self.incomingSize = incomingSize
+        self.existingModifiedAt = existingModifiedAt
+        self.incomingModifiedAt = incomingModifiedAt
+    }
+
+    public var supportsResume: Bool {
+        existingSize > 0 && incomingSize > existingSize
+    }
 }
 
-/// Resolves file name conflicts with bounded ask timeout so queue admission never deadlocks offline (LOG-004).
+/// Resolves FileZilla-style file transfer conflicts with session/queue rules and bounded ask timeout (LOG-004).
 public actor ConflictResolver {
     public typealias InteractivePrompt = @Sendable (ConflictContext) async -> TransferConflictResolution
 
     private var defaultPolicy: TransferConflictPolicy
+    private var queueRuleAll: TransferConflictPolicy?
+    private var queueRuleUploads: TransferConflictPolicy?
+    private var queueRuleDownloads: TransferConflictPolicy?
     private let promptTimeoutSeconds: Int
     private let interactivePrompt: InteractivePrompt?
 
@@ -34,35 +65,93 @@ public actor ConflictResolver {
         defaultPolicy = policy
     }
 
+    public func applyQueueRule(_ policy: TransferConflictPolicy, scope: TransferConflictScope) {
+        switch scope {
+        case .all:
+            queueRuleAll = policy
+        case .uploadsOnly:
+            queueRuleUploads = policy
+        case .downloadsOnly:
+            queueRuleDownloads = policy
+        }
+    }
+
+    public func clearQueueRules() {
+        queueRuleAll = nil
+        queueRuleUploads = nil
+        queueRuleDownloads = nil
+    }
+
     public func resolve(
         _ context: ConflictContext,
         originalFilename: String,
         overridePolicy: TransferConflictPolicy? = nil
     ) async -> TransferConflictResolution {
-        switch overridePolicy ?? defaultPolicy {
-        case .skip:
+        let directionRule = context.direction == .upload ? queueRuleUploads : queueRuleDownloads
+        let activePolicy = directionRule ?? queueRuleAll ?? overridePolicy ?? defaultPolicy
+        if activePolicy == .ask {
+            return await askInteractively(context)
+        }
+        return Self.evaluateNonInteractivePolicy(
+            activePolicy,
+            context: context,
+            originalFilename: originalFilename
+        )
+    }
+
+    public static func evaluateNonInteractivePolicy(
+        _ policy: TransferConflictPolicy,
+        context: ConflictContext,
+        originalFilename: String
+    ) -> TransferConflictResolution {
+        switch policy {
+        case .ask, .skip:
             return .skip
         case .overwrite:
             return .overwrite
+        case .overwriteIfNewer:
+            return shouldOverwriteBecauseNewer(context) ? .overwrite : .skip
+        case .overwriteIfDifferentSize:
+            return context.incomingSize != context.existingSize ? .overwrite : .skip
+        case .overwriteIfDifferentSizeOrNewer:
+            let sizeDiffers = context.incomingSize != context.existingSize
+            return (sizeDiffers || shouldOverwriteBecauseNewer(context)) ? .overwrite : .skip
+        case .resume:
+            if context.supportsResume {
+                return .resume
+            }
+            return context.incomingSize == context.existingSize ? .skip : .overwrite
         case .rename:
-            return .rename(newFilename: Self.uniqueName(from: originalFilename))
-        case .ask:
-            guard let interactivePrompt else {
+            return .rename(newFilename: uniqueName(from: originalFilename))
+        }
+    }
+
+    private static func shouldOverwriteBecauseNewer(_ context: ConflictContext) -> Bool {
+        guard let incoming = context.incomingModifiedAt else {
+            return false
+        }
+        guard let existing = context.existingModifiedAt else {
+            return true
+        }
+        return incoming.timeIntervalSince(existing) > 1.0
+    }
+
+    private func askInteractively(_ context: ConflictContext) async -> TransferConflictResolution {
+        guard let interactivePrompt else {
+            return .skip
+        }
+        let timeout = promptTimeoutSeconds
+        return await withTaskGroup(of: TransferConflictResolution.self) { group in
+            group.addTask {
+                await interactivePrompt(context)
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(timeout))
                 return .skip
             }
-            let timeout = promptTimeoutSeconds
-            return await withTaskGroup(of: TransferConflictResolution.self) { group in
-                group.addTask {
-                    await interactivePrompt(context)
-                }
-                group.addTask {
-                    try? await Task.sleep(for: .seconds(timeout))
-                    return .skip
-                }
-                let first = await group.next() ?? .skip
-                group.cancelAll()
-                return first
-            }
+            let first = await group.next() ?? .skip
+            group.cancelAll()
+            return first
         }
     }
 

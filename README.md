@@ -68,9 +68,11 @@
 - **Minimalist Notepad2 Internal File Editor (`⌘E`)**: Embedded multi-tab AppKit `NSTextView` editor (`Features/Editor/`) with `NSRulerView` line numbers, active palette syntax highlighting, whitespace glyph overlay (`¶`), word wrap, zoom `+/-/%`, read-only lock, regex Find & Replace, Go-to-Line, text transforms (UPPER/lower/Title/Trim/Sort), `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` + `LF`/`CRLF` converters, and remote save + auto-upload.
 - **Multi-Theme Engine (`SparkNotePad` Palettes) & Full Workspace Sync**: `28` curated themes across `15` developer families (`NotepadNext`, `Catppuccin`, `Dracula`, `Tokyo Night`, `Nord`, `One Dark`, `Gruvbox`, `Solarized`, `GitHub`, `Monokai`, `Rosé Pine`, `Night Owl`, `SynthWave '84`, `Cobalt2`, `Tomorrow`) with `Auto / Light / Dark` mode, WCAG 2.1 contrast validation, custom JSON theme import/export, and live propagation (`sparkleWorkspaceSurface`, `TerminalThemeColors`, AppKit tables, `NSApp.windows`) across Commander, Terminal, Transfers, Snippets, Sync, Preferences, and About dialogs.
 - **Connection Manager, AppKit Cursor Focus & Keychain Password Memory**: Native AppKit `ConnectionListTableView` (`NSTableView` with unique row keys) + `InteractiveFileTableView` click/arrow-key focus navigation, double-click connect, atomic Edit Connection (`ConnectionEditorMode`), **Clone Connection**, `⌘A` Select All & batch Delete Selected, Keychain **Remember Password** / clear secret controls (`ConnectionEditorView`, `CredentialPromptSheet`, `FTPService`), and instant non-deadlocking quit via `applicationShouldTerminate`.
-- **SparkNotePad-Style About Dialog & 1:1 Branded AppIcon**: 6-tab About window (`AboutView`, `AboutView+Tabs`, `AboutWindowController`) featuring system/theme/session copyable diagnostics, GitHub/maintainer/PayPal info, shortcuts, license, and a 1:1 squircle `AppIcon.png`/`.icns` styled in SparkNotePad's blue, white, and pastel yellow pencil palette.
+- **SparkNotePad-Style About Dialog & 1:1 Branded AppIcon**: 7-tab About window (`AboutView`, `AboutView+Tabs`, `AboutWindowController`, including `Libraries` runtime status) featuring system/theme/session/toolchain copyable diagnostics, GitHub/maintainer/PayPal info, shortcuts, license, and a 1:1 squircle `AppIcon.png`/`.icns` styled in SparkNotePad's blue, white, and pastel yellow pencil palette.
+- **Third-Party Libraries & External Terminal Integration (`zlib`, `libcurl`, `libssh2`, `OpenSSL`, `OpenSSH`, `Local Shell`, `iTerm2`)**: C11 `Clibcurl` bridges macOS SDK `-lcurl` + `-lz` (`256 KB` buffers, `TCP_NODELAY`, `TCP_KEEPALIVE`, off-cooperative GCD worker dispatch, `CWE-409`-bounded `zlib`/`gzip` codec via `ZlibCompressionCodec`), dynamic `dlopen`/`dlsym` probing for optional Homebrew `libssh2`, async `OpenSSL`/`OpenSSH`/POSIX shell detection (`ToolchainInspector`), in-app local shell tabs (`LocalShellTerminalRepresentable` via `SwiftTerm.LocalProcessTerminalView`), and `CWE-78`-sanitized `ExternalTerminalLauncher` (`iTerm2` / `Terminal.app` / `ssh://`).
+- **Multi-Thread Pipelined Transfers & FileZilla Conflict Overwrite Dialog**: Actor-free sliding-window `SFTPPipelinedTransfer` (`8x` pipeline depth on `32 KB` blocks, default `4` global / `3` per-host concurrency in `TransferScheduler`), FileZilla-inspired `ConflictResolutionSheet` (Source vs Target comparison cards, 7 overwrite/resume/rename/skip actions, per-queue/direction sticky rules), and FIFO serialized `pendingConflictQueue`.
 - **Responsive Runtime Architecture**: Dedicated `TransferMonitor` isolating 10Hz transfer updates from whole-window SwiftUI re-renders, cached `AppStrings` & `SparkleThemePalette`, 2-second throttled SQLite WAL checkpoints during active transfers, and single-`lstat` POSIX local directory enumeration.
-- **Maintainable JSON i18n & Importers**: JSON locale catalogs (`en.json` & `id.json`, `285` synchronized keys) + runtime override directory (`~/Library/Application Support/SparkleSFTP/Locales/`), live coverage inspector, and preview-based FileZilla XML (`<Folder>`, `base64`, `crypt` protection) & WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxies, nested folders) importer (`ImportConnectionsSheet`).
+- **Maintainable JSON i18n, Language Cards & Importers**: JSON locale catalogs (`en.json` & `id.json`, `309` synchronized keys) + runtime override directory (`~/Library/Application Support/SparkleSFTP/Locales/`), redesigned clickable language card grid (`PreferencesLocalizationTab`), toolbar/status-bar/menu Globe switchers (`MainWindowView`, `SparkleSFTPApp`), and preview-based FileZilla XML (`<Folder>`, `base64`, `crypt` protection) & WinSCP INI (UTF-16LE/BE BOM, `FSProtocol`, proxies, nested folders) importer (`ImportConnectionsSheet`).
 - **Auto-Update Controls & Bidirectional Sync**: Configurable `AutoUpdateSettings` (auto-check/download, `Hourly`/`Daily`/`Weekly`/`Manual` frequency, `Stable`/`Beta` channel, HTTPS feed validation, community GitHub Releases API fallback check) and full `SyncDirection` (`Local -> Remote`, `Remote -> Local`, `Bidirectional Newest Wins`).
 - **Complete Protocol Coverage**: SFTP, SSH Terminal (PTY), Explicit/Implicit FTPS, Plain FTP (with explicit security warnings), and isolated SCP fallback (`SCPCompatibilityAdapter`).
 - **Actor-Isolated Transfer Engine**: Bounded global and per-host concurrency, checkpointed pause/resume with remote metadata revalidation, durable `TransferJournal` crash recovery, and atomic temporary-write + SHA-256 verification.
@@ -85,8 +87,8 @@
 | **Language** | Swift 6 | Strict concurrency, actor isolation, `Sendable` safety |
 | **UI Framework** | SwiftUI + AppKit (`NSTableView`) | Native macOS HIG with cell-reused high-volume tables (`ObservableObject` for macOS 13+) |
 | **SSH & SFTP** | `apple/swift-nio-ssh` (`0.15.1` >= `0.14.1`) + SFTP v3 Codec | Async/await SFTP v3, PTY, port forwarding; mitigates CVE-2026-43798 & supports macOS 13+ |
-| **FTP & FTPS** | System `libcurl` (`Clibcurl` + `SecTrust`) | Explicit/implicit TLS FTP locked to `ftp,ftps` (no `libssh` / CVE-2025-15224) |
-| **SSH Terminal** | `SwiftTerm` (`1.20.0`) | VT100/xterm emulation via `NSViewRepresentable` + explicit PTY cleanup |
+| **FTP / FTPS & Toolchain Bridge** | System `libcurl` + `zlib` (`Clibcurl`) + `ToolchainInspector` | `256 KB` TCP keepalive GCD workers locked to `ftp,ftps` (no CVE-2025-15224), bounded `CWE-409` zlib/gzip, dynamic `libssh2` probe, OpenSSL/OpenSSH/shell detection |
+| **SSH & Local Shell** | `SwiftTerm` (`1.20.0`) + `ExternalTerminalLauncher` | VT100/xterm remote PTY, local `$SHELL` tabs (`LocalProcessTerminalView`), & sanitized `iTerm2` / `Terminal.app` launch |
 | **Secrets & Trust** | Apple `Security.framework` | Native Keychain ACLs (`WhenUnlockedThisDeviceOnly`), Touch ID (`LAContext`), `SecTrustEvaluateWithError` |
 | **Persistence** | JSON (`Codable`) + `SQLite3` WAL | Atomic profile JSON (`ConnectionStore`) + ACID `TransferJournal` (macOS 13+) |
 | **Testing** | Swift Testing + Docker Compose | Deterministic OpenSSH, vsftpd, and ProFTPD test fixtures |
@@ -153,23 +155,23 @@ SparkleSFTP/
 ├── Package.swift              # Swift 6.0 manifest (.macOS(.v13), pinned SPM dependencies)
 ├── App/                       # Executable entry, AppDelegate, SparkleUpdaterService, Info.plist, Entitlements
 ├── Packages/
-│   ├── Clibcurl/              # Non-variadic C helper bridge over system libcurl
-│   ├── Core/                  # Domain models, RemotePath, AppError, Protocols, FeatureFlags, UpdateModels
-│   ├── DesignSystem/          # SparkNotePad theme palettes (28 themes / 15 families), components, EN/ID JSON Locales (285 keys)
+│   ├── Clibcurl/              # Non-variadic C11 bridge over macOS SDK libcurl (-lcurl) + zlib (-lz) & libssh2 dlopen probe
+│   ├── Core/                  # Domain models (ToolchainModels, Conflict/TransferModels), RemotePath, AppError, Protocols
+│   ├── DesignSystem/          # SparkNotePad theme palettes (28 themes / 15 families), components, EN/ID JSON Locales (309 keys)
 │   ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
-│   ├── Networking/            # SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService, Proxy
+│   ├── Networking/            # SFTPPacketCodec, SFTPPipelinedTransfer, SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
 │   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), FileZilla/WinSCP & SSH Importers
 │   ├── Security/              # KeychainService, HostTrustStore, SecTrust, PathValidator, KeyParser, UpdateValidator
 │   ├── Synchronization/       # DirectoryScanner, SyncPlanner (One-Way & Bidirectional, 60s TTL), SyncExecutor
-│   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, SessionManager, PortForwardingManager
-│   └── TransferEngine/        # TransferQueue actor, TransferScheduler, ResumeValidator, SHA256Verifier
-├── Features/                  # SwiftUI + AppKit Views (Commander, ConnectionListTableView, About, Notepad2 Editor, Terminal, Transfers, Sync, Settings)
-├── Tests/                     # 8 test targets (64 tests across 17 Swift Testing suites, incl. live loopback SSH/SFTP)
+│   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, LocalShellTerminalRepresentable, ExternalTerminalLauncher, PortForwardingManager
+│   └── TransferEngine/        # TransferQueue actor, TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
+├── Features/                  # SwiftUI + AppKit Views (Commander, ConnectionListTableView, 7-Tab About, Notepad2 Editor, Terminal, ConflictResolutionSheet, Preferences)
+├── Tests/                     # 8 test targets (71 tests across 18 Swift Testing suites, incl. loopback SFTP pipelining & conflicts)
 ├── Tools/
 │   ├── Release/               # Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
 │   └── TestServers/           # Docker Compose fixtures (OpenSSH, vsftpd, ProFTPD) & smoke runner
 ├── .github/workflows/         # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
-└── docs/                      # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, ADRs 0001–0006
+└── docs/                      # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, ADRs 0001–0007
 ```
 
 ---
@@ -181,11 +183,11 @@ SparkleSFTP/
 | **Phase 00** | Repository Bootstrap | Governance, specs, 14-pillar fixes, ADRs, CI & lint guardrails *(Done)* |
 | **Phase 01–02** | Research & Foundation | Audited SPM graph ([ADR-004](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), [ADR-005](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)), `Package.swift`, `Core`, `DesignSystem` *(Done)* |
 | **Phase 03** | Connection & Security | `ConnectionStore`, `KeychainService`, TOFU `HostTrustStore`, `SecTrust`, Touch ID *(Done)* |
-| **Phase 04** | Protocol Engines | `SSHClientService` (`swift-nio-ssh 0.15.1`), SFTP v3 codec, SCP, `Clibcurl` FTP/FTPS *(Done)* |
+| **Phase 04** | Protocol Engines | `SSHClientService` (`swift-nio-ssh 0.15.1`), SFTP v3 pipelined codec, SCP, `Clibcurl` `-lcurl`/`-lz` FTP/FTPS *(Done)* |
 | **Phase 05** | Commander UI | Dual-pane `NSTableView`, F5–F8 shortcuts, Quick Look, Finder drag-drop *(Done)* |
-| **Phase 06** | Transfer Engine | Actor `TransferQueue`, per-host throttling, `SQLite3` `TransferJournal`, SHA-256 atomic write *(Done)* |
-| **Phase 07** | Terminal & Sync | `SwiftTerm` multi-tab/split PTY, `-L`/`-R` port forwarding, dry-run sync, EN/ID *(Done)* |
-| **Phase 08** | QA & Release | 64 tests in 17 suites (129 Swift files), Full Workspace Themes + 6-Tab About + 1:1 Logo + Keychain Remember Password + AppKit Cursor Navigation + C11 IDE config, Universal 2 DMG (`release.yml`), CI/lint green; production notarization pending Developer ID *(In Progress)* |
+| **Phase 06** | Transfer Engine | Actor `TransferQueue`, pipelined multi-thread transfers, `SQLite3` `TransferJournal`, FileZilla conflict dialog *(Done)* |
+| **Phase 07** | Terminal & Sync | `SwiftTerm` multi-tab/split PTY & local shell, External iTerm2/Terminal launcher, `-L`/`-R` port forwarding, dry-run sync, EN/ID (`309` keys) *(Done)* |
+| **Phase 08** | QA & Release | `71 tests in 18 suites` (`135` Swift files), Third-Party Toolchain Bridge + Pipelined Transfers + FileZilla Conflicts + Language Card Layout + 7-Tab About, Universal 2 DMG (`release.yml`), CI/lint green; production notarization pending Developer ID *(In Progress)* |
 
 ---
 
@@ -195,7 +197,7 @@ SparkleSFTP/
 - **[Technical Specification (`docs/TECHNICAL_SPECIFICATION.md`)](docs/TECHNICAL_SPECIFICATION.md)** — Target graph, toolchain contracts, and milestone acceptance gates.
 - **[Security Model (`docs/SECURITY_MODEL.md`)](docs/SECURITY_MODEL.md)** — Threat controls, TOFU state machine, Keychain ACLs, and TLS rules.
 - **[Workground Breakdown (`docs/WORKGROUND.md`)](docs/WORKGROUND.md)** — Domain workstreams (`WG-1`–`WG-9`) and module dependency graph.
-- **[Task List (`docs/TASK_LIST.md`)](docs/TASK_LIST.md)** — Executable checklist across Milestones M1–M6.
+- **[Task List (`docs/TASK_LIST.md`)](docs/TASK_LIST.md)** — Executable checklist across Milestones M1–M8.
 - **[Engineering Notes (`DOCNOTE.md`)](DOCNOTE.md)** — Verified dependency findings and SDK compatibility resolutions.
 - **[14-Pillar Code Review (`docs/CODE_REVIEW_14_PILLARS.md`)](docs/CODE_REVIEW_14_PILLARS.md)** — 55 findings across bugs, concurrency, memory, security CVEs, scalability, and linting.
 - **[Post-Completion Long-Term Review (`docs/LONG_TERM_REVIEW_2026_11.md`)](docs/LONG_TERM_REVIEW_2026_11.md)** — 14-pillar architectural health report, technical debt register, CVE/CWE posture, SwiftUI/Swift 6 audit, and 90-day / 12-month roadmap.
@@ -207,6 +209,7 @@ SparkleSFTP/
 - **[ADR-004: Direct `swift-nio-ssh` & Native SFTP v3](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md)**
 - **[ADR-005: macOS 13+ SQLite3 Journal & `ObservableObject`](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)**
 - **[ADR-006: Multi-Themes, JSON i18n, Notepad2 Editor & Auto-Update Fallback](docs/ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md)**
+- **[ADR-007: Third-Party Toolchain Bridge, Pipelined Transfers & FileZilla Conflict Flow](docs/ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md)**
 
 ---
 

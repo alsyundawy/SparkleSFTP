@@ -58,6 +58,11 @@ struct SparkleSFTPApp: App {
                 }
                 .keyboardShortcut("k", modifiers: [.command])
 
+                Button(appState.strings.t("nav.localShell")) {
+                    appState.openLocalShellTab()
+                }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+
                 Button(appState.strings.t("common.refresh")) {
                     Task {
                         if appState.activePane == .left {
@@ -73,6 +78,20 @@ struct SparkleSFTPApp: App {
                     appState.switchActivePane()
                 }
                 .keyboardShortcut("\t", modifiers: [])
+            }
+
+            CommandMenu(appState.strings.t("nav.switchLanguage")) {
+                ForEach(appState.availableLocales) { locale in
+                    Button {
+                        appState.selectLocale(code: locale.code)
+                    } label: {
+                        if appState.activeLocaleCode == locale.code {
+                            Label("\(locale.displayName) (\(locale.code.uppercased()))", systemImage: "checkmark")
+                        } else {
+                            Text("\(locale.displayName) (\(locale.code.uppercased()))")
+                        }
+                    }
+                }
             }
         }
 

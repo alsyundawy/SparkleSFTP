@@ -1,7 +1,7 @@
 # SparkleSFTP — Post-Completion Long-Term Architecture, Security & Sustainability Review
 
 - **Review Date:** 2026-11-11
-- **Reviewed Baseline:** Repository `main` (post-`v0.2.0` release, updated through Full Workspace Theme Propagation, SparkNotePad About Window, Keychain Remember Password, AppKit Navigation & Performance Hardening across `64 tests in 17 suites` and `129` Swift files)
+- **Reviewed Baseline:** Repository `main` (post-`v0.2.0` release, updated through Third-Party Toolchain Bridge `-lcurl -lz` / dynamic `libssh2` / `OpenSSL` / `OpenSSH` / `LocalShell` / `iTerm2`, Multi-Thread Pipelined SFTP, FileZilla Conflict Dialog + FIFO Queue, Language Card Switcher Layout, 7-Tab About, Keychain Remember Password & Performance Hardening across `71 tests in 18 suites` and `135` Swift files)
 - **Target Platform & Toolchain:** `macOS 13.0+` (`.macOS(.v13)`), Swift 6 (`swiftLanguageModes: [.v6]`, `swift-tools-version: 6.0`)
 - **Review Methodology:** All **14 Review Pillars** (`docs/CODE_REVIEW_14_PILLARS.md`) and **14 macOS Engineering Skills** grounded in empirical static scans, SwiftLint SonarQube reporter checks, live `swift test -j 2` verification, and source inspection.
 
@@ -29,17 +29,17 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
 
 | Tool / Gate | Scope | Command / Config | Empirical Result |
 | :--- | :--- | :--- | :--- |
-| **SwiftLint (Strict)** | 129 Swift files (`Package.swift`, `App/`, `Packages/`, `Features/`, `Tests/`) | `swiftlint lint --strict` (`.swiftlint.yml`) | `0` violations, `0` serious errors |
-| **SwiftFormat** | 129 Swift files | `swiftformat --lint .` (`.swiftformat`) | `0/129` files require formatting |
+| **SwiftLint (Strict)** | 135 Swift files (`Package.swift`, `App/`, `Packages/`, `Features/`, `Tests/`) | `swiftlint lint --strict` (`.swiftlint.yml`) | `0` violations, `0` serious errors |
+| **SwiftFormat** | 135 Swift files | `swiftformat --lint .` (`.swiftformat`) | `0/135` files require formatting |
 | **SwiftLint SonarQube Reporter** | All Swift files | `swiftlint lint --reporter sonarqube --quiet` | `sonarqube_issues=0` (valid JSON) |
 | **SonarQube Server / Scanner** | Project root | Check `sonar-project.properties` / `.github/` | **Gap: Not configured** (`NO_SONARQUBE_CONFIG_FOUND`) |
-| **MarkdownLint** | 24 Markdown files (`*.md`, `docs/`, `tasks/`) | `npx --yes markdownlint-cli2 "**/*.md" ...` | `0` issues in `0` files |
+| **MarkdownLint** | 25 Markdown files (`*.md`, `docs/`, `tasks/`) | `npx --yes markdownlint-cli2 "**/*.md" ...` | `0` issues |
 | **YAMLlint** | CI workflows, Docker Compose, linter configs | `yamllint -c .yamllint.yml .` | `0` issues (exit `0`) |
 | **Actionlint** | `.github/workflows/*.yml` (5 workflows) | `actionlint` | `0` issues (exit `0`) |
 | **Bash / ShellCheck / Shfmt** | `Tools/Release/*.sh`, `Tools/TestServers/*.sh` | `bash -n`, `shellcheck -s bash`, `shfmt -d -i 2 -ci` | `0` issues across all 4 scripts |
 | **JSON / XML Validation** | `.json`, `.resolved`, `Info.plist`, `.entitlements` | `python3 -m json.tool`, `xmllint --noout` | `0` syntax errors |
 | **Clibcurl C Hygiene** | `Packages/Clibcurl/*`, `.clangd`, `.clang-format` | `cppcheck`, `clang-format --dry-run --Werror`, `clang -fsyntax-only -xc -std=c11` | `0` errors / formatting issues |
-| **Swift Testing Suite** | 8 test targets (unit + live loopback SSH/SFTP) | `nice -n 10 swift test -j 2 --disable-xctest --enable-swift-testing` | **64 tests in 17 suites passed (`0.992s`)** |
+| **Swift Testing Suite** | 8 test targets (unit + live loopback SSH/SFTP) | `nice -n 10 swift test -j 2 --disable-xctest --enable-swift-testing` | **71 tests in 18 suites passed (`0.800s`)** |
 
 > **SonarQube Configuration Gap Explicit Note:** Neither `sonar-project.properties` nor a `sonarcloud`/`sonarqube` GitHub Actions job is configured in `.github/workflows/`. Only `swiftlint lint --reporter sonarqube` format compatibility is verified locally (`0` issues). Notice also `.swiftlint.yml` uses SwiftLint's default `cyclomatic_complexity` (`warning: 10`, `error: 20`), whereas long-term maintainability prefers lowering `cyclomatic_complexity` warning to `<= 6`.
 
@@ -158,7 +158,7 @@ SparkleSFTP establishes a notably disciplined Swift 6 architecture for a native 
 
 ## (g) Test Coverage & Docker Fixture Gaps
 
-- **Current Verified Coverage (`64 tests across 17 suites`):** Strong unit and in-process encrypted loopback tests covering `RemotePath`, `AppStrings` & `285`-key `en`/`id` JSON parity, `28` SparkNotePad palettes WCAG AA contrast + full workspace theme sync & `TerminalThemeColors`, `AboutView` diagnostics, Keychain Remember Password & `FTPService` prompt flows, `KeychainService`, 6-state TOFU & MITM blocking, `PathValidator`, self-signed X.509 rejection (`SecTrust`), `FileZilla`/`WinSCP` BOM/nested folder importers, `SFTPPacketCodec`, `ProxyJump`, `DirectTCPIP`/`tcpip-forward` `-R`, `SOCKS5`/`HTTP 200` proxy checks, `SCPCompatibilityAdapter` single-quote escaping, FTP `MLSD`/`LIST` parsing & `CWE-93` CRLF sanitizer, `TransferQueue` actor reentrancy / resume / conflicts / `100MB` SHA-256 / 2s journal checkpoint throttling, `SyncPlanner` one-way & bidirectional sync, Notepad2 editor models, unique `ConnectionTableRowItem` section/profile keys, connection cloning & multi-select batch deletion, single-`lstat` POSIX enumeration, and 100-tab `TerminalSessionManager` teardown.
+- **Current Verified Coverage (`71 tests across 18 suites`):** Strong unit and in-process encrypted loopback tests covering `RemotePath`, `AppStrings` & `309`-key `en`/`id` JSON parity, `28` SparkNotePad palettes WCAG AA contrast + full workspace theme sync & `TerminalThemeColors`, 7-tab `AboutView` diagnostics, `ZlibCompressionCodec` `.zlib`/`.gzip` round-trip & `CWE-409` zip-bomb overflow guard, `ToolchainInspector` (`libcurl`, `zlib`, `libssh2` `dlopen`, `OpenSSL`, `OpenSSH`, POSIX shells, `iTerm2`), `ExternalTerminalLauncher` `CWE-78` sanitization, 8x pipelined 512 KB SFTP multi-chunk upload/download SHA-256 verification, FileZilla conflict rules (`ConflictResolver`) + serialized FIFO `pendingConflictQueue` drain, Keychain Remember Password & `FTPService` prompt flows, `KeychainService`, 6-state TOFU & MITM blocking, `PathValidator`, self-signed X.509 rejection (`SecTrust`), `FileZilla`/`WinSCP` BOM/nested folder importers, `SFTPPacketCodec`, `ProxyJump`, `DirectTCPIP`/`tcpip-forward` `-R`, `SOCKS5`/`HTTP 200` proxy checks, `SCPCompatibilityAdapter` single-quote escaping, FTP `MLSD`/`LIST` parsing & `CWE-93` CRLF sanitizer, `TransferQueue` actor reentrancy / resume / conflicts / `100MB` SHA-256 / 2s journal checkpoint throttling, `SyncPlanner` one-way & bidirectional sync, Notepad2 editor models, unique `ConnectionTableRowItem` section/profile keys, connection cloning & multi-select batch deletion, single-`lstat` POSIX enumeration, and 100-tab `TerminalSessionManager` teardown.
 - **Identified Regression Gaps:**
   1. **Docker Harness Disconnect (`TD-02`):** [`Tools/TestServers/run-integration-tests.sh`](../Tools/TestServers/run-integration-tests.sh) starts `atmoz/sftp`, `linuxserver/openssh-server`, `fauria/vsftpd`, and `instantlinux/proftpd` with `:latest` image tags and sets `SPARKLESFTP_LIVE_DOCKER_TESTS=1`, **but zero tests read `SPARKLESFTP_LIVE_DOCKER_TESTS`**. Furthermore, `Tools/TestServers/fixtures/` contains no TLS certificate/vsftpd.conf/proftpd.conf mounts for testing live Explicit/Implicit FTPS, nor deterministic host-key seeding files (`ssh-keyscan`) for non-interactive CI runs.
   2. **No Live SCP / FTP / FTPS Wire Protocol Execution:** `FTPService` and `SCPCompatibilityAdapter` are tested via parser/sanitizer unit tests rather than live local `vsftpd`/`proftpd`/`openssh` protocol handshakes.

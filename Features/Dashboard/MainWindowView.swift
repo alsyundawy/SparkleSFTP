@@ -121,6 +121,9 @@ public struct MainWindowView: View {
                 }
                 .help(appState.activePalette.displayName)
 
+                languageMenuSelector
+                    .help(appState.strings.t("nav.switchLanguage"))
+
                 Button {
                     appState.openAboutWindow()
                 } label: {
@@ -275,17 +278,30 @@ private extension MainWindowView {
                 .toggleStyle(.button)
                 .controlSize(.small)
 
-            Menu(appState.activeLocaleCode.uppercased()) {
-                ForEach(appState.availableLocales) { doc in
-                    Button(doc.displayName) {
-                        appState.selectLocale(code: doc.code)
-                    }
-                }
-            }
-            .controlSize(.small)
+            languageMenuSelector
+                .controlSize(.small)
+                .fixedSize()
         }
         .padding(.horizontal, SparkleTheme.Spacing.medium)
         .padding(.vertical, SparkleTheme.Spacing.tiny)
         .background(palette.windowColor)
+    }
+
+    private var languageMenuSelector: some View {
+        Menu {
+            ForEach(appState.availableLocales) { doc in
+                Button {
+                    appState.selectLocale(code: doc.code)
+                } label: {
+                    if appState.activeLocaleCode == doc.code {
+                        Label("\(doc.displayName) (\(doc.code.uppercased()))", systemImage: "checkmark")
+                    } else {
+                        Text("\(doc.displayName) (\(doc.code.uppercased()))")
+                    }
+                }
+            }
+        } label: {
+            Label(appState.activeLocaleCode.uppercased(), systemImage: "globe")
+        }
     }
 }

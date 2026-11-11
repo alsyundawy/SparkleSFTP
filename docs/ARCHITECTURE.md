@@ -54,20 +54,20 @@ SparkleSFTP/
 ├── Package.swift             # Swift 6.0 manifest (.macOS(.v13), pinned deps)
 ├── App/                      # Executable entry point, AppDelegate, AppEnvironment, SparkleUpdaterService
 ├── Packages/
-│   ├── Clibcurl/             # Non-variadic C wrapper over macOS SDK <curl/curl.h> (-lcurl)
-│   ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, Protocols, FeatureFlags
-│   ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService
-│   ├── TransferEngine/       # SparkleTransferEngine: TransferQueue, TransferScheduler, ResumeValidator, SHA256Verifier
+│   ├── Clibcurl/             # Non-variadic C11 bridge over macOS SDK libcurl (-lcurl), zlib (-lz) & dynamic libssh2 probe
+│   ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, ToolchainModels, Protocols, FeatureFlags
+│   ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPPipelinedTransfer, SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
+│   ├── TransferEngine/       # SparkleTransferEngine: TransferQueue, TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
 │   ├── FileManager/          # SparkleFileManager: LocalFileService, FileSortDescriptor, POSIXPermissions, DualPaneState
 │   ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator, PrivateKeyParser, UpdateConfigurationValidator
-│   ├── Terminal/             # SparkleTerminal: SwiftTerm NSViewRepresentable, TerminalSessionManager, PortForwardingManager
+│   ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, LocalShellTerminalRepresentable, ExternalTerminalLauncher, PortForwardingManager
 │   ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
 │   ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
-│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 285 keys)
-├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views (Commander, Connections + ConnectionEditorView + ImportConnectionsSheet, Notepad2 Editor, Terminal, Transfers + TransferMonitor, Sync, Settings Tabs) & AppState ObservableObject
-├── Tests/                    # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
+│   └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 309 keys)
+├── Features/                 # SparkleFeatures: SwiftUI + AppKit Views (Commander, Connections, Notepad2 Editor, Terminal, ConflictResolutionSheet, Sync, 7-Tab About, Preferences) & AppState ObservableObject
+├── Tests/                    # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests (71 tests in 18 suites)
 ├── Tools/                    # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
-└── docs/                     # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs
+└── docs/                     # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs 0001–0007
 ```
 
 ## Concurrency & Memory Guarantees

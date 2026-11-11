@@ -46,6 +46,7 @@ struct ConnectionListTableView: NSViewRepresentable {
     let strings: AppStrings
     let palette: SparkleThemePalette
     let onConnect: (ConnectionProfile) -> Void
+    let onOpenExternalTerminal: (ConnectionProfile) -> Void
     let onEdit: (ConnectionProfile) -> Void
     let onClone: (ConnectionProfile) -> Void
     let onRequestDelete: (Set<UUID>) -> Void

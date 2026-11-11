@@ -112,6 +112,42 @@ extension AboutView {
         }
     }
 
+    var librariesSection: some View {
+        let palette = appState.activePalette
+        return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
+            Text(appState.strings.t("prefs.terminalAndLibs"))
+                .font(SparkleTheme.Typography.title)
+            accentCard(palette: palette) {
+                if appState.toolchainReport.libraries.isEmpty {
+                    Text("Inspecting host libraries and CLI tools...")
+                        .font(SparkleTheme.Typography.caption)
+                        .foregroundStyle(palette.secondaryTextColor)
+                } else {
+                    ForEach(appState.toolchainReport.libraries) { lib in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: lib.isAvailable ? "checkmark.circle.fill" : "minus.circle")
+                                .foregroundStyle(lib.isAvailable ? SparkleTheme.Colors.success : palette
+                                    .secondaryTextColor)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("\(lib.name) · \(lib.version)")
+                                    .font(SparkleTheme.Typography.headline)
+                                Text("\(lib.role) — \(lib.detail)")
+                                    .font(SparkleTheme.Typography.caption)
+                                    .foregroundStyle(palette.secondaryTextColor)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+            }
+            .task {
+                if appState.toolchainReport.libraries.isEmpty {
+                    await appState.refreshToolchainReport()
+                }
+            }
+        }
+    }
+
     var diagnosticsSection: some View {
         let palette = appState.activePalette
         return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {

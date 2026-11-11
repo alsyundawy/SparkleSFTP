@@ -47,6 +47,18 @@ public struct TerminalThemeColors: Sendable, Equatable {
         let blue = CGFloat(value & 0xFF) / 255.0
         return NSColor(srgbRed: red, green: green, blue: blue, alpha: 1.0)
     }
+
+    @MainActor
+    static func apply(_ colors: TerminalThemeColors?, to view: TerminalView) {
+        if let colors {
+            view.nativeBackgroundColor = colors.backgroundNSColor
+            view.nativeForegroundColor = colors.foregroundNSColor
+            view.caretColor = colors.caretNSColor
+            view.selectedTextBackgroundColor = colors.selectionNSColor
+        } else {
+            view.configureNativeColors()
+        }
+    }
 }
 
 /// SwiftUI NSViewRepresentable wrapper over `SwiftTerm.TerminalView` with strict PTY delegate teardown (MEM-002).
@@ -86,14 +98,7 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     }
 
     private func applyTheme(_ colors: TerminalThemeColors?, to view: TerminalView) {
-        if let colors {
-            view.nativeBackgroundColor = colors.backgroundNSColor
-            view.nativeForegroundColor = colors.foregroundNSColor
-            view.caretColor = colors.caretNSColor
-            view.selectedTextBackgroundColor = colors.selectionNSColor
-        } else {
-            view.configureNativeColors()
-        }
+        TerminalThemeColors.apply(colors, to: view)
     }
 
     public static func dismantleNSView(_ nsView: TerminalView, coordinator: Coordinator) {

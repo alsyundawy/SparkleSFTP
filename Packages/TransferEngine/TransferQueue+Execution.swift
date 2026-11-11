@@ -11,6 +11,17 @@ struct DownloadFlowRequest: Sendable {
     let offset: Int64
 }
 
+struct UploadTransferAttemptRequest: Sendable {
+    let metadata: TransferTaskMetadata
+    let remoteFS: any RemoteFileSystem
+    let localURL: URL
+    let localSize: Int64
+    let localModified: Date?
+    let targetPath: RemotePath
+    let offset: Int64
+    let renameFinalTarget: RemotePath?
+}
+
 extension TransferQueue {
     func runWithRetry(metadata: TransferTaskMetadata) async throws {
         let maxAttempts = 3
@@ -76,14 +87,14 @@ extension TransferQueue {
         let partialName = ".\(safeDest.lastPathComponent).sparklesftp.\(metadata.id.uuidString).part"
         let partialURL = baseDir.appendingPathComponent(partialName)
 
-        let resumeOffset = try await resolveDownloadOffset(
+        let existingPartialOffset = try await resolveDownloadOffset(
             taskID: metadata.id,
             remotePath: remotePath,
             partialURL: partialURL,
             remoteFS: remoteFS
         )
         let remoteMeta = try? await remoteFS.metadata(at: remotePath)
-        if resumeOffset == 0 {
+        if existingPartialOffset == 0 {
             try? FileManager.default.removeItem(at: partialURL)
             await resetCheckpointBytes(id: metadata.id)
         }
@@ -94,21 +105,26 @@ extension TransferQueue {
             partialLocalPath: partialURL.path
         )
 
-        guard let finalDest = try await resolveConflictDestination(
-            metadata: metadata,
-            safeDest: safeDest,
-            baseDir: baseDir
+        guard let plan = try await resolveConflictDestination(
+            DownloadConflictRequest(
+                metadata: metadata,
+                safeDest: safeDest,
+                partialURL: partialURL,
+                baseDir: baseDir,
+                remoteMeta: remoteMeta
+            )
         ) else {
             return
         }
 
+        let effectiveOffset = existingPartialOffset > 0 ? existingPartialOffset : plan.resumeOffset
         let request = DownloadFlowRequest(
             metadata: metadata,
             remoteFS: remoteFS,
             remotePath: remotePath,
             partialURL: partialURL,
-            finalDest: finalDest,
-            offset: resumeOffset
+            finalDest: plan.destination,
+            offset: effectiveOffset
         )
         try await executeDownloadFlow(request)
     }
@@ -132,36 +148,6 @@ extension TransferQueue {
         return 0
     }
 
-    private func resolveConflictDestination(
-        metadata: TransferTaskMetadata,
-        safeDest: URL,
-        baseDir: URL
-    ) async throws -> URL? {
-        guard FileManager.default.fileExists(atPath: safeDest.path) else {
-            return safeDest
-        }
-        let attrs = try? FileManager.default.attributesOfItem(atPath: safeDest.path)
-        let existingSize = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
-        let resolution = await conflictResolver.resolve(
-            ConflictContext(
-                taskID: metadata.id,
-                destinationDisplayPath: safeDest.path,
-                existingSize: existingSize,
-                incomingSize: metadata.totalBytes
-            ),
-            originalFilename: safeDest.lastPathComponent,
-            overridePolicy: metadata.conflictPolicyOverride
-        )
-        switch resolution {
-        case .skip:
-            return nil
-        case .overwrite:
-            return safeDest
-        case let .rename(newName):
-            return try PathValidator.safeLocalDestination(filename: newName, baseDirectory: baseDir)
-        }
-    }
-
     private func performUploadAttempt(
         metadata: TransferTaskMetadata,
         profileID: UUID,
@@ -171,78 +157,119 @@ extension TransferQueue {
         let remoteFS = try await fileSystemResolver(profileID)
         guard isStillActive(id: metadata.id) else { throw CancellationError() }
 
-        guard let finalRemotePath = try await resolveRemoteUploadDestination(
-            metadata: metadata,
-            remotePath: remotePath,
-            remoteFS: remoteFS
-        ) else {
-            return
-        }
-
-        let tempRemoteName = ".\(finalRemotePath.filename).sparklesftp.\(metadata.id.uuidString).part"
-        let tempRemotePath = try finalRemotePath.parent.appending(tempRemoteName)
         let localAttrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
         let localSize = (localAttrs[.size] as? NSNumber)?.int64Value ?? 0
         let localModified = localAttrs[.modificationDate] as? Date
-        let uploadOffset = await resolveUploadResumeOffset(
-            taskID: metadata.id,
-            tempRemotePath: tempRemotePath,
+
+        let conflictReq = UploadConflictRequest(
+            metadata: metadata,
+            localURL: localURL,
             localSize: localSize,
-            localModificationTime: localModified,
+            localModified: localModified,
+            remotePath: remotePath,
             remoteFS: remoteFS
         )
+        guard let plan = try await resolveRemoteUploadDestination(conflictReq) else {
+            return
+        }
+
+        let request = makeUploadAttemptRequest(plan: plan, conflictRequest: conflictReq)
+        let resolvedRequest: UploadTransferAttemptRequest = if plan.resumeDirectOffset != nil {
+            request
+        } else {
+            await withResolvedTempOffset(request)
+        }
+        try await executeUploadTransfer(resolvedRequest)
+    }
+
+    private func makeUploadAttemptRequest(
+        plan: UploadConflictPlan,
+        conflictRequest: UploadConflictRequest
+    ) -> UploadTransferAttemptRequest {
+        if let resumeOffset = plan.resumeDirectOffset {
+            return UploadTransferAttemptRequest(
+                metadata: conflictRequest.metadata,
+                remoteFS: conflictRequest.remoteFS,
+                localURL: conflictRequest.localURL,
+                localSize: conflictRequest.localSize,
+                localModified: conflictRequest.localModified,
+                targetPath: plan.destination,
+                offset: resumeOffset,
+                renameFinalTarget: nil
+            )
+        }
+        let tempName = ".\(plan.destination.filename).sparklesftp.\(conflictRequest.metadata.id.uuidString).part"
+        let tempPath = (try? plan.destination.parent.appending(tempName)) ?? plan.destination
+        return UploadTransferAttemptRequest(
+            metadata: conflictRequest.metadata,
+            remoteFS: conflictRequest.remoteFS,
+            localURL: conflictRequest.localURL,
+            localSize: conflictRequest.localSize,
+            localModified: conflictRequest.localModified,
+            targetPath: tempPath,
+            offset: 0,
+            renameFinalTarget: plan.destination
+        )
+    }
+
+    private func withResolvedTempOffset(_ req: UploadTransferAttemptRequest) async -> UploadTransferAttemptRequest {
+        let resumeOffset = await resolveUploadResumeOffset(
+            taskID: req.metadata.id,
+            tempRemotePath: req.targetPath,
+            localSize: req.localSize,
+            localModificationTime: req.localModified,
+            remoteFS: req.remoteFS
+        )
+        guard resumeOffset > 0 else { return req }
+        return UploadTransferAttemptRequest(
+            metadata: req.metadata,
+            remoteFS: req.remoteFS,
+            localURL: req.localURL,
+            localSize: req.localSize,
+            localModified: req.localModified,
+            targetPath: req.targetPath,
+            offset: resumeOffset,
+            renameFinalTarget: req.renameFinalTarget
+        )
+    }
+
+    private func executeUploadTransfer(_ req: UploadTransferAttemptRequest) async throws {
         await recordCheckpointContext(
-            id: metadata.id,
-            remoteSize: localSize,
-            remoteModificationTime: localModified,
-            partialLocalPath: tempRemotePath.rawValue
+            id: req.metadata.id,
+            remoteSize: req.localSize,
+            remoteModificationTime: req.localModified,
+            partialLocalPath: req.targetPath.rawValue
         )
 
-        try await remoteFS.upload(from: localURL, to: tempRemotePath, offset: uploadOffset) { [weak self] progress in
+        try await req.remoteFS.upload(
+            from: req.localURL,
+            to: req.targetPath,
+            offset: req.offset
+        ) { [weak self] progress in
             Task { [weak self] in
-                await self?.handleProgress(id: metadata.id, progress: progress)
+                await self?.handleProgress(id: req.metadata.id, progress: progress)
             }
         }
-        guard isStillActive(id: metadata.id) else {
+        guard isStillActive(id: req.metadata.id) else {
             throw CancellationError()
         }
 
-        await updateStatus(id: metadata.id, status: .verifying)
-        let uploadedMeta = try await remoteFS.metadata(at: tempRemotePath)
-        guard uploadedMeta.size == localSize else {
-            try? await remoteFS.delete(at: tempRemotePath, isDirectory: false)
-            throw AppError.partialTransferCorrupted(bytesExpected: localSize, bytesActual: uploadedMeta.size)
+        await updateStatus(id: req.metadata.id, status: .verifying)
+        let uploadedMeta = try await req.remoteFS.metadata(at: req.targetPath)
+        guard uploadedMeta.size == req.localSize else {
+            if req.renameFinalTarget != nil {
+                try? await req.remoteFS.delete(at: req.targetPath, isDirectory: false)
+            }
+            throw AppError.partialTransferCorrupted(bytesExpected: req.localSize, bytesActual: uploadedMeta.size)
         }
 
-        await updateStatus(id: metadata.id, status: .finalizing)
-        try await remoteFS.rename(from: tempRemotePath, to: finalRemotePath)
-    }
-
-    private func resolveRemoteUploadDestination(
-        metadata: TransferTaskMetadata,
-        remotePath: RemotePath,
-        remoteFS: any RemoteFileSystem
-    ) async throws -> RemotePath? {
-        guard let existingMeta = try? await remoteFS.metadata(at: remotePath) else {
-            return remotePath
-        }
-        let resolution = await conflictResolver.resolve(
-            ConflictContext(
-                taskID: metadata.id,
-                destinationDisplayPath: remotePath.rawValue,
-                existingSize: existingMeta.size,
-                incomingSize: metadata.totalBytes
-            ),
-            originalFilename: remotePath.filename,
-            overridePolicy: metadata.conflictPolicyOverride
-        )
-        switch resolution {
-        case .skip:
-            return nil
-        case .overwrite:
-            return remotePath
-        case let .rename(newName):
-            return try PathValidator.canonicalizeRemote(newName, relativeTo: remotePath.parent)
+        if let finalTarget = req.renameFinalTarget {
+            await updateStatus(id: req.metadata.id, status: .finalizing)
+            try await finalizeRemoteUploadRename(
+                remoteFS: req.remoteFS,
+                tempPath: req.targetPath,
+                finalPath: finalTarget
+            )
         }
     }
 

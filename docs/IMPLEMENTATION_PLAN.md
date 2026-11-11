@@ -94,27 +94,28 @@ SparkleSFTP/
 │   └── Resources/                     # Info.plist, AppIcon.icns, AppIcon.png
 │
 ├── Packages/
-│   ├── Clibcurl/                      # Non-variadic C wrapper atas macOS system libcurl
-│   ├── Core/                          # RemotePath, AppError, Protocols, TransferModels, ConnectionModels
-│   ├── Networking/                    # SSHClientService (+Helpers/+Forwarding), SFTPPacketCodec (+Decode), SFTPService, SCPCompatibilityAdapter, FTPService, CurlClientHelper, SSHProxyChannelHandler
-│   ├── TransferEngine/                # TransferQueue (+Execution/+Checkpoint), TransferScheduler, ResumeValidator, SHA256Verifier, ConflictResolver, ProgressThrottler
+│   ├── Clibcurl/                      # Non-variadic C11 wrapper atas macOS SDK libcurl (-lcurl), zlib (-lz) & dynamic dlopen libssh2 probe
+│   ├── Core/                          # RemotePath, AppError, Protocols, TransferModels, ConnectionModels, ToolchainModels
+│   ├── Networking/                    # SSHClientService (+Helpers/+Forwarding), SFTPPacketCodec (+Decode), SFTPService (+Helpers pipelined), SCPCompatibilityAdapter, FTPService, CurlClientHelper (256KB/GCD), ZlibAndLibraryProbes
+│   ├── TransferEngine/                # TransferQueue (+Execution/+Checkpoint/+ConflictHelpers), TransferScheduler (4/3), ResumeValidator, SHA256Verifier, ConflictResolver FileZilla, ProgressThrottler
 │   ├── FileManager/                   # LocalFileService, DualPaneState, FileSortDescriptor, POSIXPermissions
 │   ├── Security/                      # KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator, PrivateKeyParser, UpdateConfigurationValidator
-│   ├── Terminal/                      # TerminalViewRepresentable (SwiftTerm), TerminalSessionManager, PortForwardingManager, CommandSnippetStore
+│   ├── Terminal/                      # TerminalViewRepresentable, LocalShellTerminalRepresentable, ExternalTerminalLauncher, TerminalSessionManager, PortForwardingManager, CommandSnippetStore
 │   ├── Synchronization/               # DirectoryScanner, SyncPlanner, SyncExecutor
-│   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters
-│   └── DesignSystem/                  # 28 SparkNotePad themes, Components, EN/ID JSON Locales (285 keys)
+│   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters, WinSCPAndFileReader
+│   └── DesignSystem/                  # 28 SparkNotePad themes, Components, EN/ID JSON Locales (309 keys)
 │
 ├── Features/                          # SwiftUI + AppKit Views & AppState (+Connections/+ConnectionManagement/+Operations/+Imports/+Settings/+TransferHelpers)
-│   ├── Dashboard/
+│   ├── Dashboard/                     # MainWindowView (Globe switcher), 7-tab AboutView, AboutWindowController
 │   ├── Connections/                   # ConnectionTableView, ConnectionViews, ConnectionEditorView, ConnectionAdvancedSection, ConnectionSecuritySheets, ImportConnectionsSheet
 │   ├── Commander/                     # DualPaneCommanderView (+Actions), FilePaneTableView, CommanderSheets
-│   ├── Transfers/                     # TransferMonitor, TransferQueueView
-│   ├── Terminal/                      # TerminalWorkspaceView
+│   ├── Editor/                        # Minimalist Notepad2 Internal File Editor (NSTextView + NSRulerView)
+│   ├── Transfers/                     # TransferMonitor, TransferQueueView, ConflictResolutionSheet FileZilla
+│   ├── Terminal/                      # TerminalWorkspaceView (remote PTY + local shell + iTerm2/Terminal)
 │   ├── Synchronization/               # SyncPreviewSheet
-│   └── Settings/                      # PreferencesView (+Theme, +Localization, +Updates)
+│   └── Settings/                      # PreferencesView (+Theme, +Localization cards, +Updates)
 │
-├── Tests/                             # 8 test target (60 test di 16 suite Swift Testing)
+├── Tests/                             # 8 test target (71 test di 18 suite Swift Testing)
 │   ├── CoreTests/
 │   ├── SecurityTests/
 │   ├── PersistenceTests/
@@ -277,7 +278,7 @@ struct SyncPlan: Sendable {
 ## 📋 Phased Roadmap (8 Fase)
 
 > [!IMPORTANT]
-> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori (diverifikasi `64 tests in 17 suites` & `129` file Swift bersih SwiftLint/SwiftFormat), termasuk multi-tema SparkNotePad + propagasi workspace penuh, jendela About 6-tab bergaya SparkNotePad + ikon 1:1 biru/putih/kuning pastel, pengaturan Auto-Update, JSON i18n (`285` kunci), FileZilla/WinSCP preview importer, Notepad2 Internal Editor, Bidirectional Sync (`TASK-108`), Keychain Remember Password (`ConnectionEditorView`, `CredentialPromptSheet`, `FTPService`), navigasi fokus `ConnectionListTableView` + `InteractiveFileTableView` (`NSTableView`), exit aplikasi non-blocking, serta optimasi performa runtime (`TransferMonitor`, cache `strings`/`activePalette`, single-`lstat` POSIX enumeration), sedangkan Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
+> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori (diverifikasi `71 tests in 18 suites` & `135` file Swift bersih SwiftLint/SwiftFormat), termasuk integrasi pustaka pihak ketiga (`Clibcurl` `-lcurl -lz` bounded `zlib`/`gzip`, `256 KB` `CurlClientHelper` GCD workers, dynamic `dlopen` `libssh2`, `OpenSSL`/`OpenSSH`/POSIX shell detection, `LocalShellTerminalRepresentable`, sanitized `ExternalTerminalLauncher` iTerm2/Terminal), transfer multi-thread pipelined (`SFTPPipelinedTransfer` 8x + `TransferScheduler` 4/3), dialog konflik timpa gaya FileZilla (`ConflictResolutionSheet` + FIFO `pendingConflictQueue`), layout kartu bahasa + menu Globe (`PreferencesLocalizationTab`), multi-tema SparkNotePad + propagasi workspace penuh, jendela About 7-tab bergaya SparkNotePad + ikon 1:1 biru/putih/kuning pastel, pengaturan Auto-Update, JSON i18n (`309` kunci), FileZilla/WinSCP preview importer, Notepad2 Internal Editor, Bidirectional Sync (`TASK-108`), Keychain Remember Password (`ConnectionEditorView`, `CredentialPromptSheet`, `FTPService`), navigasi fokus `ConnectionListTableView` + `InteractiveFileTableView` (`NSTableView`), exit aplikasi non-blocking, serta optimasi performa runtime (`TransferMonitor`, cache `strings`/`activePalette`, single-`lstat` POSIX enumeration), sedangkan Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
 
 ```mermaid
 flowchart LR
@@ -377,8 +378,8 @@ flowchart LR
   - `Sparkle`: **`2.10.1`** (`"2.10.1" ..< "3.0.0"`)
   - `KeychainService` native over Apple `Security.framework` + `LAContext` (`WhenUnlockedThisDeviceOnly`, supersedes `GlasSecretStore`)
   - `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`) over macOS `libcurl` (`libssh2`, zero `libssh` surface — mitigates **CVE-2025-15224**)
-- [x] **TASK-004** Configure SwiftLint (`swiftlint --strict`, `0` violations in 129 files) + SwiftFormat (`.swiftformat`, `--trailing-commas never`)
-- [x] **TASK-005** Configure unit & loopback integration testing (`Swift Testing` framework — 64 tests in 17 suites)
+- [x] **TASK-004** Configure SwiftLint (`swiftlint --strict`, `0` violations in 135 files) + SwiftFormat (`.swiftformat`, `--trailing-commas never`)
+- [x] **TASK-005** Configure unit & loopback integration testing (`Swift Testing` framework — 71 tests in 18 suites)
 - [x] **TASK-006** Configure CI/CD (GitHub Actions: `.github/workflows/ci.yml` + `release.yml`, verified by `actionlint`)
 - [ ] **TASK-007** Configure production Apple Developer ID code signing (`Tools/Release/notarize.sh` ready; local ad-hoc `codesign` verified)
 - [x] **TASK-008** Create architecture documentation (`README.md`, `README-id.md`, `docs/ADR/0001`–`0005`)
@@ -517,7 +518,7 @@ flowchart LR
 
 ### EPIC-10 — Quality Assurance & Release
 
-- [x] **TASK-111** Unit tests: state machine, path parser, conflict rules, SSH config & importers, themes, i18n, bidirectional sync, Notepad2 editor, Keychain Remember Password & `FTPService` prompt, About diagnostics, AppKit table row keys, and connection cloning/batch deletion/performance (`CoreTests`, `PersistenceTests`, `FileManagerTests`, `SynchronizationTests`, `IntegrationTests` — 64 tests in 17 suites)
+- [x] **TASK-111** Unit tests: state machine, path parser, conflict rules, SSH config & importers, themes, i18n (`309` keys), bidirectional sync, Notepad2 editor, Keychain Remember Password & `FTPService` prompt, 7-tab About diagnostics, AppKit table row keys, `zlib`/`gzip` `CWE-409` codecs, `ToolchainInspector`, `ExternalTerminalLauncher` `CWE-78`, 8x pipelined SFTP SHA-256 parity, FIFO `pendingConflictQueue`, and connection cloning/batch deletion/performance (`CoreTests`, `PersistenceTests`, `FileManagerTests`, `SynchronizationTests`, `IntegrationTests` — 71 tests in 18 suites)
 - [ ] **TASK-112** Live Docker Compose integration test execution (`Tools/TestServers/` tersedia; butuh container runtime Docker)
 - [x] **TASK-113** SFTP interoperability tests via real encrypted `LoopbackSSHServer` (listing, upload, download, mkdir, rename, chmod, delete)
 - [ ] **TASK-114** Live Docker FTPS server interop run (TLS self-signed rejection & FTP CRLF sanitizer terverifikasi; live FTPS container deferred ke Docker env)
@@ -664,8 +665,9 @@ services:
 - [x] Host key verification berjalan benar (`LoopbackSFTPIntegrationTests` memverifikasi unknown prompt, trusted reuse, dan blokir host key berubah via `.hostKeyMismatch`)
 - [x] TLS certificate validation (`TLSCertificateValidator` menolak sertifikat self-signed X.509 di `SecurityTests`)
 - [x] Dual-pane lokal/remote berfungsi + keyboard Commander shortcuts (`Cmd+T`, `Cmd+K`, `Cmd+R`, `Cmd+Shift+S`, `Cmd+Shift+N`, `Tab`)
-- [x] Upload/download + batch + pause/resume + cancel + retry (`TransferEngineTests` + `LoopbackSFTPIntegrationTests`)
-- [x] Conflict resolution + atomic upload (`ConflictResolver` + `.part` verify -> atomic rename)
+- [x] Upload/download + batch multi-thread (`TransferScheduler` 4 global / 3 per-host + `SFTPPipelinedTransfer` 8x sliding window) + pause/resume + cancel + retry (`TransferEngineTests` + `ToolchainAndConflictTests` + `LoopbackSFTPIntegrationTests`)
+- [x] FileZilla-style conflict resolution (`ConflictResolutionSheet` 7 actions + sticky queue/direction checkboxes + FIFO `pendingConflictQueue`) + atomic upload (`.part` verify -> atomic rename)
+- [x] Toolchain integration (`Clibcurl` `-lcurl -lz`, `256 KB` `CurlClientHelper` GCD workers, bounded `zlib`/`gzip`, dynamic `dlopen` `libssh2` probe, `OpenSSL`/`OpenSSH`/shell detection, `LocalShellTerminalRepresentable`, sanitized `ExternalTerminalLauncher` for iTerm2/Terminal) (`ToolchainAndConflictTests`)
 - [x] Credentials tersimpan di Keychain, TIDAK di database (`ConnectionStoreTests` + `KeychainService`)
 - [x] Interrupted transfer dapat direkonsiliasi setelah restart (`TransferJournal` SQLite3 WAL di `PersistenceTests`)
 - [x] Tidak ada secret dalam log (`DiagnosticsLogger` + rule `no_password_in_logs` 0 pelanggaran)

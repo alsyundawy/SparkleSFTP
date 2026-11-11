@@ -23,9 +23,72 @@ public extension AppState {
 
     internal func promptConflictResolution(_ context: ConflictContext) async -> TransferConflictResolution {
         await withCheckedContinuation { continuation in
-            conflictContinuation = continuation
-            pendingConflict = context
+            enqueueConflictPrompt(context, continuation: continuation)
         }
+    }
+
+    internal func enqueueConflictPrompt(
+        _ context: ConflictContext,
+        continuation: CheckedContinuation<TransferConflictResolution, Never>
+    ) {
+        if let stickyPolicy = activeConflictRule(for: context.direction) {
+            let name = URL(fileURLWithPath: context.destinationDisplayPath).lastPathComponent
+            let auto = ConflictResolver.evaluateNonInteractivePolicy(
+                stickyPolicy,
+                context: context,
+                originalFilename: name
+            )
+            continuation.resume(returning: auto)
+            return
+        }
+        pendingConflictQueue.append(ConflictPromptEntry(context: context, continuation: continuation))
+        if pendingConflict == nil {
+            pendingConflict = pendingConflictQueue.first?.context
+        }
+    }
+
+    internal func handleConflictResolution(
+        _ resolution: TransferConflictResolution,
+        applyToQueue: Bool,
+        queuePolicy: TransferConflictPolicy?,
+        scope: TransferConflictScope
+    ) {
+        if applyToQueue, let policy = queuePolicy {
+            activeQueueConflictRules[scope] = policy
+            hasActiveConflictQueueRules = true
+            Task { await transferQueue.applyConflictRule(policy, scope: scope) }
+        }
+        guard !pendingConflictQueue.isEmpty else {
+            pendingConflict = nil
+            return
+        }
+        let first = pendingConflictQueue.removeFirst()
+        first.continuation.resume(returning: resolution)
+        drainAutoResolvedConflictsIfNeeded()
+    }
+
+    private func drainAutoResolvedConflictsIfNeeded() {
+        var remaining: [ConflictPromptEntry] = []
+        for entry in pendingConflictQueue {
+            if let stickyPolicy = activeConflictRule(for: entry.context.direction) {
+                let name = URL(fileURLWithPath: entry.context.destinationDisplayPath).lastPathComponent
+                let auto = ConflictResolver.evaluateNonInteractivePolicy(
+                    stickyPolicy,
+                    context: entry.context,
+                    originalFilename: name
+                )
+                entry.continuation.resume(returning: auto)
+            } else {
+                remaining.append(entry)
+            }
+        }
+        pendingConflictQueue = remaining
+        pendingConflict = pendingConflictQueue.first?.context
+    }
+
+    private func activeConflictRule(for direction: TransferDirection) -> TransferConflictPolicy? {
+        let dirScope: TransferConflictScope = direction == .upload ? .uploadsOnly : .downloadsOnly
+        return activeQueueConflictRules[dirScope] ?? activeQueueConflictRules[.all]
     }
 
     internal func notifyTerminalTransfersIfNeeded(_ snapshots: [TransferSnapshot]) {
@@ -63,6 +126,9 @@ public extension AppState {
             transferSnapshots = restored
         }
         applyAutoUpdateConfiguration()
+        Task { [weak self] in
+            await self?.refreshToolchainReport()
+        }
         if autoUpdateSettings.isOverdue {
             Task { [weak self] in
                 await self?.checkForUpdates(manual: false)
@@ -210,6 +276,10 @@ public extension AppState {
                     self.profiles.first { $0.id == jumpID }
                 }
             },
+            options: RemoteTransportOptions(
+                pipelineDepth: transferPipelineDepth,
+                useCompression: useZlibCompression
+            ),
             hostTrustPrompt: { [weak self] challenge in
                 guard let self else { return false }
                 return await promptHostKeyChallenge(challenge)

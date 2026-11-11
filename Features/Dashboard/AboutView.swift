@@ -7,6 +7,7 @@ enum AboutTabKind: Int, CaseIterable, Identifiable {
     case about
     case maintainer
     case credits
+    case libraries
     case diagnostics
     case shortcuts
     case license
@@ -20,6 +21,7 @@ enum AboutTabKind: Int, CaseIterable, Identifiable {
         case .about: return strings.t("about.aboutTab")
         case .maintainer: return strings.t("about.maintainerTab")
         case .credits: return strings.t("about.creditsTab")
+        case .libraries: return strings.t("about.librariesTab")
         case .diagnostics: return strings.t("about.diagnosticsTab")
         case .shortcuts: return strings.t("about.shortcutsTab")
         case .license: return strings.t("about.licenseTab")
@@ -101,6 +103,8 @@ public struct AboutView: View {
             maintainerSection
         case .credits:
             creditsSection
+        case .libraries:
+            librariesSection
         case .diagnostics:
             diagnosticsSection
         case .shortcuts:

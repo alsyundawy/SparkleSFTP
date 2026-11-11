@@ -106,6 +106,14 @@ extension ConnectionListCoordinator: NSMenuDelegate {
             }
         case let .profile(profile, _):
             addMenuItem(parent.strings.connect, action: #selector(handleConnectMenu(_:)), obj: profile, to: menu)
+            if profile.protocolType == .sftp || profile.protocolType == .scp {
+                addMenuItem(
+                    parent.strings.t("nav.openInITerm"),
+                    action: #selector(handleExternalTerminalMenu(_:)),
+                    obj: profile,
+                    to: menu
+                )
+            }
             addMenuItem(parent.strings.t("common.edit"), action: #selector(handleEditMenu(_:)), obj: profile, to: menu)
             addMenuItem(
                 parent.strings.t("conn.cloneConnection"),
@@ -138,6 +146,12 @@ extension ConnectionListCoordinator: NSMenuDelegate {
     @objc private func handleConnectMenu(_ sender: NSMenuItem) {
         if let profile = sender.representedObject as? ConnectionProfile {
             parent.onConnect(profile)
+        }
+    }
+
+    @objc private func handleExternalTerminalMenu(_ sender: NSMenuItem) {
+        if let profile = sender.representedObject as? ConnectionProfile {
+            parent.onOpenExternalTerminal(profile)
         }
     }
 

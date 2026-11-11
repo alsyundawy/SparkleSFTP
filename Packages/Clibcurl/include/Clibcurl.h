@@ -28,6 +28,17 @@ CURLcode sparklesftp_curl_setopt_xfer_cb(CURL *handle, SparkleCurlXferInfoCallba
 CURLcode sparklesftp_curl_getinfo_long(CURL *handle, CURLINFO info, long *out_value);
 CURLcode sparklesftp_curl_getinfo_off_t(CURL *handle, CURLINFO info, curl_off_t *out_value);
 
+/* Third-party runtime introspection & bounded zlib codec helpers */
+void sparklesftp_curl_version_summary(char *out_buffer, size_t capacity);
+int sparklesftp_curl_supports_zlib(void);
+void sparklesftp_zlib_version(char *out_buffer, size_t capacity);
+int sparklesftp_zlib_deflate(const uint8_t *input, size_t input_len, int level, int use_gzip, uint8_t **out_data,
+                             size_t *out_len);
+int sparklesftp_zlib_inflate(const uint8_t *input, size_t input_len, size_t max_output_bytes, uint8_t **out_data,
+                             size_t *out_len);
+void sparklesftp_zlib_free(void *ptr);
+int sparklesftp_probe_libssh2(char *out_version, size_t capacity, char *out_path, size_t path_capacity);
+
 #ifdef __cplusplus
 }
 #endif

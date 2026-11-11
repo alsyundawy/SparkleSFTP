@@ -118,7 +118,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         let token = CurlCancellationToken()
         let ctx = makeRequestContext(path: remotePath, trailingSlash: false)
         try await withTaskCancellationHandler {
-            try await Task.detached(priority: .userInitiated) {
+            try await CurlClientHelper.runOffCooperativePool {
                 if offset == 0 || !FileManager.default.fileExists(atPath: localURL.path) {
                     FileManager.default.createFile(atPath: localURL.path, contents: nil)
                 }
@@ -140,7 +140,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     sparklesftp_curl_setopt_write_cb(handle, curlWriteToFileCallback, ptr)
                     sparklesftp_curl_setopt_xfer_cb(handle, curlProgressCallback, ptr)
                 }
-            }.value
+            }
         } onCancel: {
             token.cancel()
         }
@@ -155,7 +155,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
         let token = CurlCancellationToken()
         let ctx = makeRequestContext(path: remotePath, trailingSlash: false)
         try await withTaskCancellationHandler {
-            try await Task.detached(priority: .userInitiated) {
+            try await CurlClientHelper.runOffCooperativePool {
                 let attrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
                 let fileSize = (attrs[.size] as? NSNumber)?.int64Value ?? 0
                 let fileHandle = try FileHandle(forReadingFrom: localURL)
@@ -179,7 +179,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     sparklesftp_curl_setopt_read_cb(handle, curlReadFromFileCallback, ptr)
                     sparklesftp_curl_setopt_xfer_cb(handle, curlProgressCallback, ptr)
                 }
-            }.value
+            }
         } onCancel: {
             token.cancel()
         }
@@ -218,7 +218,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
 
     private func performListing(path: RemotePath, useMLSD: Bool) async throws -> String {
         let ctx = makeRequestContext(path: path, trailingSlash: true)
-        return try await Task.detached(priority: .userInitiated) {
+        return try await CurlClientHelper.runOffCooperativePool {
             let box = CurlMemoryBox()
             try CurlClientHelper.executeCurl(context: ctx) { handle in
                 if useMLSD {
@@ -228,12 +228,12 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                 sparklesftp_curl_setopt_write_cb(handle, curlWriteToMemoryCallback, ptr)
             }
             return String(data: box.data, encoding: .utf8) ?? ""
-        }.value
+        }
     }
 
     private func executeQuoteCommands(_ commands: [String]) async throws {
         let ctx = makeRequestContext(path: "/", trailingSlash: true)
-        try await Task.detached(priority: .userInitiated) {
+        try await CurlClientHelper.runOffCooperativePool {
             try CurlClientHelper.executeCurl(context: ctx, performAutomatically: false) { handle in
                 var slist: UnsafeMutablePointer<curl_slist>?
                 for cmd in commands {
@@ -247,7 +247,7 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     throw CurlClientHelper.mapCurlError(perf, protocolType: ctx.protocolType)
                 }
             }
-        }.value
+        }
     }
 
     private func makeRequestContext(path: RemotePath, trailingSlash: Bool) -> CurlRequestContext {

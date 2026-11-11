@@ -24,8 +24,8 @@ public actor TransferQueue {
     var streamContinuations: [UUID: AsyncStream<[TransferSnapshot]>.Continuation] = [:]
 
     public init(
-        maxGlobalConcurrent: Int = 3,
-        maxPerHostConcurrent: Int = 2,
+        maxGlobalConcurrent: Int = 4,
+        maxPerHostConcurrent: Int = 3,
         journal: (any TransferJournalProtocol)? = nil,
         conflictResolver: ConflictResolver = ConflictResolver(defaultPolicy: .overwrite),
         fileSystemResolver: @escaping FileSystemResolver
@@ -75,6 +75,14 @@ public actor TransferQueue {
 
     public func updateDefaultConflictPolicy(_ policy: TransferConflictPolicy) async {
         await conflictResolver.updateDefaultPolicy(policy)
+    }
+
+    public func applyConflictRule(_ policy: TransferConflictPolicy, scope: TransferConflictScope) async {
+        await conflictResolver.applyQueueRule(policy, scope: scope)
+    }
+
+    public func clearConflictRules() async {
+        await conflictResolver.clearQueueRules()
     }
 
     public func clearFinished() {

@@ -206,12 +206,42 @@ public enum TransferConflictPolicy: String, Sendable, Codable, CaseIterable {
     case skip
     case rename
     case overwrite
+    case overwriteIfNewer
+    case overwriteIfDifferentSize
+    case overwriteIfDifferentSizeOrNewer
+    case resume
 }
 
 public enum TransferConflictResolution: Sendable, Equatable {
     case skip
     case overwrite
+    case resume
     case rename(newFilename: String)
+}
+
+public enum TransferConflictScope: String, Sendable, Codable, CaseIterable {
+    case all
+    case uploadsOnly
+    case downloadsOnly
+}
+
+public struct TransferConflictDecision: Sendable, Equatable {
+    public let resolution: TransferConflictResolution
+    public let applyToQueue: Bool
+    public let queuePolicy: TransferConflictPolicy?
+    public let scope: TransferConflictScope
+
+    public init(
+        resolution: TransferConflictResolution,
+        applyToQueue: Bool = false,
+        queuePolicy: TransferConflictPolicy? = nil,
+        scope: TransferConflictScope = .all
+    ) {
+        self.resolution = resolution
+        self.applyToQueue = applyToQueue
+        self.queuePolicy = queuePolicy
+        self.scope = scope
+    }
 }
 
 public enum DisconnectPolicy: Sendable, Equatable {

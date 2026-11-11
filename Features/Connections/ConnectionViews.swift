@@ -38,6 +38,7 @@ public struct ConnectionManagerView: View {
                 strings: appState.strings,
                 palette: palette,
                 onConnect: { profile in Task { await appState.connect(profile: profile) } },
+                onOpenExternalTerminal: { profile in Task { await appState.openInExternalTerminal(profile) } },
                 onEdit: { profile in editorMode = .edit(profile) },
                 onClone: { profile in Task { _ = await appState.cloneProfile(profile) } },
                 onRequestDelete: { ids in requestDelete(ids: ids) },

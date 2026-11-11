@@ -35,7 +35,8 @@ let package = Package(
             path: "Packages/Clibcurl",
             publicHeadersPath: "include",
             linkerSettings: [
-                .linkedLibrary("curl")
+                .linkedLibrary("curl"),
+                .linkedLibrary("z")
             ]
         ),
         .target(

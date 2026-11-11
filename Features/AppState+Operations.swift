@@ -2,7 +2,9 @@ import AppKit
 import Foundation
 import SparkleCore
 import SparkleFileManager
+import SparkleNetworking
 import SparkleSecurity
+import SparkleTerminal
 import SparkleTransferEngine
 
 public extension AppState {
@@ -11,10 +13,46 @@ public extension AppState {
             maxGlobal: maxGlobalConcurrentTransfers,
             maxPerHost: maxPerHostConcurrentTransfers
         )
+        for session in activeSessions {
+            if let sftp = session.service.connection as? SFTPService {
+                await sftp.updatePipelineDepth(transferPipelineDepth)
+            }
+        }
     }
 
     func applyConflictPolicySettings() async {
         await transferQueue.updateDefaultConflictPolicy(defaultConflictPolicy)
+    }
+
+    func resetConflictQueueRules() async {
+        activeQueueConflictRules.removeAll()
+        hasActiveConflictQueueRules = false
+        await transferQueue.clearConflictRules()
+    }
+
+    func openLocalShellTab() {
+        _ = terminalManager.openLocalShell(shellPath: preferredShellPath, directory: localCurrentURL)
+        isTerminalVisible = true
+    }
+
+    func openInExternalTerminal(_ profile: ConnectionProfile) async {
+        if toolchainReport.libraries.isEmpty {
+            await refreshToolchainReport()
+        }
+        let jumpProfile = profile.jumpHostProfileID.flatMap { jumpID in
+            profiles.first { $0.id == jumpID }
+        }
+        do {
+            let launchedApp = try await ExternalTerminalLauncher.launchSession(
+                for: profile,
+                preferredApp: externalTerminalApp,
+                report: toolchainReport,
+                jumpProfile: jumpProfile
+            )
+            statusBannerMessage = "Opened \(profile.host) in \(launchedApp)"
+        } catch {
+            lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+        }
     }
 
     func switchActivePane() {
