@@ -25,9 +25,21 @@ struct ThemeSampleExportDocument: FileDocument {
     }
 }
 
+private enum ThemeToneFilter: String, CaseIterable, Identifiable {
+    case all
+    case light
+    case dark
+
+    var id: String {
+        rawValue
+    }
+}
+
 struct PreferencesThemeTab: View {
     @ObservedObject var appState: AppState
     @State private var selectedFamily = "All"
+    @State private var selectedTone: ThemeToneFilter = .all
+    @State private var searchText = ""
     @State private var isImportingTheme = false
     @State private var isExportingTheme = false
 
@@ -44,8 +56,22 @@ struct PreferencesThemeTab: View {
     }
 
     private var filteredThemes: [SparkleThemePalette] {
-        appState.availableThemes.filter { palette in
-            selectedFamily == "All" || palette.family == selectedFamily
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return appState.availableThemes.filter { palette in
+            let matchesFamily = selectedFamily == "All" || palette.family == selectedFamily
+            let matchesTone: Bool = switch selectedTone {
+            case .all:
+                true
+            case .light:
+                !palette.isDark
+            case .dark:
+                palette.isDark
+            }
+            let matchesSearch = query.isEmpty
+                || palette.displayName.localizedCaseInsensitiveContains(query)
+                || palette.family.localizedCaseInsensitiveContains(query)
+                || palette.id.localizedCaseInsensitiveContains(query)
+            return matchesFamily && matchesTone && matchesSearch
         }
     }
 
@@ -58,7 +84,7 @@ struct PreferencesThemeTab: View {
                     Text(strings.t("prefs.modeDark")).tag(ThemeAppearanceMode.dark)
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 320)
+                .frame(maxWidth: 300)
 
                 Spacer()
 
@@ -69,6 +95,44 @@ struct PreferencesThemeTab: View {
                     }
                 }
                 .frame(width: 190)
+            }
+
+            HStack(spacing: SparkleTheme.Spacing.small) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(appState.activePalette.secondaryTextColor)
+                    TextField(strings.t("prefs.searchThemes"), text: $searchText)
+                        .textFieldStyle(.plain)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(appState.activePalette.secondaryTextColor)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(appState.activePalette.canvasColor)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(appState.activePalette.borderColor, lineWidth: 1)
+                )
+
+                Picker(strings.t("prefs.allModes"), selection: $selectedTone) {
+                    Text(strings.t("prefs.allModes")).tag(ThemeToneFilter.all)
+                    Text(strings.t("prefs.modeLight")).tag(ThemeToneFilter.light)
+                    Text(strings.t("prefs.modeDark")).tag(ThemeToneFilter.dark)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 175)
+
+                Text("\(filteredThemes.count)/\(appState.availableThemes.count)")
+                    .font(SparkleTheme.Typography.caption)
+                    .foregroundStyle(appState.activePalette.secondaryTextColor)
             }
 
             List(filteredThemes) { palette in

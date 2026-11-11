@@ -5,13 +5,19 @@ import Testing
 
 @Suite("SparkleTheme & Localization Catalog Tests")
 struct ThemeAndLocalizationTests {
-    @Test("SparkleThemeCatalog provides curated SparkNotePad palettes with WCAG AA primary text contrast")
+    @Test("SparkleThemeCatalog provides all 76 SparkNotePad palettes across 26 families with WCAG AA contrast")
     func curatedThemesAndWCAGContrast() {
         let palettes = SparkleThemeCatalog.builtInPalettes
-        #expect(palettes.count >= 25)
+        #expect(palettes.count == 76)
+        #expect(SparkleThemeCatalog.builtInFamilies.count == 26)
         for palette in palettes {
             #expect(SparkleThemeStore.isValidPalette(palette))
             #expect(palette.meetsWCAGAA, "Theme \(palette.id) primary contrast below 4.5:1")
+            let winContrast = SparkleThemePalette.contrastRatio(
+                hexA: palette.primaryTextHex,
+                hexB: palette.windowHex
+            )
+            #expect(winContrast >= 4.5, "Theme \(palette.id) window contrast \(winContrast) below 4.5:1")
         }
 
         let draculaInLight = SparkleThemeCatalog.palette(

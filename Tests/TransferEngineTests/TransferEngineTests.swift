@@ -7,15 +7,18 @@ import Testing
 actor MockRemoteFS: RemoteFileSystem {
     var files: [String: Data] = [:]
     var mtimes: [String: Date] = [:]
+    var permissions: [String: UInt32] = [:]
     var downloadDelay: Duration = .zero
     var uploadDelay: Duration = .zero
     var failCountBeforeSuccess = 0
     var recordedDownloadOffsets: [Int64] = []
+    var recordedUploadOffsets: [Int64] = []
     private var attempts = 0
 
-    func setRemoteFile(path: String, data: Data, mtime: Date = Date()) {
+    func setRemoteFile(path: String, data: Data, mtime: Date = Date(), permissions mode: UInt32 = 0o644) {
         files[path] = data
         mtimes[path] = mtime
+        permissions[path] = mode
     }
 
     func listDirectory(at _: RemotePath) async throws -> [RemoteFile] {
@@ -30,6 +33,7 @@ actor MockRemoteFS: RemoteFileSystem {
             path: path,
             size: Int64(data.count),
             isDirectory: false,
+            permissions: permissions[path.rawValue] ?? 0o644,
             modificationTime: mtimes[path.rawValue]
         )
     }
@@ -76,19 +80,24 @@ actor MockRemoteFS: RemoteFileSystem {
     func upload(
         from localURL: URL,
         to remotePath: RemotePath,
-        offset _: Int64,
+        offset: Int64,
         onProgress: @escaping @Sendable (TransferProgress) -> Void
     ) async throws {
+        recordedUploadOffsets.append(offset)
         if uploadDelay > .zero {
             try await Task.sleep(for: uploadDelay)
         }
         try Task.checkCancellation()
-        let data = try Data(contentsOf: localURL)
-        files[remotePath.rawValue] = data
+        let fullData = try Data(contentsOf: localURL)
+        if offset > 0, let existing = files[remotePath.rawValue] {
+            files[remotePath.rawValue] = existing.prefix(Int(offset)) + fullData.dropFirst(Int(offset))
+        } else {
+            files[remotePath.rawValue] = fullData
+        }
         mtimes[remotePath.rawValue] = Date()
         let progress = TransferProgress(
-            bytesTransferred: Int64(data.count),
-            totalBytes: Int64(data.count),
+            bytesTransferred: Int64(fullData.count),
+            totalBytes: Int64(fullData.count),
             bytesPerSecond: 1024
         )
         onProgress(progress)
@@ -96,6 +105,7 @@ actor MockRemoteFS: RemoteFileSystem {
 
     func delete(at path: RemotePath, isDirectory _: Bool) async throws {
         files.removeValue(forKey: path.rawValue)
+        permissions.removeValue(forKey: path.rawValue)
     }
 
     func rename(from source: RemotePath, to destination: RemotePath) async throws {
@@ -103,10 +113,16 @@ actor MockRemoteFS: RemoteFileSystem {
             throw AppError.fileNotFound(path: source.rawValue)
         }
         files[destination.rawValue] = data
+        if let mode = permissions.removeValue(forKey: source.rawValue) {
+            permissions[destination.rawValue] = mode
+        }
     }
 
     func createDirectory(at _: RemotePath) async throws {}
-    func setPermissions(_: UInt32, at _: RemotePath) async throws {}
+
+    func setPermissions(_ mode: UInt32, at path: RemotePath) async throws {
+        permissions[path.rawValue] = mode & 0o777
+    }
 }
 
 @Suite("SparkleTransferEngine Tests")

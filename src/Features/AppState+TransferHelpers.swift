@@ -6,14 +6,16 @@ import SparkleTransferEngine
 
 extension AppState {
     func enqueueLocalItemUpload(url: URL, isDirectory: Bool, into session: ActiveSessionModel) async {
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let posixMode = (attrs?[.posixPermissions] as? NSNumber)?.uint32Value
         if !isDirectory {
-            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
             let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
             guard let remoteDest = try? session.currentRemotePath.appending(url.lastPathComponent) else { return }
             await enqueueFileUpload(
                 localURL: url,
                 remoteDest: remoteDest,
                 size: size,
+                permissions: posixMode,
                 session: session
             )
             return
@@ -21,8 +23,12 @@ extension AppState {
 
         do {
             let remoteDir = try session.currentRemotePath.appending(url.lastPathComponent)
-            try await session.service.fileSystem.createDirectory(at: remoteDir)
-            await enqueueLocalDirectoryContents(
+            try await ensureRemoteDirectory(
+                at: remoteDir,
+                desiredPermissions: posixMode,
+                remoteFS: session.service.fileSystem
+            )
+            try await enqueueLocalDirectoryContents(
                 localDir: url,
                 remoteDir: remoteDir,
                 session: session,
@@ -33,23 +39,50 @@ extension AppState {
         }
     }
 
+    private func ensureRemoteDirectory(
+        at remoteDir: RemotePath,
+        desiredPermissions: UInt32?,
+        remoteFS: any RemoteFileSystem
+    ) async throws {
+        if let existing = try? await remoteFS.metadata(at: remoteDir) {
+            guard existing.isDirectory else {
+                throw AppError.transferFailed(reason: "Remote path exists as a file: \(remoteDir.rawValue)")
+            }
+            return
+        }
+        try await remoteFS.createDirectory(at: remoteDir)
+        if let perms = desiredPermissions {
+            // Keep owner rwx during folder upload so queued child files can be written into the directory.
+            let uploadSafeMode = (perms & 0o777) | 0o700
+            try? await remoteFS.setPermissions(uploadSafeMode, at: remoteDir)
+        }
+    }
+
     private func enqueueLocalDirectoryContents(
         localDir: URL,
         remoteDir: RemotePath,
         session: ActiveSessionModel,
         visited: Set<String>
-    ) async {
+    ) async throws {
         var nextVisited = visited
-        guard let children = try? await localFileService.listDirectory(at: localDir) else { return }
+        let children = try await localFileService.listDirectory(at: localDir, showHidden: true)
         for child in children {
             let childURL = URL(fileURLWithPath: child.path.rawValue)
             guard let targetRemote = try? remoteDir.appending(child.name) else { continue }
+            if child.isSymlink {
+                let resolvedPath = childURL.resolvingSymlinksInPath().path
+                guard !nextVisited.contains(resolvedPath) else { continue }
+            }
             if child.isDirectory {
                 let real = childURL.resolvingSymlinksInPath().path
                 guard !nextVisited.contains(real) else { continue }
                 nextVisited.insert(real)
-                try? await session.service.fileSystem.createDirectory(at: targetRemote)
-                await enqueueLocalDirectoryContents(
+                try await ensureRemoteDirectory(
+                    at: targetRemote,
+                    desiredPermissions: child.permissions,
+                    remoteFS: session.service.fileSystem
+                )
+                try await enqueueLocalDirectoryContents(
                     localDir: childURL,
                     remoteDir: targetRemote,
                     session: session,
@@ -60,6 +93,7 @@ extension AppState {
                     localURL: childURL,
                     remoteDest: targetRemote,
                     size: child.size,
+                    permissions: child.permissions,
                     session: session
                 )
             }
@@ -70,13 +104,15 @@ extension AppState {
         localURL: URL,
         remoteDest: RemotePath,
         size: Int64,
+        permissions: UInt32?,
         session: ActiveSessionModel
     ) async {
         let meta = TransferTaskMetadata(
             direction: .upload,
             source: .local(url: localURL),
             destination: .remote(profileID: session.profile.id, host: session.profile.host, path: remoteDest),
-            totalBytes: size
+            totalBytes: size,
+            sourcePermissions: permissions
         )
         _ = await transferQueue.enqueue(meta)
     }
@@ -88,6 +124,7 @@ extension AppState {
         visitedRemotePaths: Set<String> = []
     ) async {
         do {
+            let safePerms: UInt32? = file.permissions > 0 ? (file.permissions & 0o777) : nil
             let localDest = try PathValidator.safeLocalDestination(
                 filename: file.name,
                 baseDirectory: localParentDir,
@@ -98,7 +135,8 @@ extension AppState {
                     direction: .download,
                     source: .remote(profileID: session.profile.id, host: session.profile.host, path: file.path),
                     destination: .local(url: localDest),
-                    totalBytes: file.size
+                    totalBytes: file.size,
+                    sourcePermissions: safePerms
                 )
                 _ = await transferQueue.enqueue(meta)
                 return
@@ -110,11 +148,21 @@ extension AppState {
             try FileManager.default.createDirectory(at: localDest, withIntermediateDirectories: true)
             let children = try await session.service.fileSystem.listDirectory(at: file.path)
             for child in children {
+                if child.isSymlink, nextVisited.contains(child.path.rawValue) {
+                    continue
+                }
                 await enqueueRemoteItemDownload(
                     file: child,
                     localParentDir: localDest,
                     session: session,
                     visitedRemotePaths: nextVisited
+                )
+            }
+            if let safePerms {
+                let dirSafePerms = (safePerms | 0o700) & 0o777
+                try? FileManager.default.setAttributes(
+                    [.posixPermissions: NSNumber(value: dirSafePerms)],
+                    ofItemAtPath: localDest.path
                 )
             }
         } catch {

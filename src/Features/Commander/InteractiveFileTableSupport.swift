@@ -11,6 +11,7 @@ final class InteractiveFileTableView: NSTableView {
     var onActivateSelected: (() -> Void)?
     var onQuickLookSelected: (() -> Void)?
     var onGoParent: (() -> Void)?
+    var onSwitchPane: (() -> Void)?
     var onRightClickSelectRow: ((Int) -> Void)?
     var onContextActionShortcut: ((FilePaneContextAction) -> Void)?
 
@@ -33,6 +34,17 @@ final class InteractiveFileTableView: NSTableView {
         super.rightMouseDown(with: event)
     }
 
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(selectAll(_:)):
+            return numberOfRows > 0
+        case #selector(copy(_:)), #selector(delete(_:)):
+            return !selectedRowIndexes.isEmpty
+        default:
+            return super.validateUserInterfaceItem(item)
+        }
+    }
+
     override func selectAll(_: Any?) {
         onContextActionShortcut?(.selectAll)
     }
@@ -45,37 +57,65 @@ final class InteractiveFileTableView: NSTableView {
         onContextActionShortcut?(.delete)
     }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard window?.firstResponder === self else {
+            return super.performKeyEquivalent(with: event)
+        }
+        if handleModifierKey(event) || handleFunctionKey(event.keyCode) {
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func keyDown(with event: NSEvent) {
         if handleModifierKey(event) || handleFunctionKey(event.keyCode) {
             return
         }
+        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
         switch event.keyCode {
+        case 48 where mods.isEmpty:
+            onSwitchPane?()
         case 36, 76:
             onActivateSelected?()
         case 49:
             onQuickLookSelected?()
-        case 51:
+        case 51 where mods.isEmpty:
             onGoParent?()
-        case 126 where event.modifierFlags.contains(.command):
-            onGoParent?()
+        case 117:
+            onContextActionShortcut?(.delete)
         default:
             super.keyDown(with: event)
         }
     }
 
     private func handleModifierKey(_ event: NSEvent) -> Bool {
-        guard event.modifierFlags.contains(.command),
-              let key = event.charactersIgnoringModifiers?.lowercased()
-        else { return false }
-        if key == "a" {
+        guard event.modifierFlags.contains(.command) else { return false }
+        if event.keyCode == 51 {
+            onContextActionShortcut?(.delete)
+            return true
+        }
+        if event.keyCode == 126 {
+            onGoParent?()
+            return true
+        }
+        if event.keyCode == 125 {
+            onActivateSelected?()
+            return true
+        }
+        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
+        switch key {
+        case "a":
             onContextActionShortcut?(.selectAll)
             return true
-        }
-        if key == "c" {
+        case "c":
             onContextActionShortcut?(.copyClipboard)
             return true
+        case "i":
+            onContextActionShortcut?(.inspect)
+            return true
+        default:
+            return false
         }
-        return false
     }
 
     private func handleFunctionKey(_ keyCode: UInt16) -> Bool {

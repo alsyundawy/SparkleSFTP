@@ -62,8 +62,21 @@ public struct AboutView: View {
             Divider().overlay(palette.borderColor)
             footerBar
         }
-        .frame(width: 700, height: 540)
+        .frame(
+            minWidth: 640,
+            idealWidth: 720,
+            maxWidth: .infinity,
+            minHeight: 480,
+            idealHeight: 560,
+            maxHeight: .infinity
+        )
         .sparkleWorkspaceSurface(palette)
+        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: true))
+        .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
+            if (notification.object as? UUID) != appState.windowInstanceID {
+                appState.reloadPreferencesFromNotification()
+            }
+        }
     }
 
     private var tabBarHeader: some View {

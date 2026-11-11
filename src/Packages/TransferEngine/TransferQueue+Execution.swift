@@ -9,6 +9,7 @@ struct DownloadFlowRequest: Sendable {
     let partialURL: URL
     let finalDest: URL
     let offset: Int64
+    let resolvedPermissions: UInt32?
 }
 
 struct UploadTransferAttemptRequest: Sendable {
@@ -20,6 +21,7 @@ struct UploadTransferAttemptRequest: Sendable {
     let targetPath: RemotePath
     let offset: Int64
     let renameFinalTarget: RemotePath?
+    let resolvedPermissions: UInt32?
 }
 
 extension TransferQueue {
@@ -80,6 +82,7 @@ extension TransferQueue {
         guard isStillActive(id: metadata.id) else { throw CancellationError() }
 
         let baseDir = localURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
         let safeDest = try PathValidator.safeLocalDestination(
             filename: localURL.lastPathComponent,
             baseDirectory: baseDir
@@ -118,13 +121,15 @@ extension TransferQueue {
         }
 
         let effectiveOffset = existingPartialOffset > 0 ? existingPartialOffset : plan.resumeOffset
+        let resolvedPerms = metadata.sourcePermissions ?? remoteMeta?.permissions
         let request = DownloadFlowRequest(
             metadata: metadata,
             remoteFS: remoteFS,
             remotePath: remotePath,
             partialURL: partialURL,
             finalDest: plan.destination,
-            offset: effectiveOffset
+            offset: effectiveOffset,
+            resolvedPermissions: resolvedPerms
         )
         try await executeDownloadFlow(request)
     }
@@ -160,6 +165,8 @@ extension TransferQueue {
         let localAttrs = try FileManager.default.attributesOfItem(atPath: localURL.path)
         let localSize = (localAttrs[.size] as? NSNumber)?.int64Value ?? 0
         let localModified = localAttrs[.modificationDate] as? Date
+        let localPerms = (localAttrs[.posixPermissions] as? NSNumber)?.uint32Value
+        let resolvedPerms = metadata.sourcePermissions ?? localPerms
 
         let conflictReq = UploadConflictRequest(
             metadata: metadata,
@@ -173,7 +180,11 @@ extension TransferQueue {
             return
         }
 
-        let request = makeUploadAttemptRequest(plan: plan, conflictRequest: conflictReq)
+        let request = makeUploadAttemptRequest(
+            plan: plan,
+            conflictRequest: conflictReq,
+            resolvedPermissions: resolvedPerms
+        )
         let resolvedRequest: UploadTransferAttemptRequest = if plan.resumeDirectOffset != nil {
             request
         } else {
@@ -184,7 +195,8 @@ extension TransferQueue {
 
     private func makeUploadAttemptRequest(
         plan: UploadConflictPlan,
-        conflictRequest: UploadConflictRequest
+        conflictRequest: UploadConflictRequest,
+        resolvedPermissions: UInt32?
     ) -> UploadTransferAttemptRequest {
         if let resumeOffset = plan.resumeDirectOffset {
             return UploadTransferAttemptRequest(
@@ -195,7 +207,8 @@ extension TransferQueue {
                 localModified: conflictRequest.localModified,
                 targetPath: plan.destination,
                 offset: resumeOffset,
-                renameFinalTarget: nil
+                renameFinalTarget: nil,
+                resolvedPermissions: resolvedPermissions
             )
         }
         let tempName = ".\(plan.destination.filename).sparklesftp.\(conflictRequest.metadata.id.uuidString).part"
@@ -208,7 +221,8 @@ extension TransferQueue {
             localModified: conflictRequest.localModified,
             targetPath: tempPath,
             offset: 0,
-            renameFinalTarget: plan.destination
+            renameFinalTarget: plan.destination,
+            resolvedPermissions: resolvedPermissions
         )
     }
 
@@ -229,7 +243,8 @@ extension TransferQueue {
             localModified: req.localModified,
             targetPath: req.targetPath,
             offset: resumeOffset,
-            renameFinalTarget: req.renameFinalTarget
+            renameFinalTarget: req.renameFinalTarget,
+            resolvedPermissions: req.resolvedPermissions
         )
     }
 
@@ -271,6 +286,10 @@ extension TransferQueue {
                 finalPath: finalTarget
             )
         }
+        let completedTarget = req.renameFinalTarget ?? req.targetPath
+        if let perms = req.resolvedPermissions, perms > 0 {
+            try? await req.remoteFS.setPermissions(perms & 0o777, at: completedTarget)
+        }
     }
 
     private func resolveUploadResumeOffset(
@@ -281,7 +300,6 @@ extension TransferQueue {
         remoteFS: any RemoteFileSystem
     ) async -> Int64 {
         guard let checkpoint = snapshots[taskID]?.checkpoint,
-              checkpoint.bytesTransferred > 0,
               checkpoint.remoteSize == localSize
         else {
             return 0
@@ -329,6 +347,12 @@ extension TransferQueue {
             _ = try FileManager.default.replaceItemAt(request.finalDest, withItemAt: request.partialURL)
         } else {
             try FileManager.default.moveItem(at: request.partialURL, to: request.finalDest)
+        }
+        if let perms = request.resolvedPermissions, perms > 0 {
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: NSNumber(value: perms & 0o777)],
+                ofItemAtPath: request.finalDest.path
+            )
         }
     }
 }

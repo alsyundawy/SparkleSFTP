@@ -25,8 +25,9 @@ public struct MainWindowView: View {
             VStack(spacing: 0) {
                 WorkspaceTabBar(appState: appState)
 
-                if appState.isQuickConnectBarVisible {
+                if appState.currentSession == nil, appState.isQuickConnectBarVisible {
                     QuickConnectBar(appState: appState)
+                        .accessibilityIdentifier("quickConnectBar")
                 }
 
                 VSplitView {
@@ -65,8 +66,13 @@ public struct MainWindowView: View {
             appState.appearanceMode == .auto ? nil : (appState.appearanceMode == .dark ? .dark : .light)
         )
         .environment(\.sparklePalette, palette)
+        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: true))
         .onChange(of: systemColorScheme) { _ in
             appState.refreshActivePalette(emitChange: true)
+            appState.applyAppearanceToApplication()
+        }
+        .onChange(of: palette.id) { _ in
+            appState.applyAppearanceToApplication()
         }
         .onReceive(NotificationCenter.default.publisher(for: .sparkleConnectionsDidChange)) { notification in
             if (notification.object as? UUID) != appState.windowInstanceID {
@@ -77,6 +83,9 @@ public struct MainWindowView: View {
             if (notification.object as? UUID) != appState.windowInstanceID {
                 appState.reloadPreferencesFromNotification()
             }
+        }
+        .onReceive(appState.transferMonitor.$snapshots) { snapshots in
+            appState.handleTransferSnapshotsChanged(snapshots)
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -128,14 +137,18 @@ public struct MainWindowView: View {
                 .accessibilityLabel(appState.strings.securityDiagnostics)
 
                 Menu {
-                    ForEach(appState.availableThemes.prefix(16)) { theme in
-                        Button {
-                            appState.selectTheme(theme)
-                        } label: {
-                            if appState.activePalette.id == theme.id {
-                                Label(theme.displayName, systemImage: "checkmark")
-                            } else {
-                                Text(theme.displayName)
+                    ForEach(groupedThemeFamilies, id: \.self) { family in
+                        Menu(family) {
+                            ForEach(appState.availableThemes.filter { $0.family == family }) { theme in
+                                Button {
+                                    appState.selectTheme(theme)
+                                } label: {
+                                    if appState.activePalette.id == theme.id {
+                                        Label(theme.displayName, systemImage: "checkmark")
+                                    } else {
+                                        Text(theme.displayName)
+                                    }
+                                }
                             }
                         }
                     }
@@ -278,6 +291,14 @@ private extension MainWindowView {
         .frame(minWidth: 0, maxWidth: .infinity)
         .frame(height: 28)
         .background(palette.windowColor)
+    }
+
+    private var groupedThemeFamilies: [String] {
+        var families: [String] = []
+        for theme in appState.availableThemes where !families.contains(theme.family) {
+            families.append(theme.family)
+        }
+        return families
     }
 
     private var languageMenuSelector: some View {

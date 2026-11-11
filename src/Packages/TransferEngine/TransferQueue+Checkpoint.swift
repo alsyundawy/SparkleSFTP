@@ -51,18 +51,44 @@ extension TransferQueue {
 
     func updateStatus(id: UUID, status: TransferStatus) async {
         guard let existing = snapshots[id] else { return }
-        await updateSnapshot(id: id, status: status, progress: existing.progress)
+        let normalizedProgress: TransferProgress = switch status {
+        case .completed:
+            TransferProgress(
+                bytesTransferred: max(existing.progress.bytesTransferred, existing.metadata.totalBytes),
+                totalBytes: max(existing.progress.totalBytes, existing.metadata.totalBytes),
+                bytesPerSecond: 0
+            )
+        case .paused, .interrupted, .cancelled, .failed:
+            TransferProgress(
+                bytesTransferred: existing.progress.bytesTransferred,
+                totalBytes: existing.progress.totalBytes,
+                bytesPerSecond: 0
+            )
+        default:
+            existing.progress
+        }
+        await updateSnapshot(id: id, status: status, progress: normalizedProgress)
     }
 
     func updateSnapshot(id: UUID, status: TransferStatus, progress: TransferProgress) async {
         guard isCurrentWorkerValid(id: id), let existing = snapshots[id] else { return }
+        let monotonicProgress: TransferProgress = if status == .completed {
+            TransferProgress(
+                bytesTransferred: max(existing.progress.bytesTransferred, progress.bytesTransferred),
+                totalBytes: max(existing.progress.totalBytes, progress.totalBytes),
+                bytesPerSecond: 0
+            )
+        } else {
+            progress
+        }
         let updated = TransferSnapshot(
             metadata: existing.metadata,
             status: status,
-            progress: progress,
+            progress: monotonicProgress,
             checkpoint: TransferCheckpoint(
-                bytesTransferred: progress.bytesTransferred,
-                remoteSize: existing.checkpoint?.remoteSize ?? max(existing.metadata.totalBytes, progress.totalBytes),
+                bytesTransferred: monotonicProgress.bytesTransferred,
+                remoteSize: existing.checkpoint?.remoteSize
+                    ?? max(existing.metadata.totalBytes, monotonicProgress.totalBytes),
                 remoteModificationTime: existing.checkpoint?.remoteModificationTime,
                 partialLocalPath: existing.checkpoint?.partialLocalPath
             )
@@ -131,19 +157,28 @@ extension TransferQueue {
     }
 
     func handleProgress(id: UUID, progress: TransferProgress) async {
-        guard isStillActive(id: id), let currentStatus = snapshots[id]?.status else { return }
-        switch currentStatus {
+        guard isStillActive(id: id),
+              let existing = snapshots[id]
+        else { return }
+        switch existing.status {
         case .connecting, .transferring:
             break
         default:
             return
         }
-        let isComplete = progress.totalBytes > 0 && progress.bytesTransferred >= progress.totalBytes
+        let safeTransferred = max(existing.progress.bytesTransferred, progress.bytesTransferred)
+        let safeTotal = max(existing.progress.totalBytes, max(progress.totalBytes, safeTransferred))
+        let monotonic = TransferProgress(
+            bytesTransferred: safeTransferred,
+            totalBytes: safeTotal,
+            bytesPerSecond: progress.bytesPerSecond
+        )
+        let isComplete = monotonic.totalBytes > 0 && monotonic.bytesTransferred >= monotonic.totalBytes
         guard await throttler.shouldEmit(for: id, force: isComplete) else { return }
         await updateSnapshot(
             id: id,
-            status: .transferring(bytesPerSecond: progress.bytesPerSecond),
-            progress: progress
+            status: .transferring(bytesPerSecond: monotonic.bytesPerSecond),
+            progress: monotonic
         )
     }
 

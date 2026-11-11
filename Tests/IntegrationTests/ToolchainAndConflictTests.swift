@@ -214,11 +214,11 @@ struct ToolchainAndConflictTests {
         await server.stop()
     }
 
-    @Test("EN and ID locales include synchronized 309-key coverage for new conflict and toolchain UI")
+    @Test("EN and ID locales include synchronized 310+ key coverage for themes, shortcuts, and conflict UI")
     func localeParityForNewFeatures() {
         let english = LocalizationCatalog.loadBundledStrings(code: "en")
         let indonesian = LocalizationCatalog.loadBundledStrings(code: "id")
-        #expect(english.count >= 309)
+        #expect(english.count >= 310)
         #expect(english.count == indonesian.count)
 
         let requiredKeys = [
@@ -227,12 +227,18 @@ struct ToolchainAndConflictTests {
             "prefs.conflictOverwriteIfDiffOrNewer",
             "transfers.fileAlreadyExists",
             "prefs.languageLayoutHint",
-            "nav.localShell",
+            "prefs.searchThemes",
+            "prefs.allModes",
+            "tabs.previousTab",
+            "tabs.nextTab",
+            "commander.switchPane",
             "nav.openInITerm"
         ]
         for key in requiredKeys {
             #expect(english[key]?.isEmpty == false)
             #expect(indonesian[key]?.isEmpty == false)
         }
+        #expect(english["nav.localShell"] == nil)
+        #expect(indonesian["nav.localShell"] == nil)
     }
 }

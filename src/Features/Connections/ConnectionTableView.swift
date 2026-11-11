@@ -33,6 +33,17 @@ private final class InteractiveConnectionTableView: NSTableView {
         super.rightMouseDown(with: event)
     }
 
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(selectAll(_:)):
+            return numberOfRows > 0
+        case #selector(delete(_:)):
+            return !selectedRowIndexes.isEmpty
+        default:
+            return super.validateUserInterfaceItem(item)
+        }
+    }
+
     override func selectAll(_: Any?) {
         onSelectAllPressed?()
     }
@@ -41,11 +52,33 @@ private final class InteractiveConnectionTableView: NSTableView {
         onDeletePressed?()
     }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard window?.firstResponder === self else {
+            return super.performKeyEquivalent(with: event)
+        }
+        if event.modifierFlags.contains(.command) {
+            if event.keyCode == 51 {
+                onDeletePressed?()
+                return true
+            }
+            if event.charactersIgnoringModifiers?.lowercased() == "a" {
+                onSelectAllPressed?()
+                return true
+            }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func keyDown(with event: NSEvent) {
-        if event.modifierFlags.contains(.command),
-           event.charactersIgnoringModifiers?.lowercased() == "a" {
-            onSelectAllPressed?()
-            return
+        if event.modifierFlags.contains(.command) {
+            if event.keyCode == 51 {
+                onDeletePressed?()
+                return
+            }
+            if event.charactersIgnoringModifiers?.lowercased() == "a" {
+                onSelectAllPressed?()
+                return
+            }
         }
         switch event.keyCode {
         case 36, 76:

@@ -1403,7 +1403,7 @@ jobs:
 
 ## ✅ Updated Acceptance Criteria Additions
 
-**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 73 tests in 19 suites, 143 Swift files):**
+**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 81 tests in 22 suites, 155 Swift files):**
 
 - [x] `swift-nio-ssh` version ≥ 0.14.1 (`0.15.1`, patch CVE-2026-43798 — lihat [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md))
 - [x] `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`, memblokir permukaan `libssh` — mitigasi CVE-2025-15224), menautkan `-lcurl -lz` (`zlib`/`gzip` bounded `CWE-409`) dengan buffer `256 KB` + `TCP_NODELAY`/`TCP_KEEPALIVE` + worker GCD & probing dinamis `dlopen` `libssh2` ([ADR-007](ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md))
@@ -1416,7 +1416,7 @@ jobs:
 - [x] SHA-256 verification: tidak blocking main thread untuk file > 100MB (`TransferEngineTests`)
 - [x] Sparkle: unsigned/non-HTTPS update check dan placeholder `SUPublicEDKey` ditolak (`UpdateConfigurationValidator`, `SecurityTests`, `SparkleUpdaterService`); Ed25519 appcast signing dilakukan pada host rilis
 - [x] OSLog: tidak ada secret dalam log (`DiagnosticsLogger` + SwiftLint `no_password_in_logs`)
-- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/143 files), `swiftformat --lint .` (0/143 files), `trunk check`, `sonar-project.properties` + `swiftlint --reporter sonarqube`, `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, `clang-format --dry-run --Werror`, `cppcheck`
+- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/155 files), `swiftformat --lint .` (0/155 files), `trunk check`, `sonar-project.properties` + `swiftlint --reporter sonarqube`, `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, `clang-format --dry-run --Werror`, `cppcheck`
 
 ---
 

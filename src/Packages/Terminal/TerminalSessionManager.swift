@@ -52,31 +52,17 @@ private final class PTYResourceBox: @unchecked Sendable { // JUSTIFICATION: NSLo
 @MainActor
 public final class TerminalTabSession: Identifiable, ObservableObject {
     public let id: UUID
-    public let localShellPath: String?
-    public let localWorkingDirectory: URL?
     @Published public var title: String
     @Published public var currentDirectory: String?
     @Published public var isActive: Bool = false
 
-    public var isLocalShell: Bool {
-        localShellPath != nil
-    }
-
     private weak var terminalView: TerminalView?
-    private weak var localProcessView: LocalProcessTerminalView?
     private let resourceBox = PTYResourceBox()
     private var pendingCommandInsertion: String?
 
-    public init(
-        id: UUID = UUID(),
-        title: String,
-        localShellPath: String? = nil,
-        localWorkingDirectory: URL? = nil
-    ) {
+    public init(id: UUID = UUID(), title: String) {
         self.id = id
         self.title = title
-        self.localShellPath = localShellPath
-        self.localWorkingDirectory = localWorkingDirectory
     }
 
     deinit {
@@ -85,15 +71,6 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     public func attachTerminalView(_ view: TerminalView) {
         terminalView = view
-    }
-
-    public func attachLocalProcessView(_ view: LocalProcessTerminalView) {
-        localProcessView = view
-        isActive = true
-        if let pending = pendingCommandInsertion {
-            pendingCommandInsertion = nil
-            view.send(txt: pending)
-        }
     }
 
     public func attachPTYChannel(_ channel: SSHPTYChannel) {
@@ -125,10 +102,6 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     public func insertCommandText(_ text: String) {
         guard !text.isEmpty else { return }
-        if let localProcessView {
-            localProcessView.send(txt: text)
-            return
-        }
         if isActive {
             let bytes = Array(text.utf8)
             resourceBox.write(bytes[...])
@@ -138,10 +111,6 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     }
 
     public func sendCommand(_ text: String) {
-        if let localProcessView {
-            localProcessView.send(txt: text + "\n")
-            return
-        }
         let bytes = Array((text + "\n").utf8)
         resourceBox.write(bytes[...])
     }
@@ -163,37 +132,19 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     public func close() {
         resourceBox.closeAll()
-        if let localProcessView {
-            localProcessView.processDelegate = nil
-            localProcessView.terminate()
-            self.localProcessView = nil
-        }
         terminalView?.terminalDelegate = nil
         terminalView = nil
         isActive = false
     }
 }
 
-/// Coordinates multi-tab and split SSH PTY and local shell terminal sessions with deterministic teardown.
+/// Coordinates multi-tab and split SSH PTY terminal sessions with deterministic teardown.
 @MainActor
 public final class TerminalSessionManager: ObservableObject {
     @Published public private(set) var sessions: [TerminalTabSession] = []
     @Published public var selectedSessionID: UUID?
 
     public init() {}
-
-    @discardableResult
-    public func openLocalShell(shellPath: String, directory: URL? = nil) -> TerminalTabSession {
-        let shellName = URL(fileURLWithPath: shellPath).lastPathComponent
-        let session = TerminalTabSession(
-            title: "Local: \(shellName)",
-            localShellPath: shellPath,
-            localWorkingDirectory: directory
-        )
-        sessions.append(session)
-        selectedSessionID = session.id
-        return session
-    }
 
     @discardableResult
     public func openSession(title: String, sshClient: SSHClientService?) async throws -> TerminalTabSession {

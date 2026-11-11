@@ -72,6 +72,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
     public let priority: TransferPriority
     public let expectedSHA256: String?
     public let conflictPolicyOverride: TransferConflictPolicy?
+    public let sourcePermissions: UInt32?
     public let createdAt: Date
 
     public init(
@@ -83,6 +84,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
         priority: TransferPriority = .normal,
         expectedSHA256: String? = nil,
         conflictPolicyOverride: TransferConflictPolicy? = nil,
+        sourcePermissions: UInt32? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -93,6 +95,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
         self.priority = priority
         self.expectedSHA256 = expectedSHA256
         self.conflictPolicyOverride = conflictPolicyOverride
+        self.sourcePermissions = sourcePermissions.map { $0 & 0o777 }
         self.createdAt = createdAt
     }
 

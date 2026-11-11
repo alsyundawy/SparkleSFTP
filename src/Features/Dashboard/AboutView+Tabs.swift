@@ -165,13 +165,17 @@ extension AboutView {
         let palette = appState.activePalette
         let rows: [(String, String)] = [
             ("Double-Click / Return", "Connect profile / Open directory / Edit file"),
-            ("↑ / ↓ Arrows", "Navigate connection list & file panes smoothly"),
+            ("↑ / ↓ Arrows", "Navigate connection list & file panes cleanly"),
+            ("Tab (Table) / ⌘\\", "Switch active Dual-Pane side (without stealing field Tab focus)"),
             ("Backspace / ⌘↑", "Open parent directory (File Pane)"),
             ("Space", "Quick Look preview (File Pane)"),
-            ("Tab", "Switch active Dual-Pane side"),
-            ("⌘E / ⌘K", "Open Notepad2 Editor / Open SSH Terminal tab"),
+            ("⌘T / ⇧⌘T / ⌘W", "New Tab / Duplicate Tab / Close Active Tab or Window"),
+            ("⌘⇧[ / ⌘⇧]", "Select Previous / Next Workspace Tab"),
+            ("⌘U / ⇧⌘N", "Upload or Download selected / New Folder"),
+            ("⌘E / ⌘K", "Open Notepad2 Editor / Open Remote SSH Terminal"),
             ("⌘⇧S / ⌘R", "Directory Synchronize / Refresh directory"),
-            ("⌘A / Delete (⌫)", "Select All / Delete selected connections")
+            ("F2 / F5 / F6 / F8 / F9", "Rename / Copy To / Move To / Delete / Properties"),
+            ("⌘A / ⌘C / ⌘⌫", "Select All / Copy to Clipboard / Delete selected items")
         ]
         return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
             Text("Key Productivity Shortcuts")

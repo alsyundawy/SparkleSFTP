@@ -49,16 +49,9 @@ public struct TerminalWorkspaceView: View {
                 Spacer()
 
                 Button {
-                    appState.openLocalShellTab()
-                } label: {
-                    Label(appState.strings.t("nav.localShell"), systemImage: "applescript")
-                }
-                .help(appState.strings.t("nav.localShell"))
-
-                Button {
                     Task { await appState.openTerminalTab() }
                 } label: {
-                    Image(systemName: "plus")
+                    Label(appState.strings.t("nav.openTerminalTab"), systemImage: SparkleTheme.Symbols.terminal)
                 }
                 .disabled(appState.currentSession?.sshClient == nil)
                 .help(appState.strings.t("nav.openTerminalTab"))
@@ -88,14 +81,14 @@ public struct TerminalWorkspaceView: View {
                     Text(appState.strings.t("nav.noActivePTY"))
                         .font(SparkleTheme.Typography.body)
                         .foregroundStyle(appState.activePalette.secondaryTextColor)
-                    HStack(spacing: SparkleTheme.Spacing.small) {
-                        Button(appState.strings.t("nav.localShell")) {
-                            appState.openLocalShellTab()
-                        }
-                        if appState.currentSession?.sshClient != nil {
-                            Button(appState.strings.t("nav.openPTYShell")) {
-                                Task { await appState.openTerminalTab() }
-                            }
+                    if appState.currentSession?.sshClient != nil {
+                        Button {
+                            Task { await appState.openTerminalTab() }
+                        } label: {
+                            Label(
+                                appState.strings.t("nav.openPTYShell"),
+                                systemImage: SparkleTheme.Symbols.terminal
+                            )
                         }
                     }
                 }
@@ -137,13 +130,8 @@ public struct TerminalWorkspaceView: View {
         .sparkleWorkspaceSurface(appState.activePalette, useCanvas: true)
     }
 
-    @ViewBuilder
     private func terminalSessionView(session: TerminalTabSession, themeColors: TerminalThemeColors) -> some View {
-        if session.isLocalShell {
-            LocalShellTerminalRepresentable(session: session, themeColors: themeColors)
-        } else {
-            TerminalViewRepresentable(session: session, themeColors: themeColors)
-        }
+        TerminalViewRepresentable(session: session, themeColors: themeColors)
     }
 }
 

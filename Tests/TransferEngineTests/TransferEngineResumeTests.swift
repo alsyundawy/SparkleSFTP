@@ -124,6 +124,52 @@ struct TransferEngineResumeTests {
         #expect(try Data(contentsOf: dest) == payloadV2)
     }
 
+    @Test("TransferQueue upload pauses, resumes from remote temp offset, and preserves POSIX permissions")
+    func transferQueueUploadPauseResumeAndPermissions() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleUploadResume-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let localFile = dir.appendingPathComponent("deploy.sh")
+        let fullPayload = Data((0 ..< 512).map { UInt8($0 % 251) })
+        try fullPayload.write(to: localFile)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: localFile.path)
+
+        let remoteFS = MockRemoteFS()
+        await remoteFS.setUploadDelay(.milliseconds(250))
+
+        let queue = TransferQueue { _ in remoteFS }
+        let task = TransferTaskMetadata(
+            direction: .upload,
+            source: .local(url: localFile),
+            destination: .remote(profileID: UUID(), host: "srv", path: "/opt/deploy.sh"),
+            totalBytes: Int64(fullPayload.count),
+            sourcePermissions: 0o755
+        )
+
+        _ = await queue.enqueue(task)
+        _ = await waitUntilSnapshot(in: queue, id: task.id) {
+            $0.status.isActive && $0.checkpoint?.partialLocalPath != nil
+        }
+        await queue.pause(id: task.id)
+        let pausedSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status == .paused }
+        #expect(pausedSnap?.status == .paused)
+        #expect(pausedSnap?.progress.bytesPerSecond == 0)
+
+        let tempRemotePath = try #require(pausedSnap?.checkpoint?.partialLocalPath)
+        await remoteFS.setRemoteFile(path: tempRemotePath, data: Data(fullPayload.prefix(192)))
+        await remoteFS.setUploadDelay(.zero)
+
+        await queue.retry(id: task.id)
+        let doneSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status.isTerminal }
+        #expect(doneSnap?.status == .completed)
+        #expect(doneSnap?.progress.bytesPerSecond == 0)
+        #expect(await remoteFS.files["/opt/deploy.sh"] == fullPayload)
+        #expect(await remoteFS.permissions["/opt/deploy.sh"] == 0o755)
+        let offsets = await remoteFS.recordedUploadOffsets
+        #expect(offsets.contains(192))
+    }
+
     private func waitUntilSnapshot(
         in queue: TransferQueue,
         id: UUID,
@@ -144,5 +190,9 @@ struct TransferEngineResumeTests {
 extension MockRemoteFS {
     func setDownloadDelay(_ duration: Duration) {
         downloadDelay = duration
+    }
+
+    func setUploadDelay(_ duration: Duration) {
+        uploadDelay = duration
     }
 }

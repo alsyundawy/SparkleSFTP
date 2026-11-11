@@ -90,6 +90,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     ) async throws {
         let quoted = try Self.escapePOSIXSingleQuoted(remotePath.rawValue)
         let meta = try await metadata(at: remotePath)
+        let speedMeter = TransferSpeedMeter(totalBytes: meta.size, initialOffset: offset)
         if offset == 0, useCompression, meta.size >= 4096,
            let compressedResult = try? await sshService.executeCommand("gzip -c < \(quoted) | base64"),
            compressedResult.exitCode == 0 {
@@ -97,13 +98,13 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
             if let gzData = Data(base64Encoded: cleanCompressed),
                let plainData = try? ZlibCompressionCodec.decompress(gzData) {
                 try plainData.write(to: localURL, options: [.atomic])
-                onProgress(
-                    TransferProgress(
-                        bytesTransferred: Int64(plainData.count),
-                        totalBytes: max(meta.size, Int64(plainData.count)),
-                        bytesPerSecond: Int64(plainData.count)
-                    )
-                )
+                if let progress = speedMeter.record(
+                    absoluteBytes: Int64(plainData.count),
+                    totalOverride: max(meta.size, Int64(plainData.count)),
+                    force: true
+                ) {
+                    onProgress(progress)
+                }
                 return
             }
         }
@@ -126,13 +127,14 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
             try decoded.write(to: localURL, options: [.atomic])
         }
 
-        onProgress(
-            TransferProgress(
-                bytesTransferred: offset + Int64(decoded.count),
-                totalBytes: max(meta.size, offset + Int64(decoded.count)),
-                bytesPerSecond: Int64(decoded.count)
-            )
-        )
+        let completedBytes = offset + Int64(decoded.count)
+        if let progress = speedMeter.record(
+            absoluteBytes: completedBytes,
+            totalOverride: max(meta.size, completedBytes),
+            force: true
+        ) {
+            onProgress(progress)
+        }
     }
 
     public func upload(
@@ -159,7 +161,8 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
             return
         }
 
-        let chunkLimit = 24 * 1024
+        let speedMeter = TransferSpeedMeter(totalBytes: totalSize, initialOffset: clampedOffset)
+        let chunkLimit = 64 * 1024
         var sent = clampedOffset
         var isFirstChunk = true
         while true {
@@ -177,13 +180,9 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
             }
             isFirstChunk = false
             sent += Int64(chunk.count)
-            onProgress(
-                TransferProgress(
-                    bytesTransferred: sent,
-                    totalBytes: totalSize,
-                    bytesPerSecond: Int64(chunk.count)
-                )
-            )
+            if let progress = speedMeter.record(absoluteBytes: sent, force: sent >= totalSize) {
+                onProgress(progress)
+            }
         }
     }
 

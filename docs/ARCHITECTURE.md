@@ -62,14 +62,14 @@ SparkleSFTP/
 │   └── Packages/
 │       ├── Clibcurl/             # Non-variadic C11 bridge over macOS SDK libcurl (-lcurl), zlib (-lz) & dynamic libssh2 probe
 │       ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, ToolchainModels, Protocols, FeatureFlags
-│       ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPPipelinedTransfer, SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
+│       ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPPipelinedTransfer (64KB), TransferSpeedMeter, SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
 │       ├── TransferEngine/       # SparkleTransferEngine: TransferQueue, TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
 │       ├── FileManager/          # SparkleFileManager: LocalFileService, FileSortDescriptor, POSIXPermissions, DualPaneState
 │       ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator (`CWE-22/59/78`), PrivateKeyParser, UpdateConfigurationValidator
-│       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, LocalShellTerminalRepresentable, ExternalTerminalLauncher, PortForwardingManager
+│       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, ExternalTerminalLauncher, PortForwardingManager
 │       ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
 │       ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
-│       └── DesignSystem/         # SparkleDesignSystem: 28 SparkNotePad theme palettes (15 families), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 358 keys)
+│       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator, sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 361 keys)
 ├── Tests/                        # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                        # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
 └── docs/                         # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, ADRs 0001–0007

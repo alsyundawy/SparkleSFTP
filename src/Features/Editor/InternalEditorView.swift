@@ -65,6 +65,12 @@ public struct InternalEditorView: View {
             editorCanvas(palette: palette)
         }
         .sparkleWorkspaceSurface(palette, useCanvas: true)
+        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: true))
+        .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
+            if (notification.object as? UUID) != appState.windowInstanceID {
+                appState.reloadPreferencesFromNotification()
+            }
+        }
         .onAppear { editorManager.ensureAtLeastOneDocument() }
         .fileImporter(
             isPresented: $isPickingOpenFile,

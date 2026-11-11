@@ -5,6 +5,8 @@ import SparkleFileManager
 public extension Notification.Name {
     static let sparkleConnectionsDidChange = Notification.Name("sparkleSFTP.connectionsDidChange")
     static let sparklePreferencesDidChange = Notification.Name("sparkleSFTP.preferencesDidChange")
+    static let sparkleRequestNewFolder = Notification.Name("sparkleSFTP.requestNewFolder")
+    static let sparklePaneFocusRequested = Notification.Name("sparkleSFTP.paneFocusRequested")
 }
 
 /// Workspace tab pairing an independent local directory view with an optional remote session.

@@ -1,4 +1,5 @@
 import AppKit
+import SparkleDesignSystem
 import SwiftUI
 
 /// Manages a standalone resizable macOS window hosting the SparkNotePad-inspired `AboutView`.
@@ -9,7 +10,11 @@ final class AboutWindowController: NSObject, NSWindowDelegate {
     func present(appState: AppState) {
         if let existing = window {
             existing.title = appState.strings.t("nav.about")
-            existing.backgroundColor = NSColor(hex: appState.activePalette.windowHex)
+            SparkleWindowConfigurator.SparkleWindowProbeView.configure(
+                window: existing,
+                palette: appState.activePalette,
+                allowFullScreen: true
+            )
             existing.makeKeyAndOrderFront(nil)
             return
         }
@@ -17,13 +22,19 @@ final class AboutWindowController: NSObject, NSWindowDelegate {
         let rootView = AboutView(appState: appState)
         let hostingController = NSHostingController(rootView: rootView)
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 540),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         newWindow.title = appState.strings.t("nav.about")
-        newWindow.backgroundColor = NSColor(hex: appState.activePalette.windowHex)
+        newWindow.minSize = NSSize(width: 640, height: 480)
+        newWindow.collectionBehavior = [.fullScreenPrimary]
+        SparkleWindowConfigurator.SparkleWindowProbeView.configure(
+            window: newWindow,
+            palette: appState.activePalette,
+            allowFullScreen: true
+        )
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.contentViewController = hostingController

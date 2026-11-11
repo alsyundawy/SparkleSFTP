@@ -118,17 +118,11 @@ public extension AppState {
     }
 
     func applyAppearanceToApplication() {
+        let updated = activePalette
         guard let app = NSApp else { return }
-        let targetAppearance: NSAppearance? = switch appearanceMode {
-        case .auto:
-            nil
-        case .light:
-            NSAppearance(named: .aqua)
-        case .dark:
-            NSAppearance(named: .darkAqua)
-        }
+        let targetAppearance = NSAppearance(named: updated.isDark ? .darkAqua : .aqua)
         app.appearance = targetAppearance
-        let windowBg = NSColor(hex: activePalette.windowHex)
+        let windowBg = NSColor(hex: updated.windowHex)
         for window in app.windows {
             window.appearance = targetAppearance
             window.backgroundColor = windowBg
@@ -156,20 +150,28 @@ public extension AppState {
     }
 
     func refreshActivePalette(emitChange: Bool = false) {
-        let isDarkSystem = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let isDarkSystem = Self.resolveSystemDarkMode()
         let updated = SparkleThemeCatalog.palette(
             id: selectedThemeID,
             appearanceMode: appearanceMode,
             systemIsDark: isDarkSystem,
             available: availableThemes
         )
-        let windowBg = NSColor(hex: updated.windowHex)
-        NSApp?.windows.forEach { $0.backgroundColor = windowBg }
-        guard activePalette != updated else { return }
-        if emitChange {
-            objectWillChange.send()
+        if activePalette != updated {
+            if emitChange {
+                objectWillChange.send()
+            }
+            activePalette = updated
         }
-        activePalette = updated
+        applyAppearanceToApplication()
+    }
+
+    private static func resolveSystemDarkMode() -> Bool {
+        if let app = NSApp, app.appearance == nil {
+            return app.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        }
+        let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") ?? ""
+        return style.caseInsensitiveCompare("Dark") == .orderedSame
     }
 
     func importThemeFile(from url: URL) {

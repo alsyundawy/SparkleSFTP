@@ -36,8 +36,21 @@ public struct PreferencesView: View {
                 }
         }
         .padding(SparkleTheme.Spacing.medium)
-        .frame(width: 680, height: 520)
+        .frame(
+            minWidth: 640,
+            idealWidth: 720,
+            maxWidth: .infinity,
+            minHeight: 480,
+            idealHeight: 560,
+            maxHeight: .infinity
+        )
         .sparkleWorkspaceSurface(appState.activePalette)
+        .background(SparkleWindowConfigurator(palette: appState.activePalette, allowFullScreen: false))
+        .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
+            if (notification.object as? UUID) != appState.windowInstanceID {
+                appState.reloadPreferencesFromNotification()
+            }
+        }
     }
 
     private var transfersAndBehaviorTab: some View {
@@ -97,13 +110,6 @@ public struct PreferencesView: View {
             }
 
             Section(strings.t("prefs.terminalAndLibs")) {
-                let shellOptions = availableShellChoices
-                Picker(strings.t("prefs.preferredShell"), selection: $appState.preferredShellPath) {
-                    ForEach(shellOptions, id: \.self) { shell in
-                        Text(shell).tag(shell)
-                    }
-                }
-
                 Picker(strings.t("prefs.externalTerminal"), selection: $appState.externalTerminalApp) {
                     ForEach(ExternalTerminalApp.allCases, id: \.self) { app in
                         Text(app.displayName).tag(app)
@@ -114,16 +120,5 @@ public struct PreferencesView: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(appState.activePalette.windowColor)
-    }
-
-    private var availableShellChoices: [String] {
-        var list = appState.toolchainReport.availableShells
-        if list.isEmpty {
-            list = ["/usr/local/bin/bash", "/bin/zsh", "/bin/bash"]
-        }
-        if !list.contains(appState.preferredShellPath) {
-            list.insert(appState.preferredShellPath, at: 0)
-        }
-        return list
     }
 }

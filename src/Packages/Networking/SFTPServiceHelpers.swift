@@ -128,13 +128,6 @@ extension SFTPService {
             return .protocolError(code: Int(code.rawValue), message: message)
         }
     }
-
-    static func calculateSpeed(bytes: Int64, since start: ContinuousClock.Instant) -> Int64 {
-        let elapsed = ContinuousClock.now - start
-        let seconds = Double(elapsed.components.seconds) + (Double(elapsed.components.attoseconds) / 1e18)
-        guard seconds > 0.05 else { return max(0, bytes) }
-        return max(0, Int64(Double(bytes) / seconds))
-    }
 }
 
 private enum SFTPPipelinedTransfer {
@@ -143,7 +136,7 @@ private enum SFTPPipelinedTransfer {
         defer { try? fileHandle.close() }
 
         let startOffset = UInt64(max(0, ctx.initialOffset))
-        let startTime = ContinuousClock.now
+        let speedMeter = TransferSpeedMeter(totalBytes: ctx.totalBytes, initialOffset: ctx.initialOffset)
         let windowLimit = ctx.totalBytes > 0 ? max(1, ctx.inFlightWindow) : 1
         var state = SFTPDownloadWindowState(nextRequestOffset: startOffset, nextWriteOffset: startOffset)
 
@@ -155,7 +148,13 @@ private enum SFTPPipelinedTransfer {
             while let result = try await group.next() {
                 try Task.checkCancellation()
                 active -= 1
-                try handleDownloadSlice(result, ctx: ctx, state: &state, fileHandle: fileHandle, startTime: startTime)
+                try handleDownloadSlice(
+                    result,
+                    ctx: ctx,
+                    state: &state,
+                    fileHandle: fileHandle,
+                    speedMeter: speedMeter
+                )
                 while state.hasKnownRemaining,
                       active < windowLimit,
                       scheduleNextRead(into: &group, ctx: ctx, state: &state, chunkSize: chunkSize) {
@@ -163,7 +162,12 @@ private enum SFTPPipelinedTransfer {
                 }
             }
         }
-        emitDownloadProgress(ctx: ctx, currentOffset: state.nextWriteOffset, startTime: startTime)
+        emitDownloadProgress(
+            ctx: ctx,
+            currentOffset: state.nextWriteOffset,
+            speedMeter: speedMeter,
+            force: true
+        )
     }
 
     private static func scheduleNextRead(
@@ -219,7 +223,7 @@ private enum SFTPPipelinedTransfer {
         ctx: SFTPDownloadChunkContext,
         state: inout SFTPDownloadWindowState,
         fileHandle: FileHandle,
-        startTime: ContinuousClock.Instant
+        speedMeter: TransferSpeedMeter
     ) throws {
         if result.reachedEOF || result.data.isEmpty {
             state.eofOffset = min(state.eofOffset ?? result.offset, result.offset)
@@ -238,7 +242,7 @@ private enum SFTPPipelinedTransfer {
         while let contiguous = state.pendingChunks.removeValue(forKey: state.nextWriteOffset) {
             try fileHandle.write(contentsOf: contiguous)
             state.nextWriteOffset += UInt64(contiguous.count)
-            emitDownloadProgress(ctx: ctx, currentOffset: state.nextWriteOffset, startTime: startTime)
+            emitDownloadProgress(ctx: ctx, currentOffset: state.nextWriteOffset, speedMeter: speedMeter)
         }
     }
 
@@ -254,12 +258,12 @@ private enum SFTPPipelinedTransfer {
     private static func emitDownloadProgress(
         ctx: SFTPDownloadChunkContext,
         currentOffset: UInt64,
-        startTime: ContinuousClock.Instant
+        speedMeter: TransferSpeedMeter,
+        force: Bool = false
     ) {
-        let speed = SFTPService.calculateSpeed(bytes: Int64(currentOffset) - ctx.initialOffset, since: startTime)
-        ctx.onProgress(
-            TransferProgress(bytesTransferred: Int64(currentOffset), totalBytes: ctx.totalBytes, bytesPerSecond: speed)
-        )
+        if let progress = speedMeter.record(absoluteBytes: Int64(currentOffset), force: force) {
+            ctx.onProgress(progress)
+        }
     }
 
     static func transferUpload(_ ctx: SFTPUploadChunkContext, chunkSize: Int) async throws {
@@ -269,7 +273,7 @@ private enum SFTPPipelinedTransfer {
         try fileHandle.seek(toOffset: startOffset)
 
         let cursor = UploadChunkCursor(fileHandle: fileHandle, chunkSize: chunkSize, startOffset: startOffset)
-        let startTime = ContinuousClock.now
+        let speedMeter = TransferSpeedMeter(totalBytes: ctx.totalBytes, initialOffset: ctx.initialOffset)
         let windowLimit = max(1, ctx.inFlightWindow)
         var completedBytes: Int64 = 0
 
@@ -282,13 +286,13 @@ private enum SFTPPipelinedTransfer {
                 try Task.checkCancellation()
                 active -= 1
                 completedBytes += Int64(writtenCount)
-                emitUploadProgress(ctx: ctx, completedBytes: completedBytes, startTime: startTime)
+                emitUploadProgress(ctx: ctx, completedBytes: completedBytes, speedMeter: speedMeter)
                 while active < windowLimit, try scheduleNextWrite(into: &group, ctx: ctx, cursor: cursor) {
                     active += 1
                 }
             }
         }
-        emitUploadProgress(ctx: ctx, completedBytes: completedBytes, startTime: startTime)
+        emitUploadProgress(ctx: ctx, completedBytes: completedBytes, speedMeter: speedMeter, force: true)
     }
 
     private static func scheduleNextWrite(
@@ -316,12 +320,12 @@ private enum SFTPPipelinedTransfer {
     private static func emitUploadProgress(
         ctx: SFTPUploadChunkContext,
         completedBytes: Int64,
-        startTime: ContinuousClock.Instant
+        speedMeter: TransferSpeedMeter,
+        force: Bool = false
     ) {
         let reported = ctx.initialOffset + completedBytes
-        let speed = SFTPService.calculateSpeed(bytes: completedBytes, since: startTime)
-        ctx.onProgress(
-            TransferProgress(bytesTransferred: reported, totalBytes: ctx.totalBytes, bytesPerSecond: speed)
-        )
+        if let progress = speedMeter.record(absoluteBytes: reported, force: force) {
+            ctx.onProgress(progress)
+        }
     }
 }

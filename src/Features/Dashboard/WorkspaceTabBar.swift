@@ -56,28 +56,39 @@ public struct WorkspaceTabBar: View {
             )
             .frame(minWidth: 0, maxWidth: .infinity)
             .frame(height: 34)
+            .layoutPriority(-1)
 
-            Button {
+            TabBarActionButtonRepresentable(
+                model: TabBarActionButtonModel(
+                    title: nil,
+                    symbolName: "plus",
+                    tooltip: appState.strings.t("tabs.newTab"),
+                    accessibilityID: "newWorkspaceTabButton",
+                    isActive: false
+                ),
+                palette: palette
+            ) {
                 _ = appState.openNewWorkspaceTab()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.caption.weight(.semibold))
-                    .frame(width: 18, height: 18)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .help(appState.strings.t("tabs.newTab"))
-            .accessibilityLabel(appState.strings.t("tabs.newTab"))
-
-            Toggle(isOn: $appState.isQuickConnectBarVisible) {
-                Label(appState.strings.t("tabs.quickConnectToggle"), systemImage: "bolt.horizontal.fill")
-                    .labelStyle(.titleAndIcon)
-                    .font(SparkleTheme.Typography.caption)
-            }
-            .toggleStyle(.button)
-            .controlSize(.small)
             .fixedSize()
-            .help(appState.strings.t("tabs.quickConnectToggle"))
+            .layoutPriority(2)
+
+            if appState.currentSession == nil {
+                TabBarActionButtonRepresentable(
+                    model: TabBarActionButtonModel(
+                        title: appState.strings.t("tabs.quickConnectToggle"),
+                        symbolName: appState.isQuickConnectBarVisible ? "bolt.horizontal.fill" : "bolt.horizontal",
+                        tooltip: appState.strings.t("tabs.quickConnectToggle"),
+                        accessibilityID: "quickConnectToggleButton",
+                        isActive: appState.isQuickConnectBarVisible
+                    ),
+                    palette: palette
+                ) {
+                    appState.isQuickConnectBarVisible.toggle()
+                }
+                .fixedSize()
+                .layoutPriority(2)
+            }
         }
         .padding(.horizontal, SparkleTheme.Spacing.small)
         .frame(minWidth: 0, maxWidth: .infinity)

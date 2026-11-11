@@ -102,6 +102,14 @@ public struct FilePaneTableView: NSViewRepresentable {
         tableView.onGoParent = { [weak coordinator = context.coordinator] in
             coordinator?.parent.onGoParent?()
         }
+        tableView.onSwitchPane = { [weak tableView, isLocalPane] in
+            guard let window = tableView?.window else { return }
+            NotificationCenter.default.post(
+                name: .sparklePaneFocusRequested,
+                object: window,
+                userInfo: ["isLocal": !isLocalPane]
+            )
+        }
         tableView.onRightClickSelectRow = { [weak coordinator = context.coordinator] row in
             coordinator?.selectRowForContextMenu(row)
         }
@@ -116,8 +124,13 @@ public struct FilePaneTableView: NSViewRepresentable {
         context.coordinator.cachedLocaleCode = strings.localeCode
         context.coordinator.scrollView = scrollView
         context.coordinator.tableView = tableView
+        context.coordinator.installFocusObserver()
         context.coordinator.applyTheme(palette)
         return scrollView
+    }
+
+    public static func dismantleNSView(_: NSScrollView, coordinator: Coordinator) {
+        coordinator.removeFocusObserver()
     }
 
     private func configureColumns(on tableView: NSTableView) {
@@ -173,6 +186,7 @@ public extension FilePaneTableView {
         weak var scrollView: NSScrollView?
         weak var tableView: NSTableView?
         var isProgrammaticUpdate = false
+        private var focusObserver: NSObjectProtocol?
 
         private static let folderSymbol = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: nil)
         private static let linkSymbol = NSImage(systemSymbolName: "link", accessibilityDescription: nil)
@@ -195,6 +209,35 @@ public extension FilePaneTableView {
             self.parent = parent
             cachedFiles = parent.files
             lastSyncedSelection = parent.selectedIDs
+        }
+
+        func removeFocusObserver() {
+            if let focusObserver {
+                NotificationCenter.default.removeObserver(focusObserver)
+                self.focusObserver = nil
+            }
+        }
+
+        func installFocusObserver() {
+            guard focusObserver == nil else { return }
+            focusObserver = NotificationCenter.default.addObserver(
+                forName: .sparklePaneFocusRequested,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let targetLocal = notification.userInfo?["isLocal"] as? Bool else { return }
+                let targetWindow = notification.object as? NSWindow
+                Task { @MainActor [weak self] in
+                    guard let self,
+                          let tableView,
+                          let window = tableView.window,
+                          targetWindow == nil || window === targetWindow,
+                          targetLocal == parent.isLocalPane
+                    else { return }
+                    window.makeFirstResponder(tableView)
+                    parent.onFocusPane()
+                }
+            }
         }
 
         func applyTheme(_ palette: SparkleThemePalette) {

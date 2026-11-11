@@ -55,8 +55,8 @@ struct WorkspaceTabStripRepresentable: NSViewRepresentable {
         nsView _: NSScrollView,
         context _: Context
     ) -> CGSize? {
-        let proposedWidth = proposal.width ?? 360
-        return CGSize(width: max(proposedWidth, 120), height: 34)
+        let proposedWidth = proposal.width ?? 240
+        return CGSize(width: max(proposedWidth, 0), height: 34)
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {

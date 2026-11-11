@@ -89,27 +89,9 @@ extension DualPaneCommanderView {
                 isShowingNewFolderSheet = true
             }
             .disabled(!isLocal && appState.currentSession == nil)
-            .keyboardShortcut("n", modifiers: [.command, .shift])
             .accessibilityLabel(appState.strings.newFolder)
 
-            if let target = selectedFile(isLocal: isLocal) {
-                Button(appState.strings.t("common.rename")) { renamingContext = (target, isLocal) }
-                Button(appState.strings.t("pane.info")) {
-                    inspectorContext = FileInspectorContext(item: target, isLocal: isLocal)
-                }
-                if !target.isDirectory {
-                    Button(appState.strings.t("common.edit")) {
-                        if isLocal {
-                            appState.openLocalFileInInternalEditor(target)
-                        } else {
-                            Task { await appState.openRemoteFileInInternalEditor(target) }
-                        }
-                    }
-                }
-                if !isLocal {
-                    Button("chmod") { editingPermissionsFile = target }
-                }
-            }
+            commanderSelectionActionButtons(isLocal: isLocal)
 
             Button(appState.strings.t("conn.selectAllShort")) {
                 if isLocal {
@@ -130,6 +112,34 @@ extension DualPaneCommanderView {
         .padding(.horizontal, SparkleTheme.Spacing.small)
         .padding(.vertical, SparkleTheme.Spacing.tiny)
         .background(appState.activePalette.windowColor)
+        .onReceive(NotificationCenter.default.publisher(for: .sparkleRequestNewFolder)) { notification in
+            guard (notification.object as? UUID) == appState.windowInstanceID else { return }
+            if isLocal == (appState.activePane == .left) {
+                isShowingNewFolderSheet = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func commanderSelectionActionButtons(isLocal: Bool) -> some View {
+        if let target = selectedFile(isLocal: isLocal) {
+            Button(appState.strings.t("common.rename")) { renamingContext = (target, isLocal) }
+            Button(appState.strings.t("pane.info")) {
+                inspectorContext = FileInspectorContext(item: target, isLocal: isLocal)
+            }
+            if !target.isDirectory {
+                Button(appState.strings.t("common.edit")) {
+                    if isLocal {
+                        appState.openLocalFileInInternalEditor(target)
+                    } else {
+                        Task { await appState.openRemoteFileInInternalEditor(target) }
+                    }
+                }
+            }
+            if !isLocal {
+                Button("chmod") { editingPermissionsFile = target }
+            }
+        }
     }
 
     func selectedFile(isLocal: Bool) -> RemoteFile? {

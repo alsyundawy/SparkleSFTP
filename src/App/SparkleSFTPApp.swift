@@ -69,6 +69,13 @@ private struct SparkleAppCommands: Commands {
             }
         }
 
+        CommandGroup(after: .newItem) {
+            Button(activeState.strings.t("tabs.closeTab")) {
+                handleCloseActiveTabOrWindow()
+            }
+            .keyboardShortcut("w", modifiers: [.command])
+        }
+
         CommandMenu("Commander") {
             Button(activeState.strings.t("tabs.newTab")) {
                 _ = activeState.openNewWorkspaceTab()
@@ -81,12 +88,27 @@ private struct SparkleAppCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: [.command, .shift])
 
+            Button(activeState.strings.t("tabs.previousTab")) {
+                activeState.selectAdjacentWorkspaceTab(delta: -1)
+            }
+            .keyboardShortcut("[", modifiers: [.command, .shift])
+
+            Button(activeState.strings.t("tabs.nextTab")) {
+                activeState.selectAdjacentWorkspaceTab(delta: 1)
+            }
+            .keyboardShortcut("]", modifiers: [.command, .shift])
+
             Divider()
 
             Button(activeState.strings.t("nav.upload")) {
                 Task { await activeState.enqueueSelectedTransfer() }
             }
             .keyboardShortcut("u", modifiers: [.command])
+
+            Button(activeState.strings.newFolder) {
+                activeState.promptCreateFolderShortcut()
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
 
             Button(activeState.strings.t("nav.editor")) {
                 activeState.openInternalEditorWindow()
@@ -97,11 +119,7 @@ private struct SparkleAppCommands: Commands {
                 Task { await activeState.openTerminalTab() }
             }
             .keyboardShortcut("k", modifiers: [.command])
-
-            Button(activeState.strings.t("nav.localShell")) {
-                activeState.openLocalShellTab()
-            }
-            .keyboardShortcut("l", modifiers: [.command, .shift])
+            .disabled(activeState.currentSession?.sshClient == nil)
 
             Button(activeState.strings.t("common.refresh")) {
                 Task {
@@ -114,10 +132,10 @@ private struct SparkleAppCommands: Commands {
             }
             .keyboardShortcut("r", modifiers: [.command])
 
-            Button("Switch Commander Pane") {
-                activeState.switchActivePane()
+            Button(activeState.strings.t("commander.switchPane")) {
+                activeState.switchCommanderPaneWithFocus()
             }
-            .keyboardShortcut("\t", modifiers: [])
+            .keyboardShortcut("\\", modifiers: [.command])
         }
 
         CommandMenu(activeState.strings.t("nav.switchLanguage")) {
@@ -133,6 +151,30 @@ private struct SparkleAppCommands: Commands {
                 }
             }
         }
+    }
+
+    @MainActor
+    private func handleCloseActiveTabOrWindow() {
+        let keyWindow = NSApp.keyWindow
+        if let focused = focusedAppState,
+           keyWindow?.attachedSheet == nil,
+           focused.workspaceTabs.count > 1,
+           let firstWindow = NSApp.windows.first(where: { $0.isKeyWindow }),
+           firstWindow.title.hasPrefix("SparkleSFTP") || firstWindow.identifier?.rawValue.contains("main") == true {
+            let outcome = focused.closeWorkspaceTabSync(id: focused.activeTabID)
+            if outcome.removedSessionID != nil || outcome.pendingLocalRefresh != nil {
+                Task {
+                    if let removedID = outcome.removedSessionID {
+                        await focused.disconnect(sessionID: removedID)
+                    }
+                    if let localURL = outcome.pendingLocalRefresh {
+                        await focused.refreshLocalDirectory(localURL, recordHistory: false)
+                    }
+                }
+            }
+            return
+        }
+        keyWindow?.performClose(nil)
     }
 }
 

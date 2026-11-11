@@ -126,20 +126,24 @@ final class CurlTransferBox {
     let readFileHandle: FileHandle?
     let onProgress: @Sendable (TransferProgress) -> Void
     let resumeOffset: Int64
-    let startTime = ContinuousClock.now
+    let expectedTotalBytes: Int64
+    let speedMeter: TransferSpeedMeter
 
     init(
         cancellationToken: CurlCancellationToken,
         writeFileHandle: FileHandle? = nil,
         readFileHandle: FileHandle? = nil,
         onProgress: @escaping @Sendable (TransferProgress) -> Void,
-        resumeOffset: Int64
+        resumeOffset: Int64,
+        expectedTotalBytes: Int64 = 0
     ) {
         self.cancellationToken = cancellationToken
         self.writeFileHandle = writeFileHandle
         self.readFileHandle = readFileHandle
         self.onProgress = onProgress
-        self.resumeOffset = resumeOffset
+        self.resumeOffset = max(0, resumeOffset)
+        self.expectedTotalBytes = max(0, expectedTotalBytes)
+        speedMeter = TransferSpeedMeter(totalBytes: expectedTotalBytes, initialOffset: resumeOffset)
     }
 }
 
@@ -210,11 +214,24 @@ func curlProgressCallback(
     if box.cancellationToken.isCancelled {
         return 1
     }
-    let total = max(Int64(dltotal), Int64(ultotal)) + box.resumeOffset
-    let current = max(Int64(dlnow), Int64(ulnow)) + box.resumeOffset
-    let elapsed = ContinuousClock.now - box.startTime
-    let seconds = Double(elapsed.components.seconds) + (Double(elapsed.components.attoseconds) / 1e18)
-    let speed = seconds > 0.05 ? Int64(Double(max(Int64(dlnow), Int64(ulnow))) / seconds) : 0
-    box.onProgress(TransferProgress(bytesTransferred: current, totalBytes: total, bytesPerSecond: speed))
+    let activeNow = max(Int64(dlnow), Int64(ulnow))
+    let rawTotal = max(Int64(dltotal), Int64(ultotal))
+    guard activeNow > 0 || rawTotal > 0 else {
+        return 0
+    }
+    let current = activeNow + box.resumeOffset
+    let resolvedTotal: Int64 = if rawTotal > 0 {
+        rawTotal + box.resumeOffset
+    } else {
+        box.expectedTotalBytes
+    }
+    let forceComplete = resolvedTotal > 0 && current >= resolvedTotal
+    if let progress = box.speedMeter.record(
+        absoluteBytes: current,
+        totalOverride: resolvedTotal > 0 ? resolvedTotal : nil,
+        force: forceComplete
+    ) {
+        box.onProgress(progress)
+    }
     return 0
 }

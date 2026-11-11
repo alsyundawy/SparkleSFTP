@@ -38,16 +38,17 @@ public extension AppState {
         guard !quotedTokens.isEmpty else { return }
         let textToInsert = quotedTokens.joined(separator: " ") + " "
 
-        isTerminalVisible = true
         if terminalManager.selectedSessionID == nil {
             if currentSession?.sshClient != nil {
                 await openTerminalTab()
             } else {
-                openLocalShellTab()
+                statusBannerMessage = strings.t("nav.noActivePTY")
+                return
             }
         }
         if let activeID = terminalManager.selectedSessionID,
            let termSession = terminalManager.sessions.first(where: { $0.id == activeID }) {
+            isTerminalVisible = true
             termSession.insertCommandText(textToInsert)
             statusBannerMessage = strings.t("pane.insertedCommandLine")
         }

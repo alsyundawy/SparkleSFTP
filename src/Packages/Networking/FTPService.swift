@@ -166,7 +166,8 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     cancellationToken: token,
                     readFileHandle: fileHandle,
                     onProgress: onProgress,
-                    resumeOffset: offset
+                    resumeOffset: offset,
+                    expectedTotalBytes: fileSize
                 )
                 try CurlClientHelper.executeCurl(context: ctx) { handle in
                     sparklesftp_curl_setopt_long(handle, CURLOPT_UPLOAD, 1)

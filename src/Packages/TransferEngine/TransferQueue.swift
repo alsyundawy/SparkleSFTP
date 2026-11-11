@@ -152,47 +152,61 @@ public actor TransferQueue {
     }
 
     public func pause(id: UUID) async {
+        guard let existing = snapshots[id], !existing.status.isTerminal else { return }
         cancelledIDs.insert(id)
         activeWorkerTokens.removeValue(forKey: id)
         await scheduler.removePending(id: id)
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
         }
-        if let existing = snapshots[id] {
-            let diskBytes = Self.measureLocalPartialBytes(checkpoint: existing.checkpoint)
-            let recordedBytes = max(existing.progress.bytesTransferred, diskBytes)
-            let adjustedProgress = TransferProgress(
-                bytesTransferred: recordedBytes,
-                totalBytes: existing.progress.totalBytes,
-                bytesPerSecond: 0
+        let diskBytes = existing.metadata.direction == .download
+            ? Self.measureLocalPartialBytes(checkpoint: existing.checkpoint)
+            : 0
+        let recordedBytes = max(existing.progress.bytesTransferred, diskBytes)
+        let adjustedProgress = TransferProgress(
+            bytesTransferred: recordedBytes,
+            totalBytes: existing.progress.totalBytes,
+            bytesPerSecond: 0
+        )
+        let updated = TransferSnapshot(
+            metadata: existing.metadata,
+            status: .paused,
+            progress: adjustedProgress,
+            checkpoint: TransferCheckpoint(
+                bytesTransferred: diskBytes > 0 ? diskBytes : existing.progress.bytesTransferred,
+                remoteSize: existing.checkpoint?.remoteSize ?? existing.metadata.totalBytes,
+                remoteModificationTime: existing.checkpoint?.remoteModificationTime,
+                partialLocalPath: existing.checkpoint?.partialLocalPath
             )
-            let updated = TransferSnapshot(
-                metadata: existing.metadata,
-                status: .paused,
-                progress: adjustedProgress,
-                checkpoint: TransferCheckpoint(
-                    bytesTransferred: diskBytes > 0 ? diskBytes : existing.progress.bytesTransferred,
-                    remoteSize: existing.checkpoint?.remoteSize ?? existing.metadata.totalBytes,
-                    remoteModificationTime: existing.checkpoint?.remoteModificationTime,
-                    partialLocalPath: existing.checkpoint?.partialLocalPath
-                )
-            )
-            snapshots[id] = updated
-            await persistSnapshot(updated)
-            broadcastSnapshots()
-        }
+        )
+        snapshots[id] = updated
+        await persistSnapshot(updated)
+        broadcastSnapshots()
         await scheduleNextIfAvailable()
     }
 
+    public func pauseAll() async {
+        let pausableIDs = snapshots.values
+            .filter { $0.status.isActive || $0.status == .queued }
+            .map(\.id)
+        for id in pausableIDs {
+            await pause(id: id)
+        }
+    }
+
     public func retry(id: UUID) async {
-        guard let existing = snapshots[id] else { return }
+        guard let existing = snapshots[id], !existing.status.isActive else { return }
         activeWorkerTokens.removeValue(forKey: id)
         activeTasks.removeValue(forKey: id)?.cancel()
         cancelledIDs.remove(id)
         let queued = TransferSnapshot(
             metadata: existing.metadata,
             status: .queued,
-            progress: existing.progress,
+            progress: TransferProgress(
+                bytesTransferred: existing.progress.bytesTransferred,
+                totalBytes: existing.progress.totalBytes,
+                bytesPerSecond: 0
+            ),
             checkpoint: existing.checkpoint
         )
         snapshots[id] = queued
@@ -200,6 +214,22 @@ public actor TransferQueue {
         await persistSnapshot(queued)
         broadcastSnapshots()
         await scheduleNextIfAvailable()
+    }
+
+    public func resumeAll() async {
+        let resumableIDs = snapshots.values
+            .filter { snapshot in
+                switch snapshot.status {
+                case .paused, .interrupted, .failed:
+                    return true
+                default:
+                    return false
+                }
+            }
+            .map(\.id)
+        for id in resumableIDs {
+            await retry(id: id)
+        }
     }
 
     func scheduleNextIfAvailable() async {

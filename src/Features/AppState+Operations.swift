@@ -30,11 +30,6 @@ public extension AppState {
         await transferQueue.clearConflictRules()
     }
 
-    func openLocalShellTab() {
-        _ = terminalManager.openLocalShell(shellPath: preferredShellPath, directory: localCurrentURL)
-        isTerminalVisible = true
-    }
-
     func openInExternalTerminal(_ profile: ConnectionProfile) async {
         if toolchainReport.libraries.isEmpty {
             await refreshToolchainReport()
