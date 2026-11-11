@@ -36,12 +36,12 @@ lipo -create "${ARM64_BIN}" "${X64_BIN}" -output "${MACOS_DIR}/SparkleSFTP"
 chmod +x "${MACOS_DIR}/SparkleSFTP"
 lipo -archs "${MACOS_DIR}/SparkleSFTP"
 
-cp "${REPO_ROOT}/App/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
-if [[ -f "${REPO_ROOT}/App/Resources/AppIcon.icns" ]]; then
-  cp "${REPO_ROOT}/App/Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
+cp "${REPO_ROOT}/src/App/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
+if [[ -f "${REPO_ROOT}/src/App/Resources/AppIcon.icns" ]]; then
+  cp "${REPO_ROOT}/src/App/Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
 fi
-if [[ -f "${REPO_ROOT}/App/Resources/AppIcon.png" ]]; then
-  cp "${REPO_ROOT}/App/Resources/AppIcon.png" "${RESOURCES_DIR}/AppIcon.png"
+if [[ -f "${REPO_ROOT}/src/App/Resources/AppIcon.png" ]]; then
+  cp "${REPO_ROOT}/src/App/Resources/AppIcon.png" "${RESOURCES_DIR}/AppIcon.png"
 fi
 
 for bundle_path in "${REPO_ROOT}/.build/arm64-apple-macosx/release/"SparkleSFTP_*.bundle; do

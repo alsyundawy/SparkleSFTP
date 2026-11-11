@@ -20,9 +20,9 @@ Additionally, Apple's system macOS SDK ships `/usr/include/sqlite3.h` (`libsqlit
 
 ## Decision
 
-1. **Native Keychain & Biometrics (`Packages/Security`)**: Use Apple `Security.framework` (`SecItemAdd`, `SecItemCopyMatching`, `SecItemUpdate`, `SecItemDelete`, `SecAccessControlCreateWithFlags`) + `LocalAuthentication` (`LAContext`) exclusively, enforcing `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` across all items. Remove `GlasSecretStore` completely.
-2. **ACID Durable Journal (`Packages/Persistence`)**: Implement `TransferJournal` directly over macOS built-in **`SQLite3`** (`WAL` journal mode, indexed `created_at` / `status`, startup crash reconciliation, and deterministic pruning to `10,000` records / `30` days), paired with atomic `Codable` JSON (`ConnectionStore`) for profiles, groups, and snippets.
-3. **Presentation State (`Features/`)**: Standardize `@MainActor` ViewModels on `ObservableObject` + `@Published` (Combine / SwiftUI macOS 13+ native) rather than `@Observable` (macOS 14+), maintaining single-path code across macOS 13, 14, 15, and newer.
+1. **Native Keychain & Biometrics (`src/Packages/Security`)**: Use Apple `Security.framework` (`SecItemAdd`, `SecItemCopyMatching`, `SecItemUpdate`, `SecItemDelete`, `SecAccessControlCreateWithFlags`) + `LocalAuthentication` (`LAContext`) exclusively, enforcing `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` across all items. Remove `GlasSecretStore` completely.
+2. **ACID Durable Journal (`src/Packages/Persistence`)**: Implement `TransferJournal` directly over macOS built-in **`SQLite3`** (`WAL` journal mode, indexed `created_at` / `status`, startup crash reconciliation, and deterministic pruning to `10,000` records / `30` days), paired with atomic `Codable` JSON (`ConnectionStore`) for profiles, groups, and snippets.
+3. **Presentation State (`src/Features/`)**: Standardize `@MainActor` ViewModels on `ObservableObject` + `@Published` (Combine / SwiftUI macOS 13+ native) rather than `@Observable` (macOS 14+), maintaining single-path code across macOS 13, 14, 15, and newer.
 
 ## Alternatives Considered
 

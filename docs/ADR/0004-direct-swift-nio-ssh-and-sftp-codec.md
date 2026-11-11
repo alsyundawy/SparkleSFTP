@@ -22,7 +22,7 @@ Meanwhile, upstream **`apple/swift-nio-ssh` `0.15.1`** (`swift-tools-version:6.1
 ## Decision
 
 1. **Depend directly on official `apple/swift-nio-ssh` (`"0.15.1" ..< "0.16.0"`)**, alongside `apple/swift-nio` (`from: "2.81.0"`) and `apple/swift-crypto` (`from: "3.12.3"`).
-2. **Implement an explicit, testable, RFC/draft-ietf-secsh-filexfer-02 SFTP v3 binary wire codec and actor client** (`SFTPPacketCodec` + `SFTPService`) in `Packages/Networking` directly over `NIOSSHHandler` child session channels (`SubsystemRequest(subsystem: "sftp")`).
+2. **Implement an explicit, testable, RFC/draft-ietf-secsh-filexfer-02 SFTP v3 binary wire codec and actor client** (`SFTPPacketCodec` + `SFTPService`) in `src/Packages/Networking` directly over `NIOSSHHandler` child session channels (`SubsystemRequest(subsystem: "sftp")`).
 3. **Eliminate `Citadel` from `Package.swift`** so there is zero dependency on unverified forks and zero `.macOS(.v14)` platform ceiling breach.
 
 ## Alternatives Considered

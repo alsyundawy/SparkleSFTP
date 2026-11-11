@@ -26,7 +26,7 @@ Following Milestone 7 UX hardening, SparkleSFTP needed four production capabilit
 
 ## Decision
 
-1. **Portable C11 `Clibcurl` & `ToolchainInspector` (`Packages/Clibcurl`, `Packages/Networking/ZlibAndLibraryProbes.swift`)**:
+1. **Portable C11 `Clibcurl` & `ToolchainInspector` (`src/Packages/Clibcurl`, `src/Packages/Networking/ZlibAndLibraryProbes.swift`)**:
    - Link `-lz` alongside `-lcurl` in `Package.swift` for `ClibcurlSystemLibs.c`, exposing bounded `zlib`/`gzip` streaming (`ZlibCompressionCodec` enforcing `maxOutputBytes`) and `curl_version_info` capability probes.
    - Probe optional Homebrew `libssh2` safely at runtime via `dlopen`/`dlsym` (`sparklesftp_probe_libssh2`) instead of link-time coupling; probe OpenSSH/OpenSSL/shells/iTerm2 asynchronously (skipping subprocess probes automatically under App Sandbox).
    - Optimize `CurlClientHelper` with 256 KB buffers (`CURLOPT_BUFFERSIZE`, `CURLOPT_UPLOAD_BUFFERSIZE`), `TCP_NODELAY`, `TCP_KEEPALIVE`, and `runOffCooperativePool` GCD worker dispatch.

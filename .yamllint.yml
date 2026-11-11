@@ -9,6 +9,8 @@ ignore: |
   dist/
   .trunk/
   megalinter-reports/
+  .scannerwork/
+  reports/
 
 rules:
   line-length: disable

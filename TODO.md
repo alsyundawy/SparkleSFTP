@@ -9,13 +9,13 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Audit upstream SPM dependencies & SDK (`apple/swift-nio-ssh 0.15.1`, `SwiftTerm 1.20.0`, `Sparkle 2.10.1`, system `libcurl`, `SQLite3`)
 - [x] Create `docs/ADR/0004` & `docs/ADR/0005` (macOS 13+ & CVE-2026-43798 alignment)
 - [x] Create `docs/TECHNICAL_SPECIFICATION.md`, `docs/SECURITY_MODEL.md`, `docs/WORKGROUND.md`, `docs/TASK_LIST.md`, `DOCNOTE.md`, `tasks/plan.md`, `tasks/todo.md`
-- [x] Create `Package.swift` and `Packages/Clibcurl` (`T-001`, `T-002`)
-- [x] Implement `Packages/Core` & `Packages/DesignSystem` + `CoreTests` (`T-003`, `T-004`, `T-005`)
+- [x] Create `Package.swift` and `src/Packages/Clibcurl` (`T-001`, `T-002`)
+- [x] Implement `src/Packages/Core` & `src/Packages/DesignSystem` + `CoreTests` (`T-003`, `T-004`, `T-005`)
 
 ## Phase B: Security & Persistence (`WG-7`)
 
-- [x] Implement `Packages/Security` (`KeychainService`, `HostTrustStore`, `TLSCertificateValidator`, `PathValidator`, `PrivateKeyParser`, `DiagnosticsLogger`, `SecurityScopedBookmarkManager`) (`T-006`)
-- [x] Implement `Packages/Persistence` (`ConnectionStore`, `TransferJournal` SQLite3 WAL, `SSHConfigParser`, `ExternalImporters`) (`T-007`)
+- [x] Implement `src/Packages/Security` (`KeychainService`, `HostTrustStore`, `TLSCertificateValidator`, `PathValidator`, `PrivateKeyParser`, `DiagnosticsLogger`, `SecurityScopedBookmarkManager`) (`T-006`)
+- [x] Implement `src/Packages/Persistence` (`ConnectionStore`, `TransferJournal` SQLite3 WAL, `SSHConfigParser`, `ExternalImporters`) (`T-007`)
 - [x] Pass `SecurityTests` and `PersistenceTests` (`T-008`)
 
 ## Phase C: Protocol Engines (`WG-2`, `WG-3`)
@@ -27,26 +27,27 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 
 ## Phase D: Transfer Engine, FileManager & Sync (`WG-4`, `WG-6`, `WG-8`)
 
-- [x] Implement `Packages/TransferEngine` (`TransferQueue`, `TransferScheduler`, `ResumeValidator`, `SHA256Verifier`, `ProgressThrottler`, `ConflictResolver`) (`T-013`)
-- [x] Implement `Packages/FileManager` (`LocalFileService`, `FileSortDescriptor`, `POSIXPermissions`, `DualPaneState`) (`T-014`)
-- [x] Implement `Packages/Synchronization` (`DirectoryScanner`, `SyncPlanner`, `SyncExecutor`) (`T-015`)
+- [x] Implement `src/Packages/TransferEngine` (`TransferQueue`, `TransferScheduler`, `ResumeValidator`, `SHA256Verifier`, `ProgressThrottler`, `ConflictResolver`) (`T-013`)
+- [x] Implement `src/Packages/FileManager` (`LocalFileService`, `FileSortDescriptor`, `POSIXPermissions`, `DualPaneState`) (`T-014`)
+- [x] Implement `src/Packages/Synchronization` (`DirectoryScanner`, `SyncPlanner`, `SyncExecutor`) (`T-015`)
 - [x] Pass `TransferEngineTests`, `FileManagerTests`, and `SynchronizationTests` (`T-016`)
 
 ## Phase E: Terminal, UI & Application Shell (`WG-4`, `WG-5`)
 
-- [x] Implement `Packages/Terminal` (`TerminalViewRepresentable`, `TerminalSessionManager`, `CommandSnippetStore`, `PortForwardingManager`) (`T-017`)
-- [x] Implement `Features/` (`AppState`, `Dashboard`, `Connections`, `Commander` with `FilePaneTableView` & `QuickLookCoordinator`, `Transfers`, `Terminal`, `Synchronization`, `Settings`) (`T-018`)
-- [x] Implement `App/` (`SparkleSFTPApp`, `AppDelegate`, `AppEnvironment`, `SparkleUpdaterService`, `Resources/Info.plist`, `SparkleSFTP.entitlements`) (`T-019`)
+- [x] Implement `src/Packages/Terminal` (`TerminalViewRepresentable`, `TerminalSessionManager`, `CommandSnippetStore`, `PortForwardingManager`) (`T-017`)
+- [x] Implement `src/Features/` (`AppState`, `Dashboard`, `Connections`, `Commander` with `FilePaneTableView` & `QuickLookCoordinator`, `Transfers`, `Terminal`, `Synchronization`, `Settings`, `Editor`) (`T-018`)
+- [x] Implement `src/App/` (`SparkleSFTPApp`, `AppDelegate`, `AppEnvironment`, `SparkleUpdaterService`, `Resources/Info.plist`, `SparkleSFTP.entitlements`) (`T-019`)
 - [x] Pass `IntegrationTests` & executable `swift build` (`T-020`)
 
 ## Phase F: Release Tooling, Docs Sync & Final Verification (`WG-9`)
 
 - [x] Implement `Tools/TestServers/` & `Tools/Release/` scripts (`T-021`)
 - [x] Update `README.md`, `README-id.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, `CHANGELOG.md`, `DOCNOTE.md` (`T-022`)
-- [x] Implement SparkNotePad multi-themes (`28` palettes / `15` families + custom JSON store + full workspace theme propagation), SparkNotePad-style 7-tab About window (`AboutView` / `AboutWindowController`, incl. `Libraries`) & 1:1 blue/white/pastel-yellow `AppIcon`, Auto-Update settings & fallback check, JSON i18n catalog & maintenance UI (`309` keys), FileZilla/WinSCP BOM-safe preview importer, Notepad2 multi-tab internal editor (`Features/Editor/`), and Bidirectional Sync (`TASK-108`) (`T-025`)
-- [x] Verify 0 errors across `swift build -j 2`, `swift test -j 2` (`71 tests in 18 suites`), `swiftlint lint --strict` (`135` files), `swiftformat --lint .` (`0/135`), `yamllint -c .yamllint.yml .`, `shellcheck -s bash`, `shfmt -d -i 2 -ci`, `markdownlint-cli2`, `clang-format --dry-run --Werror`, `cppcheck`, `clang -fsyntax-only`, and `actionlint` (`T-023`)
+- [x] Implement SparkNotePad multi-themes (`28` palettes / `15` families + custom JSON store + full workspace theme propagation), SparkNotePad-style 7-tab About window (`AboutView` / `AboutWindowController`, incl. `Libraries`) & 1:1 blue/white/pastel-yellow `AppIcon`, Auto-Update settings & fallback check, JSON i18n catalog & maintenance UI (`358` keys), FileZilla/WinSCP BOM-safe preview importer, Notepad2 multi-tab internal editor (`src/Features/Editor/`), and Bidirectional Sync (`TASK-108`) (`T-025`)
+- [x] Verify 0 errors across `swift build -j 2`, `swift test -j 2` (`73 tests in 19 suites`), `swiftlint lint --strict` (`143` files), `swiftformat --lint .` (`0/143`), `trunk check`, `sonar-scanner`/SonarQube JSON reporter, `yamllint -c .yamllint.yml .`, `shellcheck -s bash`, `shfmt -d -i 2 -ci`, `markdownlint-cli2`, `clang-format --dry-run --Werror`, `cppcheck`, `clang -fsyntax-only`, and `actionlint` (`T-023`)
 - [x] Connection UX, Keychain Remember Password, Cursor/Keyboard Fix, Fast Quit & Performance Pass: Native AppKit `ConnectionListTableView` + `InteractiveFileTableView` click/keyboard focus navigation, Remember/Clear Keychain password flow (`ConnectionEditorView`, `CredentialPromptSheet`, `FTPService`), double-click connect, atomic `ConnectionEditorMode` Edit sheet, Clone Connection with independent Keychain refs, `⌘A` Select All + batch Delete Selected, `applicationShouldTerminate` + bounded parallel NIO teardown, `TransferMonitor` 10Hz decoupling, cached `strings`/`activePalette`, 2s throttled SQLite journal ticks, and single-`lstat` enumeration (`T-032`)
 - [x] Third-Party Toolchain Support, Multi-Thread Transfers, FileZilla Conflict Dialog & Language Switcher Layout (`T-034`): `Clibcurl` `-lz` bounded `zlib`/`gzip` (`ZlibCompressionCodec`), optimized `CurlClientHelper` (`256 KB` buffers, `TCP_NODELAY`/`TCP_KEEPALIVE`, GCD worker dispatch), dynamic `dlopen` `libssh2` / `OpenSSL` / `OpenSSH` / POSIX shell probing (`ToolchainInspector`), `SwiftTerm` `LocalProcessTerminalView` local shell tabs, sanitized `ExternalTerminalLauncher` (`iTerm2`/`Terminal.app`/`ssh://`), actor-free `SFTPPipelinedTransfer` (`8x` window) + `TransferScheduler` (`4` global / `3` per-host), FileZilla `ConflictResolutionSheet` + FIFO `pendingConflictQueue`, and card-grid + toolbar/menu language switcher (`PreferencesLocalizationTab`, `MainWindowView`, `SparkleSFTPApp`)
+- [x] `src/` Restructure, Multi-Window Isolation, FileZilla/WinSCP Multi-Tab Connections, Responsive Hover/Right-Click/Select-All & WinSCP Menus (`T-036`): Reorganize `src/{App,Features,Packages}`; per-window `AppEnvironment.makeWindowState()` + `FocusedValues` (`New Window` opens clean sessionless window); `WorkspaceTabBar` (sibling buttons, instant switch/close, `New Tab` / `Duplicate Tab` / `Reconnect` / `Open in New Window` / `Close Tab` / `Close Other Tabs`) & `QuickConnectBar`; `NSTrackingArea` row hover + `rightMouseDown` click-select + visible Connection toolbar (`Connect`/`New`/`Edit`/`All`/`Delete`); WinSCP Commander `Edit`/`Copy... F5`/`Move... F6`/`File Custom Commands`/`File Names` context submenus; `sonar-project.properties` (`WindowTabsAndWinSCPCommandsTests`)
 - [x] Verify Universal 2 (`x86_64 arm64`) release `.app` bundle (with embedded `Sparkle.framework` & entitlements) + `SparkleSFTP-0.2.0-universal.dmg` + `.sha256` via `Tools/Release/build-universal.sh`, `create-dmg.sh`, and `.github/workflows/release.yml` (`T-024`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)

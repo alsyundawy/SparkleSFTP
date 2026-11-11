@@ -190,6 +190,16 @@ private final class LoopbackSFTPChannelHandler: ChannelInboundHandler {
             context.fireUserInboundEventTriggered(event)
             return
         }
+        if event is SSHChannelRequestEvent.ExecRequest {
+            context.triggerUserOutboundEvent(SSHChannelRequestEvent.ExitStatus(exitStatus: 127), promise: nil)
+            context.close(promise: nil)
+            return
+        }
+        if event is SSHChannelRequestEvent.ShellRequest {
+            isSFTP = false
+            context.fireUserInboundEventTriggered(event)
+            return
+        }
         context.fireUserInboundEventTriggered(event)
     }
 

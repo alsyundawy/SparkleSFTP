@@ -5,7 +5,7 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 APP_BUNDLE="${1:-${REPO_ROOT}/dist/SparkleSFTP.app}"
-ENTITLEMENTS="${REPO_ROOT}/App/SparkleSFTP.entitlements"
+ENTITLEMENTS="${REPO_ROOT}/src/App/SparkleSFTP.entitlements"
 
 : "${DEVELOPER_ID_APP:?Set DEVELOPER_ID_APP (e.g. Developer ID Application: Name (TEAMID))}"
 : "${APPLE_NOTARY_PROFILE:?Set APPLE_NOTARY_PROFILE for xcrun notarytool keychain profile}"

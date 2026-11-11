@@ -15,10 +15,10 @@ When reporting a vulnerability, please include:
 
 ## Supported Versions
 
-| Version | Supported | Notes |
-| :--- | :--- | :--- |
-| `main` (Pre-release / Development) | ✅ | Active architecture & implementation branch |
-| Future `1.x` releases | ✅ | Only the latest released version receives security patches |
+| Version                            | Supported | Notes                                                      |
+| :--------------------------------- | :-------- | :--------------------------------------------------------- |
+| `main` (Pre-release / Development) | ✅        | Active architecture & implementation branch                |
+| Future `1.x` releases              | ✅        | Only the latest released version receives security patches |
 
 ## Mandatory Security Invariants
 

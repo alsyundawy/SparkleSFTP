@@ -1,0 +1,171 @@
+import SparkleFeatures
+import SwiftUI
+
+private struct SparkleFocusedAppStateKey: FocusedValueKey {
+    typealias Value = AppState
+}
+
+extension FocusedValues {
+    var activeAppState: AppState? {
+        get { self[SparkleFocusedAppStateKey.self] }
+        set { self[SparkleFocusedAppStateKey.self] = newValue }
+    }
+}
+
+private struct SparkleWindowRootView: View {
+    @StateObject private var appState: AppState
+    @Environment(\.openWindow) private var openWindow
+    private let initialProfileID: UUID?
+
+    init(environment: AppEnvironment, initialProfileID: UUID? = nil) {
+        _appState = StateObject(wrappedValue: environment.makeWindowState())
+        self.initialProfileID = initialProfileID
+    }
+
+    var body: some View {
+        MainWindowView(appState: appState)
+            .frame(minWidth: 980, minHeight: 620)
+            .focusedSceneValue(\.activeAppState, appState)
+            .onAppear {
+                appState.onOpenProfileInNewWindow = { profileID in
+                    openWindow(id: "connection-window", value: profileID)
+                }
+            }
+            .task {
+                await appState.bootstrap()
+                if let initialProfileID,
+                   let match = appState.profiles.first(where: { $0.id == initialProfileID }) {
+                    await appState.connect(profile: match, openInNewTab: false)
+                }
+            }
+    }
+}
+
+private struct SparkleAppCommands: Commands {
+    @FocusedValue(\.activeAppState) private var focusedAppState: AppState?
+    let fallbackState: AppState
+
+    private var activeState: AppState {
+        focusedAppState ?? fallbackState
+    }
+
+    var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button(activeState.strings.t("nav.about")) {
+                activeState.openAboutWindow()
+            }
+        }
+
+        CommandGroup(after: .appInfo) {
+            Button(activeState.strings.t("prefs.checkNow")) {
+                Task { await activeState.checkForUpdates(manual: true) }
+            }
+        }
+
+        CommandMenu("Commander") {
+            Button(activeState.strings.t("tabs.newTab")) {
+                _ = activeState.openNewWorkspaceTab()
+            }
+            .keyboardShortcut("t", modifiers: [.command])
+
+            Button(activeState.strings.t("tabs.duplicateTab")) {
+                let targetID = activeState.activeTabID
+                Task { await activeState.duplicateWorkspaceTab(id: targetID) }
+            }
+            .keyboardShortcut("t", modifiers: [.command, .shift])
+
+            Divider()
+
+            Button(activeState.strings.t("nav.upload")) {
+                Task { await activeState.enqueueSelectedTransfer() }
+            }
+            .keyboardShortcut("u", modifiers: [.command])
+
+            Button(activeState.strings.t("nav.editor")) {
+                activeState.openInternalEditorWindow()
+            }
+            .keyboardShortcut("e", modifiers: [.command])
+
+            Button(activeState.strings.t("nav.terminal")) {
+                Task { await activeState.openTerminalTab() }
+            }
+            .keyboardShortcut("k", modifiers: [.command])
+
+            Button(activeState.strings.t("nav.localShell")) {
+                activeState.openLocalShellTab()
+            }
+            .keyboardShortcut("l", modifiers: [.command, .shift])
+
+            Button(activeState.strings.t("common.refresh")) {
+                Task {
+                    if activeState.activePane == .left {
+                        await activeState.refreshLocalDirectory(activeState.localCurrentURL)
+                    } else {
+                        await activeState.refreshRemoteDirectory()
+                    }
+                }
+            }
+            .keyboardShortcut("r", modifiers: [.command])
+
+            Button("Switch Commander Pane") {
+                activeState.switchActivePane()
+            }
+            .keyboardShortcut("\t", modifiers: [])
+        }
+
+        CommandMenu(activeState.strings.t("nav.switchLanguage")) {
+            ForEach(activeState.availableLocales) { locale in
+                Button {
+                    activeState.selectLocale(code: locale.code)
+                } label: {
+                    if activeState.activeLocaleCode == locale.code {
+                        Label("\(locale.displayName) (\(locale.code.uppercased()))", systemImage: "checkmark")
+                    } else {
+                        Text("\(locale.displayName) (\(locale.code.uppercased()))")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@main
+struct SparkleSFTPApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    private let environment = AppEnvironment()
+
+    var body: some Scene {
+        WindowGroup("SparkleSFTP", id: "main") {
+            SparkleWindowRootView(environment: environment)
+                .onAppear {
+                    wireDelegateShutdownHooks()
+                }
+        }
+        .commands {
+            SparkleAppCommands(fallbackState: environment.settingsFallbackState)
+        }
+
+        WindowGroup("SparkleSFTP", id: "connection-window", for: UUID.self) { $profileID in
+            SparkleWindowRootView(environment: environment, initialProfileID: profileID)
+                .onAppear {
+                    wireDelegateShutdownHooks()
+                }
+        }
+
+        Settings {
+            PreferencesView(appState: environment.settingsFallbackState)
+        }
+    }
+
+    private func wireDelegateShutdownHooks() {
+        appDelegate.onPrepareFastShutdown = { [environment] in
+            environment.prepareFastShutdown()
+        }
+        appDelegate.onShouldDelayTermination = { [environment] in
+            environment.hasActiveAsyncCleanup
+        }
+        appDelegate.onTerminateCleanup = { [environment] in
+            await environment.shutdown()
+        }
+    }
+}

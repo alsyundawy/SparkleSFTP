@@ -32,7 +32,7 @@ let package = Package(
     targets: [
         .target(
             name: "Clibcurl",
-            path: "Packages/Clibcurl",
+            path: "src/Packages/Clibcurl",
             publicHeadersPath: "include",
             linkerSettings: [
                 .linkedLibrary("curl"),
@@ -41,7 +41,7 @@ let package = Package(
         ),
         .target(
             name: "SparkleCore",
-            path: "Packages/Core"
+            path: "src/Packages/Core"
         ),
         .target(
             name: "SparkleSecurity",
@@ -51,14 +51,14 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOSSH", package: "swift-nio-ssh")
             ],
-            path: "Packages/Security"
+            path: "src/Packages/Security"
         ),
         .target(
             name: "SparklePersistence",
             dependencies: [
                 "SparkleCore"
             ],
-            path: "Packages/Persistence",
+            path: "src/Packages/Persistence",
             linkerSettings: [
                 .linkedLibrary("sqlite3")
             ]
@@ -74,7 +74,7 @@ let package = Package(
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "NIOSSH", package: "swift-nio-ssh")
             ],
-            path: "Packages/Networking"
+            path: "src/Packages/Networking"
         ),
         .target(
             name: "SparkleTransferEngine",
@@ -83,7 +83,7 @@ let package = Package(
                 "SparkleSecurity",
                 .product(name: "Crypto", package: "swift-crypto")
             ],
-            path: "Packages/TransferEngine"
+            path: "src/Packages/TransferEngine"
         ),
         .target(
             name: "SparkleFileManager",
@@ -91,7 +91,7 @@ let package = Package(
                 "SparkleCore",
                 "SparkleSecurity"
             ],
-            path: "Packages/FileManager"
+            path: "src/Packages/FileManager"
         ),
         .target(
             name: "SparkleTerminal",
@@ -103,7 +103,7 @@ let package = Package(
                 .product(name: "NIOSSH", package: "swift-nio-ssh"),
                 .product(name: "SwiftTerm", package: "SwiftTerm")
             ],
-            path: "Packages/Terminal"
+            path: "src/Packages/Terminal"
         ),
         .target(
             name: "SparkleSynchronization",
@@ -113,14 +113,14 @@ let package = Package(
                 "SparkleTransferEngine",
                 .product(name: "Crypto", package: "swift-crypto")
             ],
-            path: "Packages/Synchronization"
+            path: "src/Packages/Synchronization"
         ),
         .target(
             name: "SparkleDesignSystem",
             dependencies: [
                 "SparkleCore"
             ],
-            path: "Packages/DesignSystem",
+            path: "src/Packages/DesignSystem",
             resources: [
                 .process("Resources")
             ]
@@ -138,7 +138,7 @@ let package = Package(
                 "SparkleTerminal",
                 "SparkleTransferEngine"
             ],
-            path: "Features"
+            path: "src/Features"
         ),
         .executableTarget(
             name: "SparkleSFTP",
@@ -150,7 +150,7 @@ let package = Package(
                 "SparkleSecurity",
                 .product(name: "Sparkle", package: "Sparkle")
             ],
-            path: "App",
+            path: "src/App",
             exclude: [
                 "Resources/Info.plist",
                 "SparkleSFTP.entitlements"

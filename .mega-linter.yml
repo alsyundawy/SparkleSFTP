@@ -32,14 +32,16 @@ ADDITIONAL_EXCLUDED_DIRECTORIES:
   - .trunk
   - .kilo
   - megalinter-reports
+  - .scannerwork
+  - reports
 
-FILTER_REGEX_EXCLUDE: (^(\.build|\.swiftpm|DerivedData|build|dist|\.trunk|\.kilo|megalinter-reports)/|\.xcodeproj/.*\.pbxproj$)
+FILTER_REGEX_EXCLUDE: (^(\.build|\.swiftpm|DerivedData|build|dist|\.trunk|\.kilo|\.scannerwork|reports|megalinter-reports)/|\.xcodeproj/.*\.pbxproj$)
 
 # Linter Configuration Bindings
 # Note: MegaLinter's swiftlint descriptor sets cli_config_arg_name="" and appends "--strict" automatically
 SWIFT_SWIFTLINT_CONFIG_FILE: .swiftlint.yml
 
-C_CPPCHECK_ARGUMENTS: "--language=c --enable=warning,performance,portability --suppress=missingIncludeSystem --suppress=unusedFunction -I Packages/Clibcurl/include"
+C_CPPCHECK_ARGUMENTS: "--language=c --enable=warning,performance,portability --suppress=missingIncludeSystem --suppress=unusedFunction -I src/Packages/Clibcurl/include"
 C_CLANG_FORMAT_CONFIG_FILE: .clang-format
 
 BASH_SHELLCHECK_ARGUMENTS: "-s bash"

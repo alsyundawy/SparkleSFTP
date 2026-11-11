@@ -9,23 +9,23 @@
 
 ## 📊 Executive Summary
 
-| Dimensi Review | Temuan | Severity Tertinggi |
-| :--------------- | :------- | :------------------- |
-| 🐛 Bug Review | 4 temuan | 🔴 CRITICAL |
-| 📝 Syntax Review | 3 temuan | 🟡 MEDIUM |
-| ⚡ Runtime Review | 5 temuan | 🔴 CRITICAL |
-| 🧠 Logic Review | 6 temuan | 🔴 CRITICAL |
-| 🧠 Memory Review | 4 temuan | 🔴 CRITICAL |
-| 💀 Dead Code Review | 2 temuan | 🟡 MEDIUM |
-| 🔁 Duplicate Code Review | 3 temuan | 🟡 MEDIUM |
-| 🔄 Circular Dependency Review | 2 temuan | 🔴 CRITICAL |
-| ⚡ Performance Bottleneck Review | 5 temuan | 🔴 CRITICAL |
-| 🛡️ Security CVE/CWE Review | 7 temuan | 🔴 CRITICAL |
-| 🔧 Maintainability Review | 4 temuan | 🟡 MEDIUM |
-| 📈 Scalability Review | 3 temuan | 🟡 MEDIUM |
-| 👁️ Readability Review | 3 temuan | 🟢 LOW |
-| 🔎 Linter Review | 4 temuan | 🟡 MEDIUM |
-| **TOTAL** | **55 temuan** | — |
+| Dimensi Review                   | Temuan        | Severity Tertinggi |
+| :------------------------------- | :------------ | :----------------- |
+| 🐛 Bug Review                    | 4 temuan      | 🔴 CRITICAL        |
+| 📝 Syntax Review                 | 3 temuan      | 🟡 MEDIUM          |
+| ⚡ Runtime Review                | 5 temuan      | 🔴 CRITICAL        |
+| 🧠 Logic Review                  | 6 temuan      | 🔴 CRITICAL        |
+| 🧠 Memory Review                 | 4 temuan      | 🔴 CRITICAL        |
+| 💀 Dead Code Review              | 2 temuan      | 🟡 MEDIUM          |
+| 🔁 Duplicate Code Review         | 3 temuan      | 🟡 MEDIUM          |
+| 🔄 Circular Dependency Review    | 2 temuan      | 🔴 CRITICAL        |
+| ⚡ Performance Bottleneck Review | 5 temuan      | 🔴 CRITICAL        |
+| 🛡️ Security CVE/CWE Review       | 7 temuan      | 🔴 CRITICAL        |
+| 🔧 Maintainability Review        | 4 temuan      | 🟡 MEDIUM          |
+| 📈 Scalability Review            | 3 temuan      | 🟡 MEDIUM          |
+| 👁️ Readability Review            | 3 temuan      | 🟢 LOW             |
+| 🔎 Linter Review                 | 4 temuan      | 🟡 MEDIUM          |
+| **TOTAL**                        | **55 temuan** | —                  |
 
 ---
 
@@ -43,7 +43,7 @@ protocol RemoteFileSystem: Sendable {
 }
 ```
 
-**Masalah:** `AsyncStream` adalah *consumer* (penerima), bukan *producer* yang dipass sebagai parameter. Kalau `AsyncStream` dipass ke dalam fungsi, implementor tidak tahu siapa yang menulis ke stream tersebut. Ini adalah design bug fundamental: stream harus dibuat *di dalam* implementasi, bukan dipass dari luar.
+**Masalah:** `AsyncStream` adalah _consumer_ (penerima), bukan _producer_ yang dipass sebagai parameter. Kalau `AsyncStream` dipass ke dalam fungsi, implementor tidak tahu siapa yang menulis ke stream tersebut. Ini adalah design bug fundamental: stream harus dibuat _di dalam_ implementasi, bukan dipass dari luar.
 
 **Fix yang Benar:**
 
@@ -216,7 +216,8 @@ services:
       - ./fixtures/ssh-host-keys:/etc/ssh/keys:ro
       - ./fixtures/test-files:/home/testuser/upload
     healthcheck:
-      test: ["CMD", "ssh", "-o", "StrictHostKeyChecking=no", "localhost", "exit"]
+      test:
+        ["CMD", "ssh", "-o", "StrictHostKeyChecking=no", "localhost", "exit"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -261,7 +262,7 @@ services:
 
 **Masalah (CVE):** `CVE-2025-15224` — libcurl dengan `libssh` backend (bukan `libssh2`) secara keliru fallback ke SSH agent yang berjalan lokal meski tidak diminta.
 
-**Dampak:** Jika macOS user memiliki SSH agent aktif (`ssh-agent`), koneksi SFTP/SCP via libcurl bisa *autentikasi tanpa password* ke server yang seharusnya memerlukan password — **silent auth bypass**.
+**Dampak:** Jika macOS user memiliki SSH agent aktif (`ssh-agent`), koneksi SFTP/SCP via libcurl bisa _autentikasi tanpa password_ ke server yang seharusnya memerlukan password — **silent auth bypass**.
 
 **Fix:**
 
@@ -359,7 +360,7 @@ actor SFTPTransferQueue {
 ```text
 State yang didefinisikan plan:
 - Unknown → prompt user → save fingerprint ✅
-- Known + matches → lanjut ✅  
+- Known + matches → lanjut ✅
 - Changed → blokir ✅
 
 State yang HILANG dari plan:
@@ -764,11 +765,11 @@ actor SFTPService {
 
 ---
 
-### CIRC-002 🟡 MEDIUM — `Features/` layer bisa import `Packages/` yang import `Features/`
+### CIRC-002 🟡 MEDIUM — `src/Features/` layer bisa import `src/Packages/` yang import `src/Features/`
 
-**Lokasi:** Repository structure, Packages/ vs Features/
+**Lokasi:** Repository structure, `src/Packages/` vs `src/Features/`
 
-**Masalah:** Plan tidak mendefinisikan secara eksplisit bahwa `Packages/` modules tidak boleh import apapun dari `Features/`. Jika developer tidak hati-hati (misalnya DesignSystem perlu FeatureFlag dari Settings), circular import bisa muncul.
+**Masalah:** Plan tidak mendefinisikan secara eksplisit bahwa `src/Packages/` modules tidak boleh import apapun dari `src/Features/`. Jika developer tidak hati-hati (misalnya DesignSystem perlu FeatureFlag dari Settings), circular import bisa muncul.
 
 **Fix:** Tambahkan ke TASK-008 (Architecture docs):
 
@@ -1084,7 +1085,7 @@ enum AppError: Error, Sendable, LocalizedError {
     case hostUnreachable(host: String)
     case hostKeyMismatch(expected: String, got: String)
 
-    // Authentication  
+    // Authentication
     case authenticationFailed(method: AuthMethod)
     case credentialNotFound(service: String)
 
@@ -1276,17 +1277,17 @@ struct RemotePath: Sendable, Hashable, ExpressibleByStringLiteral {
 ```yaml
 # .swiftlint.yml — SparkleSFTP
 opt_in_rules:
-  - force_unwrapping       # No ! in production code
+  - force_unwrapping # No ! in production code
   - implicitly_unwrapped_optional
   - prefer_self_type_over_type_of_self
   - sorted_imports
   - literal_expression_end_indentation
 
 disabled_rules:
-  - todo  # Allow TODO in development phase
+  - todo # Allow TODO in development phase
 
 excluded:
-  - Packages/*/Tests/
+  - src/Packages/*/Tests/
 
 custom_rules:
   no_password_in_logs:
@@ -1297,7 +1298,7 @@ custom_rules:
 
   no_accept_any_host_key:
     name: "No Accept Any Host Key"
-    regex: 'acceptAnything|acceptAnyHostKey'
+    regex: "acceptAnything|acceptAnyHostKey"
     message: "Never disable host key verification"
     severity: error
 ```
@@ -1402,23 +1403,23 @@ jobs:
 
 ## ✅ Updated Acceptance Criteria Additions
 
-**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 71 tests in 18 suites, 135 Swift files):**
+**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 73 tests in 19 suites, 143 Swift files):**
 
 - [x] `swift-nio-ssh` version ≥ 0.14.1 (`0.15.1`, patch CVE-2026-43798 — lihat [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md))
 - [x] `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`, memblokir permukaan `libssh` — mitigasi CVE-2025-15224), menautkan `-lcurl -lz` (`zlib`/`gzip` bounded `CWE-409`) dengan buffer `256 KB` + `TCP_NODELAY`/`TCP_KEEPALIVE` + worker GCD & probing dinamis `dlopen` `libssh2` ([ADR-007](ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md))
 - [x] `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` pada semua Keychain entries (`SecurityTests` + `no_icloud_keychain_sync` — lihat [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md))
 - [x] Path traversal test: download dengan `../` path → rejected (`SecurityTests`)
 - [x] Symlink attack test: recursive download/scan & pre-existing local symlink destination → rejected (`SecurityTests`, `SynchronizationTests`)
-- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, 8x pipelined SFTP SHA-256 parity, FileZilla conflict policy & FIFO queue drain, remote mutation revalidation → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`, `ToolchainAndConflictTests`)
+- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, 8x pipelined SFTP SHA-256 parity, FileZilla conflict policy & FIFO queue drain, multi-window isolation & paired multi-tab sessions, WinSCP `.gz` upload / SHA-256 / compare / `CWE-78` quoting → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`, `ToolchainAndConflictTests`, `WindowTabsAndWinSCPCommandsTests`)
 - [x] Proxy tunnel strict HTTP `200` status token enforcement & bounded stall timeouts (`NetworkingTests`, `LoopbackAdvancedIntegrationTests`)
-- [x] PTY leak test: open/close 100 terminal tabs + `CWE-78` sanitasi `ExternalTerminalLauncher` → aman & tidak leak (`IntegrationTests`, `ToolchainAndConflictTests`)
+- [x] PTY leak test: open/close 100 terminal tabs + `CWE-78` sanitasi `ExternalTerminalLauncher` & `PathValidator.escapePOSIXSingleQuoted` → aman & tidak leak (`IntegrationTests`, `ToolchainAndConflictTests`, `WindowTabsAndWinSCPCommandsTests`)
 - [x] SHA-256 verification: tidak blocking main thread untuk file > 100MB (`TransferEngineTests`)
 - [x] Sparkle: unsigned/non-HTTPS update check dan placeholder `SUPublicEDKey` ditolak (`UpdateConfigurationValidator`, `SecurityTests`, `SparkleUpdaterService`); Ed25519 appcast signing dilakukan pada host rilis
 - [x] OSLog: tidak ada secret dalam log (`DiagnosticsLogger` + SwiftLint `no_password_in_logs`)
-- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/135 files), `swiftformat --lint .` (0/135 files), `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, `clang-format --dry-run --Werror`, `cppcheck`
+- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/143 files), `swiftformat --lint .` (0/143 files), `trunk check`, `sonar-project.properties` + `swiftlint --reporter sonarqube`, `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, `clang-format --dry-run --Werror`, `cppcheck`
 
 ---
 
-*Review completed: 2026-11-11 | SparkleSFTP Plan Code Review v1.1 (originally drafted for MacSFTP, standardized to SparkleSFTP)*
-*55 findings across 14 pillars | 7 CRITICAL CVE/CWE security issues identified*
-*Web research sources: CVE database (NIST), swift.org security advisories, SwiftNIO GitHub issues, Apple Developer Documentation, OWASP CWE database*
+_Review completed: 2026-11-11 | SparkleSFTP Plan Code Review v1.1 (originally drafted for MacSFTP, standardized to SparkleSFTP)_
+_55 findings across 14 pillars | 7 CRITICAL CVE/CWE security issues identified_
+_Web research sources: CVE database (NIST), swift.org security advisories, SwiftNIO GitHub issues, Apple Developer Documentation, OWASP CWE database_

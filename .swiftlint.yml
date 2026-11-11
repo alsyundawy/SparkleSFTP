@@ -10,7 +10,9 @@ excluded:
   - build
   - DerivedData
   - dist
-  - Packages/*/Tests
+  - .scannerwork
+  - reports
+  - src/Packages/*/Tests
 
 opt_in_rules:
   - fatal_error_message
@@ -41,7 +43,7 @@ custom_rules:
 
   no_accept_any_host_key:
     name: No Disabled Host Key Verification (SEC / TOFU)
-    regex: 'acceptAnything|acceptAnyHostKey'
+    regex: "acceptAnything|acceptAnyHostKey"
     message: Never disable SSH host key verification in production code.
     severity: error
 
@@ -53,7 +55,7 @@ custom_rules:
 
   no_icloud_keychain_sync:
     name: Disallow iCloud-Synced Keychain Accessibility (SEC-002 / CWE-522)
-    regex: 'kSecAttrAccessibleAfterFirstUnlock|kSecAttrAccessibleWhenUnlocked(?!ThisDeviceOnly)'
+    regex: "kSecAttrAccessibleAfterFirstUnlock|kSecAttrAccessibleWhenUnlocked(?!ThisDeviceOnly)"
     message: Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly to prevent credential sync outside this Mac.
     severity: error
 

@@ -33,11 +33,11 @@ All Swift code must adhere to the following non-negotiable standards:
 - **Swift 6 Strict Concurrency**: Full `Sendable` conformance and actor isolation; no data races.
 - **`@unchecked Sendable` Guardrail**: Any `@unchecked Sendable` usage requires an inline `// JUSTIFICATION: ...` comment and passes SwiftLint review.
 - **Strict Dependency Boundaries**:
-  - `App -> SparkleFeatures -> Packages/*`
+  - `src/App -> SparkleFeatures -> src/Packages/*`
   - `ProtocolAdapters -> Domain`
   - `Security -> Domain`
   - `Persistence -> Domain`
-  - SwiftUI Views must never call `NIOSSH`, `Clibcurl`, `SQLite3`, or Keychain directly, and `Packages/` must never import from `Features/`.
+  - SwiftUI Views must never call `NIOSSH`, `Clibcurl`, `SQLite3`, or Keychain directly, and `src/Packages/` must never import from `src/Features/`.
 - **Code Language**: All Swift identifiers, types, comments, and error keys must be written in clear English (`READ-001`). Documentation may include English and Indonesian translations.
 - **14-Pillar Quality Gate**: Every non-trivial change is evaluated against the 14 pillars documented in [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md).
 

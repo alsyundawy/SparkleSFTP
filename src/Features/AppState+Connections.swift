@@ -1,0 +1,380 @@
+import Foundation
+import SparkleCore
+import SparkleDesignSystem
+import SparkleFileManager
+import SparkleNetworking
+import SparkleTransferEngine
+import UserNotifications
+
+public extension AppState {
+    internal func promptHostKeyChallenge(_ challenge: HostKeyChallenge) async -> Bool {
+        await withCheckedContinuation { continuation in
+            hostChallengeContinuation = continuation
+            pendingHostChallenge = challenge
+        }
+    }
+
+    internal func promptCredential(_ request: CredentialPromptRequest) async -> String? {
+        let key = "\(request.host):\(request.port):\(request.username)"
+        if let transient = transientQuickConnectSecrets.removeValue(forKey: key),
+           !transient.isEmpty {
+            return transient
+        }
+        return await withCheckedContinuation { continuation in
+            credentialPromptContinuation = continuation
+            pendingCredentialPrompt = request
+        }
+    }
+
+    internal func promptConflictResolution(_ context: ConflictContext) async -> TransferConflictResolution {
+        await withCheckedContinuation { continuation in
+            enqueueConflictPrompt(context, continuation: continuation)
+        }
+    }
+
+    internal func enqueueConflictPrompt(
+        _ context: ConflictContext,
+        continuation: CheckedContinuation<TransferConflictResolution, Never>
+    ) {
+        if let stickyPolicy = activeConflictRule(for: context.direction) {
+            let name = URL(fileURLWithPath: context.destinationDisplayPath).lastPathComponent
+            let auto = ConflictResolver.evaluateNonInteractivePolicy(
+                stickyPolicy,
+                context: context,
+                originalFilename: name
+            )
+            continuation.resume(returning: auto)
+            return
+        }
+        pendingConflictQueue.append(ConflictPromptEntry(context: context, continuation: continuation))
+        if pendingConflict == nil {
+            pendingConflict = pendingConflictQueue.first?.context
+        }
+    }
+
+    internal func handleConflictResolution(
+        _ resolution: TransferConflictResolution,
+        applyToQueue: Bool,
+        queuePolicy: TransferConflictPolicy?,
+        scope: TransferConflictScope
+    ) {
+        if applyToQueue, let policy = queuePolicy {
+            activeQueueConflictRules[scope] = policy
+            hasActiveConflictQueueRules = true
+            Task { await transferQueue.applyConflictRule(policy, scope: scope) }
+        }
+        guard !pendingConflictQueue.isEmpty else {
+            pendingConflict = nil
+            return
+        }
+        let first = pendingConflictQueue.removeFirst()
+        first.continuation.resume(returning: resolution)
+        drainAutoResolvedConflictsIfNeeded()
+    }
+
+    private func drainAutoResolvedConflictsIfNeeded() {
+        var remaining: [ConflictPromptEntry] = []
+        for entry in pendingConflictQueue {
+            if let stickyPolicy = activeConflictRule(for: entry.context.direction) {
+                let name = URL(fileURLWithPath: entry.context.destinationDisplayPath).lastPathComponent
+                let auto = ConflictResolver.evaluateNonInteractivePolicy(
+                    stickyPolicy,
+                    context: entry.context,
+                    originalFilename: name
+                )
+                entry.continuation.resume(returning: auto)
+            } else {
+                remaining.append(entry)
+            }
+        }
+        pendingConflictQueue = remaining
+        pendingConflict = pendingConflictQueue.first?.context
+    }
+
+    private func activeConflictRule(for direction: TransferDirection) -> TransferConflictPolicy? {
+        let dirScope: TransferConflictScope = direction == .upload ? .uploadsOnly : .downloadsOnly
+        return activeQueueConflictRules[dirScope] ?? activeQueueConflictRules[.all]
+    }
+
+    internal func notifyTerminalTransfersIfNeeded(_ snapshots: [TransferSnapshot]) {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+        for snap in snapshots where !notifiedTerminalTransferIDs.contains(snap.id) {
+            let content = UNMutableNotificationContent()
+            switch snap.status {
+            case .completed:
+                content.title = "Transfer Completed"
+                content.body = snap.metadata.destination.displayPath
+            case let .failed(error):
+                content.title = "Transfer Failed"
+                content.body = error.errorDescription ?? snap.metadata.destination.displayPath
+            default:
+                continue
+            }
+            notifiedTerminalTransferIDs.insert(snap.id)
+            let req = UNNotificationRequest(identifier: snap.id.uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(req) { _ in }
+        }
+    }
+
+    func bootstrap() async {
+        if Bundle.main.bundleURL.pathExtension == "app" {
+            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        }
+        await refreshProfilesAndGroups()
+        await refreshLocalDirectory(localCurrentURL, recordHistory: false)
+        trustedHosts = await hostTrustStore.allTrustedHosts()
+        if let loadedSnippets = try? await snippetStore.loadSnippets() {
+            snippets = loadedSnippets
+        }
+        startTransferObserver()
+        if let restored = try? await transferQueue.restoreInterruptedFromJournal(), !restored.isEmpty {
+            transferSnapshots = restored
+        }
+        applyAutoUpdateConfiguration()
+        Task { [weak self] in
+            await self?.refreshToolchainReport()
+        }
+        if autoUpdateSettings.isOverdue {
+            Task { [weak self] in
+                await self?.checkForUpdates(manual: false)
+            }
+        }
+    }
+
+    func refreshProfilesAndGroups() async {
+        do {
+            profiles = try await connectionStore.loadProfiles()
+            groups = try await connectionStore.loadGroups()
+            if selectedProfileID == nil {
+                selectedProfileID = profiles.first?.id
+            }
+        } catch {
+            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+        }
+    }
+
+    func createGroup(named name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let group = ServerGroup(name: trimmed, sortOrder: groups.count)
+        do {
+            try await connectionStore.saveGroup(group)
+            await refreshProfilesAndGroups()
+            broadcastConnectionsDidChange()
+        } catch {
+            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+        }
+    }
+
+    func deleteGroup(id: UUID) async {
+        do {
+            try await connectionStore.deleteGroup(id: id)
+            await refreshProfilesAndGroups()
+            broadcastConnectionsDidChange()
+        } catch {
+            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+        }
+    }
+
+    func saveProfile(
+        _ profile: ConnectionProfile,
+        secretString: String?,
+        passphraseString: String? = nil,
+        clearStoredSecrets: Bool = false
+    ) async {
+        do {
+            var mutable = profile
+            if clearStoredSecrets {
+                await deleteProfileSecrets(mutable)
+                mutable.passwordRef = nil
+                mutable.privateKeyRef = nil
+                mutable.passphraseRef = nil
+            }
+            if !clearStoredSecrets, let secret = secretString, !secret.isEmpty {
+                let requireTouchID = mutable.requireTouchID
+                if mutable.authMethod == .publicKey {
+                    let keyRef = mutable.privateKeyRef ?? SecretReference(kind: .privateKey)
+                    try await credentialStore.saveSecret(
+                        Data(secret.utf8),
+                        for: keyRef,
+                        requireTouchID: requireTouchID
+                    )
+                    mutable.privateKeyRef = keyRef
+                } else {
+                    let ref = mutable.passwordRef ?? SecretReference(kind: .password)
+                    try await credentialStore.saveSecret(
+                        Data(secret.utf8),
+                        for: ref,
+                        requireTouchID: requireTouchID
+                    )
+                    mutable.passwordRef = ref
+                }
+            }
+            if !clearStoredSecrets, let passphrase = passphraseString, !passphrase.isEmpty {
+                let passRef = mutable.passphraseRef ?? SecretReference(kind: .keyPassphrase)
+                try await credentialStore.saveSecret(
+                    Data(passphrase.utf8),
+                    for: passRef,
+                    requireTouchID: mutable.requireTouchID
+                )
+                mutable.passphraseRef = passRef
+            }
+            try await connectionStore.saveProfile(mutable)
+            await refreshProfilesAndGroups()
+            selectedProfileID = mutable.id
+            broadcastConnectionsDidChange()
+        } catch {
+            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+        }
+    }
+
+    func connect(profile: ConnectionProfile, openInNewTab: Bool = false) async {
+        guard openInNewTab || !connectingProfileIDs.contains(profile.id) else { return }
+        connectingProfileIDs.insert(profile.id)
+        pendingPromptedSecretToRemember = nil
+        defer {
+            connectingProfileIDs.remove(profile.id)
+            pendingPromptedSecretToRemember = nil
+            let key = "\(profile.host):\(profile.port):\(profile.username)"
+            transientQuickConnectSecrets.removeValue(forKey: key)
+        }
+
+        guard await authenticateBiometricsIfNeeded(for: profile) else { return }
+        let created = buildRemoteService(for: profile)
+
+        do {
+            try await created.service.connection.connect()
+            try await finalizeSuccessfulConnection(
+                profile: profile,
+                created: created,
+                openInNewTab: openInNewTab
+            )
+        } catch let appError as AppError {
+            if case .hostKeyMismatch = appError {
+                hostMismatchAlert = appError
+            }
+            lastError = appError
+        } catch {
+            lastError = .transferFailed(reason: error.localizedDescription)
+        }
+    }
+
+    private func authenticateBiometricsIfNeeded(for profile: ConnectionProfile) async -> Bool {
+        guard profile.requireTouchID, featureFlags.isTouchIDGateEnabled else { return true }
+        do {
+            let reason = "Authenticate to connect to \(profile.name)"
+            try await credentialStore.evaluateBiometricPolicy(reason: reason)
+            return true
+        } catch {
+            lastError = (error as? AppError)
+                ?? .biometricAuthenticationFailed(reason: error.localizedDescription)
+            return false
+        }
+    }
+
+    private func buildRemoteService(for profile: ConnectionProfile) -> (
+        service: RemoteService,
+        sshClient: SSHClientService?
+    ) {
+        RemoteServiceFactory.makeService(
+            for: profile,
+            credentialStore: credentialStore,
+            hostTrustStore: hostTrustStore,
+            credentialPrompt: { [weak self] request in
+                guard let self else { return nil }
+                return await promptCredential(request)
+            },
+            jumpProfileResolver: { [weak self] jumpID in
+                guard let self else { return nil }
+                return await MainActor.run {
+                    self.profiles.first { $0.id == jumpID }
+                }
+            },
+            options: RemoteTransportOptions(
+                pipelineDepth: transferPipelineDepth,
+                useCompression: useZlibCompression
+            ),
+            hostTrustPrompt: { [weak self] challenge in
+                guard let self else { return false }
+                return await promptHostKeyChallenge(challenge)
+            }
+        )
+    }
+
+    private func finalizeSuccessfulConnection(
+        profile: ConnectionProfile,
+        created: (service: RemoteService, sshClient: SSHClientService?),
+        openInNewTab: Bool
+    ) async throws {
+        var updatedProfile = profile
+        if let promptedSecret = pendingPromptedSecretToRemember, !promptedSecret.isEmpty {
+            let ref = updatedProfile.passwordRef ?? SecretReference(kind: .password)
+            if await (try? credentialStore.saveSecret(
+                Data(promptedSecret.utf8),
+                for: ref,
+                requireTouchID: updatedProfile.requireTouchID
+            )) != nil {
+                updatedProfile.passwordRef = ref
+            }
+            pendingPromptedSecretToRemember = nil
+        }
+        updatedProfile.lastConnectedAt = Date()
+        if profiles.contains(where: { $0.id == updatedProfile.id }) {
+            try? await connectionStore.saveProfile(updatedProfile)
+            await refreshProfilesAndGroups()
+            broadcastConnectionsDidChange()
+        }
+        trustedHosts = await hostTrustStore.allTrustedHosts()
+
+        if let localDefault = profile.defaultLocalPath, !localDefault.isEmpty,
+           FileManager.default.fileExists(atPath: localDefault) {
+            await refreshLocalDirectory(URL(fileURLWithPath: localDefault))
+        }
+
+        let listed = try await created.service.fileSystem.listDirectory(at: profile.defaultRemotePath)
+        let sorted = await FileSortDescriptor.sortRemoteFiles(listed, by: FileSortDescriptor())
+        let session = ActiveSessionModel(
+            id: UUID(),
+            profile: updatedProfile,
+            service: created.service,
+            sshClient: created.sshClient,
+            currentRemotePath: profile.defaultRemotePath,
+            remoteFiles: PaginatedFileWindow(allFiles: sorted),
+            sortDescriptor: FileSortDescriptor(),
+            selectedRemoteFileIDs: []
+        )
+        activeSessions.append(session)
+        attachConnectedSession(session, openInNewTab: openInNewTab)
+        activeSessionID = session.id
+        activePane = .right
+        statusBannerMessage = "Connected to \(profile.host)"
+    }
+
+    func disconnect(sessionID: UUID) async {
+        guard let idx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        let removed = activeSessions.remove(at: idx)
+        try? await removed.service.connection.disconnect(policy: .cancelAllTransfers)
+
+        for tabIdx in workspaceTabs.indices where workspaceTabs[tabIdx].sessionID == sessionID {
+            workspaceTabs[tabIdx].sessionID = nil
+            workspaceTabs[tabIdx].title = strings.t("tabs.newTab")
+        }
+        if activeSessionID == sessionID {
+            activeSessionID = currentTab?.sessionID ?? activeSessions.last?.id
+        }
+        if activeSessions.isEmpty {
+            for (dirURL, watcher) in remoteEditWatches {
+                watcher.stopWatching()
+                try? FileManager.default.removeItem(at: dirURL)
+            }
+            remoteEditWatches.removeAll()
+        }
+    }
+
+    func disconnectAllSessions(forProfileID profileID: UUID) async {
+        let matchingIDs = activeSessions.filter { $0.profile.id == profileID }.map(\.id)
+        for sessionID in matchingIDs {
+            await disconnect(sessionID: sessionID)
+        }
+    }
+}
