@@ -84,9 +84,7 @@ struct WindowControlsAndShortcutsTests {
     }
 
     @Test("Quickconnect hides when session connected and reappears on new unconnected tab")
-    @MainActor
     func quickConnectVisibilityFollowsSessionConnection() async throws {
-        _ = NSApplication.shared
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleQCVis-\(UUID())")
         let remoteDir = tmp.appendingPathComponent("remote", isDirectory: true)
         try FileManager.default.createDirectory(at: remoteDir, withIntermediateDirectories: true)
@@ -100,12 +98,18 @@ struct WindowControlsAndShortcutsTests {
             authorizedPublicKeyFingerprint: nil,
             virtualFS: vfs
         )
-        let state = makeState(root: tmp)
-        await state.refreshLocalDirectory(tmp, recordHistory: false)
-        try await verifyQuickConnectTransitions(state: state, port: server.port)
+        try await runQuickConnectWindowCheck(root: tmp, port: server.port)
+        await server.stop()
+    }
+
+    @MainActor
+    private func runQuickConnectWindowCheck(root: URL, port: Int) async throws {
+        _ = NSApplication.shared
+        let state = makeState(root: root)
+        await state.refreshLocalDirectory(root, recordHistory: false)
+        try await verifyQuickConnectTransitions(state: state, port: port)
         state.prepareFastShutdown()
         await state.shutdownAsyncResources()
-        await server.stop()
     }
 
     @Test("InteractiveFileTableView handles shortcuts and Tab pane switch cleanly")
