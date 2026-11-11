@@ -101,7 +101,14 @@ struct IntegrationTests {
         )
         let report = try await executor.execute(plan: plan, target: target, dryRun: false)
         #expect(report.appliedCount == 1)
-        try await Task.sleep(for: .milliseconds(250))
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline {
+            let snaps = await queue.currentSnapshots()
+            if let snap = snaps.first, snap.status.isTerminal {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
 
         let uploadedData = await remoteFS.uploaded["/etc/sparklesftp/app.conf"]
         #expect(uploadedData == localPayload)

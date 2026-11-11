@@ -225,10 +225,7 @@ struct TransferEngineTests {
             expectedSHA256: digest
         )
         _ = await queue.enqueue(taskOK)
-        try await Task.sleep(for: .milliseconds(250))
-
-        let snapshots = await queue.currentSnapshots()
-        let okSnapshot = snapshots.first { $0.id == taskOK.id }
+        let okSnapshot = await waitUntilSnapshot(in: queue, id: taskOK.id) { $0.status.isTerminal }
         #expect(okSnapshot?.status == .completed)
         #expect(try Data(contentsOf: destOK) == payload)
 
@@ -242,8 +239,7 @@ struct TransferEngineTests {
             expectedSHA256: String(repeating: "0", count: 64)
         )
         _ = await queue.enqueue(taskBad)
-        try await Task.sleep(for: .milliseconds(250))
-        let badSnap = await queue.currentSnapshots().first { $0.id == taskBad.id }
+        let badSnap = await waitUntilSnapshot(in: queue, id: taskBad.id) { $0.status.isTerminal }
         if case .failed(AppError.checksumMismatch) = badSnap?.status {
             #expect(!FileManager.default.fileExists(atPath: badDest.path))
         } else {
@@ -270,13 +266,28 @@ struct TransferEngineTests {
             totalBytes: 4096
         )
         _ = await queue.enqueue(task)
-        try await Task.sleep(for: .milliseconds(80))
+        _ = await waitUntilSnapshot(in: queue, id: task.id) { $0.status.isActive }
         await queue.cancel(id: task.id)
-        try await Task.sleep(for: .milliseconds(450))
 
-        let finalSnap = await queue.currentSnapshots().first { $0.id == task.id }
+        let finalSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status.isTerminal }
         #expect(finalSnap?.status == .cancelled)
         #expect(!FileManager.default.fileExists(atPath: dest.path))
+    }
+
+    private func waitUntilSnapshot(
+        in queue: TransferQueue,
+        id: UUID,
+        timeoutSeconds: Double = 5.0,
+        predicate: (TransferSnapshot) -> Bool
+    ) async -> TransferSnapshot? {
+        let deadline = ContinuousClock.now + .milliseconds(Int(timeoutSeconds * 1000))
+        while ContinuousClock.now < deadline {
+            if let snap = await queue.currentSnapshots().first(where: { $0.id == id }), predicate(snap) {
+                return snap
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return await queue.currentSnapshots().first { $0.id == id }
     }
 
     @Test("SHA256Verifier hashes 100MB file off MainActor without blocking UI thread (TASK-118 / PERF-002)")

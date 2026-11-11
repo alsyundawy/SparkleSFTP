@@ -17,9 +17,12 @@ public actor TransferQueue {
     let conflictResolver: ConflictResolver
     let fileSystemResolver: FileSystemResolver
 
+    @TaskLocal static var currentWorkerToken: UUID?
+
     var snapshots: [UUID: TransferSnapshot] = [:]
     var lastJournalPersistAt: [UUID: Date] = [:]
     var activeTasks: [UUID: Task<Void, Never>] = [:]
+    var activeWorkerTokens: [UUID: UUID] = [:]
     var cancelledIDs: Set<UUID> = []
     var streamContinuations: [UUID: AsyncStream<[TransferSnapshot]>.Continuation] = [:]
 
@@ -129,6 +132,7 @@ public actor TransferQueue {
 
     public func cancel(id: UUID) async {
         cancelledIDs.insert(id)
+        activeWorkerTokens.removeValue(forKey: id)
         await scheduler.removePending(id: id)
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
@@ -149,6 +153,7 @@ public actor TransferQueue {
 
     public func pause(id: UUID) async {
         cancelledIDs.insert(id)
+        activeWorkerTokens.removeValue(forKey: id)
         await scheduler.removePending(id: id)
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
@@ -181,6 +186,8 @@ public actor TransferQueue {
 
     public func retry(id: UUID) async {
         guard let existing = snapshots[id] else { return }
+        activeWorkerTokens.removeValue(forKey: id)
+        activeTasks.removeValue(forKey: id)?.cancel()
         cancelledIDs.remove(id)
         let queued = TransferSnapshot(
             metadata: existing.metadata,
@@ -195,25 +202,33 @@ public actor TransferQueue {
         await scheduleNextIfAvailable()
     }
 
-    private func scheduleNextIfAvailable() async {
+    func scheduleNextIfAvailable() async {
         while let next = await scheduler.nextAdmissibleTask() {
             // Re-verify task was not cancelled while waiting in scheduler.
             if cancelledIDs.contains(next.id) {
                 await scheduler.releaseSlot(forHost: next.targetHost)
                 continue
             }
+            let workerToken = UUID()
+            activeWorkerTokens[next.id] = workerToken
             let worker = Task { [weak self] in
                 guard let self else { return }
-                await executeTransfer(metadata: next)
+                await Self.$currentWorkerToken.withValue(workerToken) {
+                    await executeTransfer(metadata: next, workerToken: workerToken)
+                }
             }
             activeTasks[next.id] = worker
         }
     }
 
-    private func executeTransfer(metadata: TransferTaskMetadata) async {
+    private func executeTransfer(metadata: TransferTaskMetadata, workerToken: UUID) async {
         defer {
             Task { [weak self] in
-                await self?.finalizeExecutionSlot(taskID: metadata.id, host: metadata.targetHost)
+                await self?.finalizeExecutionSlot(
+                    taskID: metadata.id,
+                    workerToken: workerToken,
+                    host: metadata.targetHost
+                )
             }
         }
 
@@ -240,33 +255,5 @@ public actor TransferQueue {
             let mapped = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
             await updateStatus(id: metadata.id, status: .failed(mapped))
         }
-    }
-
-    func handleProgress(id: UUID, progress: TransferProgress) async {
-        guard isStillActive(id: id), let currentStatus = snapshots[id]?.status else { return }
-        switch currentStatus {
-        case .connecting, .transferring:
-            break
-        default:
-            return
-        }
-        let isComplete = progress.totalBytes > 0 && progress.bytesTransferred >= progress.totalBytes
-        guard await throttler.shouldEmit(for: id, force: isComplete) else { return }
-        await updateSnapshot(
-            id: id,
-            status: .transferring(bytesPerSecond: progress.bytesPerSecond),
-            progress: progress
-        )
-    }
-
-    func isStillActive(id: UUID) -> Bool {
-        !cancelledIDs.contains(id) && activeTasks[id] != nil
-    }
-
-    private func finalizeExecutionSlot(taskID: UUID, host: String) async {
-        activeTasks.removeValue(forKey: taskID)
-        await throttler.clear(taskID: taskID)
-        await scheduler.releaseSlot(forHost: host)
-        await scheduleNextIfAvailable()
     }
 }

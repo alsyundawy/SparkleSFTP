@@ -55,7 +55,7 @@ extension TransferQueue {
     }
 
     func updateSnapshot(id: UUID, status: TransferStatus, progress: TransferProgress) async {
-        guard let existing = snapshots[id] else { return }
+        guard isCurrentWorkerValid(id: id), let existing = snapshots[id] else { return }
         let updated = TransferSnapshot(
             metadata: existing.metadata,
             status: status,
@@ -87,7 +87,7 @@ extension TransferQueue {
     }
 
     func resetCheckpointBytes(id: UUID) async {
-        guard let existing = snapshots[id] else { return }
+        guard isCurrentWorkerValid(id: id), let existing = snapshots[id] else { return }
         let zeroProgress = TransferProgress(
             bytesTransferred: 0,
             totalBytes: existing.progress.totalBytes,
@@ -114,7 +114,7 @@ extension TransferQueue {
         remoteModificationTime: Date?,
         partialLocalPath: String?
     ) async {
-        guard let existing = snapshots[id] else { return }
+        guard isCurrentWorkerValid(id: id), let existing = snapshots[id] else { return }
         let updated = TransferSnapshot(
             metadata: existing.metadata,
             status: existing.status,
@@ -128,5 +128,41 @@ extension TransferQueue {
         )
         snapshots[id] = updated
         await persistSnapshot(updated)
+    }
+
+    func handleProgress(id: UUID, progress: TransferProgress) async {
+        guard isStillActive(id: id), let currentStatus = snapshots[id]?.status else { return }
+        switch currentStatus {
+        case .connecting, .transferring:
+            break
+        default:
+            return
+        }
+        let isComplete = progress.totalBytes > 0 && progress.bytesTransferred >= progress.totalBytes
+        guard await throttler.shouldEmit(for: id, force: isComplete) else { return }
+        await updateSnapshot(
+            id: id,
+            status: .transferring(bytesPerSecond: progress.bytesPerSecond),
+            progress: progress
+        )
+    }
+
+    func isCurrentWorkerValid(id: UUID) -> Bool {
+        guard let token = Self.currentWorkerToken else { return true }
+        return activeWorkerTokens[id] == token
+    }
+
+    func isStillActive(id: UUID) -> Bool {
+        !cancelledIDs.contains(id) && activeTasks[id] != nil && isCurrentWorkerValid(id: id)
+    }
+
+    func finalizeExecutionSlot(taskID: UUID, workerToken: UUID, host: String) async {
+        if activeWorkerTokens[taskID] == workerToken {
+            activeWorkerTokens.removeValue(forKey: taskID)
+            activeTasks.removeValue(forKey: taskID)
+            await throttler.clear(taskID: taskID)
+        }
+        await scheduler.releaseSlot(forHost: host)
+        await scheduleNextIfAvailable()
     }
 }

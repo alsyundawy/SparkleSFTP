@@ -141,7 +141,14 @@ struct EditorAndSyncTests {
         let executor = SyncExecutor(transferQueue: queue)
         let report = try await executor.execute(plan: plan, target: target, dryRun: false)
         #expect(report.appliedCount == 2)
-        try await Task.sleep(for: .milliseconds(250))
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline {
+            let snaps = await queue.currentSnapshots()
+            if snaps.count == 2, snaps.allSatisfy(\.status.isTerminal) {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
 
         let uploaded = await remoteMock.files["/sync/upload.txt"]
         #expect(uploaded == Data("from-local".utf8))

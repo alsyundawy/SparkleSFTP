@@ -231,7 +231,14 @@ struct LoopbackSFTPIntegrationTests {
             totalBytes: Int64(payload.count)
         )
         _ = await queue.enqueue(uploadMeta)
-        try await Task.sleep(for: .milliseconds(300))
+        let upDeadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < upDeadline {
+            if let snap = await queue.currentSnapshots().first(where: { $0.id == uploadMeta.id }),
+               snap.status.isTerminal {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
 
         #expect(try Data(contentsOf: serverDir.appendingPathComponent("releases/upload.txt")) == payload)
         let listed = try await sftp.listDirectory(at: "/releases")
@@ -246,7 +253,14 @@ struct LoopbackSFTPIntegrationTests {
             expectedSHA256: digest
         )
         _ = await queue.enqueue(downMeta)
-        try await Task.sleep(for: .milliseconds(300))
+        let downDeadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < downDeadline {
+            if let snap = await queue.currentSnapshots().first(where: { $0.id == downMeta.id }),
+               snap.status.isTerminal {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(try Data(contentsOf: downloadFile) == payload)
 
         try await sftp.rename(from: "/releases/upload.txt", to: "/releases/final.txt")

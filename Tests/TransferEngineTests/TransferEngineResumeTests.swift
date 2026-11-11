@@ -30,7 +30,7 @@ struct TransferEngineResumeTests {
             totalBytes: Int64(incomingPayload.count)
         )
         _ = await renameQueue.enqueue(taskRename)
-        try await Task.sleep(for: .milliseconds(250))
+        _ = await waitUntilSnapshot(in: renameQueue, id: taskRename.id) { $0.status.isTerminal }
 
         #expect(await remoteFS.files["/deploy/app.txt"] == originalRemote)
         let renamedEntries = await remoteFS.files.filter {
@@ -62,11 +62,11 @@ struct TransferEngineResumeTests {
 
         // Simulate interrupted partial file before pause/resume retry
         _ = await queue.enqueue(task)
-        try await Task.sleep(for: .milliseconds(60))
+        _ = await waitUntilSnapshot(in: queue, id: task.id) {
+            $0.status.isActive && $0.checkpoint?.partialLocalPath != nil
+        }
         await queue.pause(id: task.id)
-        try await Task.sleep(for: .milliseconds(250))
-
-        let pausedSnap = await queue.currentSnapshots().first { $0.id == task.id }
+        let pausedSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status == .paused }
         #expect(pausedSnap?.status == .paused)
         if let partialPath = pausedSnap?.checkpoint?.partialLocalPath {
             try Data(fullPayload.prefix(100)).write(to: URL(fileURLWithPath: partialPath))
@@ -75,9 +75,7 @@ struct TransferEngineResumeTests {
         await queue.pause(id: task.id)
         await remoteFS.setDownloadDelay(.zero)
         await queue.retry(id: task.id)
-        try await Task.sleep(for: .milliseconds(250))
-
-        let completedSnap = await queue.currentSnapshots().first { $0.id == task.id }
+        let completedSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status.isTerminal }
         #expect(completedSnap?.status == .completed)
         #expect(try Data(contentsOf: dest) == fullPayload)
         let offsets = await remoteFS.recordedDownloadOffsets
@@ -106,11 +104,11 @@ struct TransferEngineResumeTests {
         )
 
         _ = await queue.enqueue(task)
-        try await Task.sleep(for: .milliseconds(60))
+        _ = await waitUntilSnapshot(in: queue, id: task.id) {
+            $0.status.isActive && $0.checkpoint?.partialLocalPath != nil
+        }
         await queue.pause(id: task.id)
-        try await Task.sleep(for: .milliseconds(250))
-
-        let pausedSnap = await queue.currentSnapshots().first { $0.id == task.id }
+        let pausedSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status == .paused }
         if let partialPath = pausedSnap?.checkpoint?.partialLocalPath {
             try Data(payloadV1.prefix(100)).write(to: URL(fileURLWithPath: partialPath))
         }
@@ -121,11 +119,25 @@ struct TransferEngineResumeTests {
         await remoteFS.setRemoteFile(path: "/release.bin", data: payloadV2, mtime: timeV1.addingTimeInterval(30))
         await remoteFS.setDownloadDelay(.zero)
         await queue.retry(id: task.id)
-        try await Task.sleep(for: .milliseconds(250))
-
-        let completedSnap = await queue.currentSnapshots().first { $0.id == task.id }
+        let completedSnap = await waitUntilSnapshot(in: queue, id: task.id) { $0.status.isTerminal }
         #expect(completedSnap?.status == .completed)
         #expect(try Data(contentsOf: dest) == payloadV2)
+    }
+
+    private func waitUntilSnapshot(
+        in queue: TransferQueue,
+        id: UUID,
+        timeoutSeconds: Double = 5.0,
+        predicate: (TransferSnapshot) -> Bool
+    ) async -> TransferSnapshot? {
+        let deadline = ContinuousClock.now + .milliseconds(Int(timeoutSeconds * 1000))
+        while ContinuousClock.now < deadline {
+            if let snap = await queue.currentSnapshots().first(where: { $0.id == id }), predicate(snap) {
+                return snap
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return await queue.currentSnapshots().first { $0.id == id }
     }
 }
 
