@@ -1,4 +1,8 @@
-<h1 align="center">✨ SparkleSFTP</h1>
+<p align="center">
+  <img src="App/Resources/AppIcon.png" width="144" height="144" alt="Logo SparkleSFTP">
+</p>
+
+<h1 align="center">SparkleSFTP</h1>
 
 <p align="center">
   <b>Klien SFTP, FTP/FTPS, SCP &amp; SSH Commander Dual-Pane Native macOS — Dibangun dengan Swift 6 &amp; SwiftUI</b><br>
@@ -45,7 +49,7 @@
 ## Navigasi
 
 - [Ringkasan & Visi](#ringkasan--visi)
-- [Tumpukan Teknologi Rencana](#tumpukan-teknologi-rencana)
+- [Tumpukan Teknologi](#tumpukan-teknologi)
 - [Arsitektur Sistem](#arsitektur-sistem)
 - [Garis Dasar Keamanan & Hardening](#garis-dasar-keamanan--hardening)
 - [Struktur Repositori](#struktur-repositori)
@@ -67,9 +71,9 @@
 
 ---
 
-## Tumpukan Teknologi Rencana
+## Tumpukan Teknologi
 
-| Lapisan | Teknologi Rencana | Tujuan & Standar Keamanan |
+| Lapisan | Teknologi | Tujuan & Standar Keamanan |
 | :--- | :--- | :--- |
 | **Bahasa** | Swift 6 | Strict concurrency, isolasi actor, penegakan `Sendable` |
 | **Antarmuka UI** | SwiftUI + AppKit (`NSTableView`) | HIG macOS native dengan reuse sel tabel (`ObservableObject` untuk macOS 13+) |
@@ -88,12 +92,12 @@
 ```mermaid
 flowchart TD
     UI["Lapisan UI (SwiftUI + NSTableView + SwiftTerm)"]
-    VM["ViewModel (@Observable)"]
-    APP["Inti Aplikasi (SessionCoordinator · TransferScheduler)"]
+    VM["ViewModel (@MainActor ObservableObject)"]
+    APP["Inti Aplikasi (AppState · TransferQueue · TransferScheduler)"]
     DOM["Lapisan Domain (RemoteConnection · RemoteFileSystem · AppError)"]
     PA["Adaptor Protokol (SFTP · SSH · FTP/FTPS · SCP)"]
     SEC["Lapisan Keamanan (KeychainService · HostTrustStore · SecTrust)"]
-    PERS["Persistensi (ConnectionStore JSON · TransferJournal)"]
+    PERS["Persistensi (ConnectionStore JSON · TransferJournal SQLite3)"]
 
     UI --> VM
     VM --> APP
@@ -109,8 +113,8 @@ flowchart TD
 
 ### Aturan Lapisan Wajib (Non-Negotiable)
 
-1. `App -> ApplicationCore -> Domain`, `ProtocolAdapters -> Domain`, `Security -> Domain`, `Persistence -> Domain`.
-2. View dan ViewModel **dilarang** memanggil Citadel, libcurl, atau Keychain secara langsung.
+1. `App -> SparkleFeatures -> Packages/*`; `ProtocolAdapters -> Domain`, `Security -> Domain`, `Persistence -> Domain`.
+2. View dan ViewModel **dilarang** memanggil `NIOSSH`, `Clibcurl`, `SQLite3`, atau Keychain secara langsung.
 3. Modul di `Packages/` **dilarang** mengimpor modul dari `Features/`.
 4. Siklus hidup transfer berjalan di dalam `TransferQueue` actor — terpisah sepenuhnya dari siklus hidup jendela maupun tab.
 
@@ -122,91 +126,95 @@ Setiap keputusan desain di SparkleSFTP menegakkan hasil audit pada [`docs/CODE_R
 
 | Kontrol | Standar / Referensi | Penegakan |
 | :--- | :--- | :--- |
-| **Keamanan Pre-Auth SSH** | CVE-2026-43798 | Pin `swift-nio-ssh >= 0.14.1` di `Package.swift` |
-| **Keamanan Auth SSH libcurl** | CVE-2025-15224 | Gunakan backend `libssh2` saja (bukan `libssh`) |
+| **Keamanan Pre-Auth SSH** | CVE-2026-43798 | Pin `apple/swift-nio-ssh >= 0.15.1` (`>= 0.14.1`) di `Package.swift` |
+| **Keamanan Auth SSH libcurl** | CVE-2025-15224 | Kunci `Clibcurl` ke `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`); tanpa permukaan `libssh` |
 | **Isolasi Keychain Perangkat** | CWE-312 / CWE-522 | `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` + aturan SwiftLint |
 | **Validasi Sertifikat TLS** | CWE-295 | `SecTrustEvaluateWithError` + OCSP + tanpa auto-downgrade FTPS |
 | **Kepercayaan Host SSH** | State Machine TOFU | Siklus 6-state; perubahan host key langsung memblokir koneksi |
-| **Keamanan Path & Symlink** | CWE-22 / CWE-59 | Kanonisasi path ketat + validasi target symlink & loop inode |
+| **Keamanan Path & Symlink** | CWE-22 / CWE-59 | Kanonisasi path ketat + validasi target symlink & loop |
+| **Integritas Pembaruan** | Ed25519 + TLS | `UpdateConfigurationValidator` menolak feed non-HTTPS & key placeholder |
 | **Redaksi Log** | CWE-532 | Label privasi `OSLog` + aturan SwiftLint `no_password_in_logs` |
 
 ---
 
 ## Struktur Repositori
 
-### Berkas Saat Ini (Fondasi Repositori Fase 0)
+### Struktur Repositori Swift 6 Terealisasi (Full MVP)
 
 ```text
 SparkleSFTP/
-├── .github/
-│   ├── ISSUE_TEMPLATE/        # Templat laporan bug & permintaan fitur
-│   ├── workflows/ci.yml       # Lint Markdown/YAML/Shell + CI Swift kondisional
-│   ├── FUNDING.yml
-│   ├── dependabot.yml
-│   └── pull_request_template.md
-├── docs/
-│   ├── ADR/                   # Architecture Decision Records (0001–0003)
-│   ├── ARCHITECTURE.md        # Batasan modul & jaminan concurrency
-│   ├── CODE_REVIEW_14_PILLARS.md
-│   ├── IMPLEMENTATION_PLAN.md
-│   └── ROADMAP.md
-├── .editorconfig
-├── .gitattributes
-├── .gitignore
-├── .markdownlint.json
-├── .swiftformat
-├── .swiftlint.yml
-├── .yamllint.yml
-├── CHANGELOG.md
-├── CODE_OF_CONDUCT.md
-├── CONTRIBUTING.md
-├── LICENSE                    # Lisensi MIT
-├── README.md                  # Dokumentasi Bahasa Inggris
-├── README-id.md               # Dokumentasi Bahasa Indonesia
-└── SECURITY.md                # Kebijakan keamanan & pelaporan kerentanan
+├── Package.swift              # Manifest Swift 6.0 (.macOS(.v13), dependensi SPM ter-pin)
+├── App/                       # Entry point executable, AppDelegate, SparkleUpdaterService, Info.plist, Entitlements
+├── Packages/
+│   ├── Clibcurl/              # Wrapper helper C non-variadik untuk libcurl sistem
+│   ├── Core/                  # Model domain, RemotePath, AppError, Protocols, FeatureFlags
+│   ├── DesignSystem/          # Token tema, komponen UI ulang, lokalisasi EN/ID AppStrings
+│   ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
+│   ├── Networking/            # SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService, Proxy
+│   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), Importer Konfigurasi
+│   ├── Security/              # KeychainService, HostTrustStore, SecTrust, PathValidator, KeyParser, UpdateValidator
+│   ├── Synchronization/       # DirectoryScanner, SyncPlanner (TTL 60 detik), SyncExecutor
+│   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, SessionManager, PortForwardingManager
+│   └── TransferEngine/        # TransferQueue actor, TransferScheduler, ResumeValidator, SHA256Verifier
+├── Features/                  # View SwiftUI + AppKit (Commander, Connections, Terminal, Transfers, Sync, Settings) & AppState
+├── Tests/                     # 8 target uji (45 test di 11 suite Swift Testing, termasuk loopback SSH/SFTP terenkripsi)
+├── Tools/
+│   ├── Release/               # Skrip Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
+│   └── TestServers/           # Fixture Docker Compose (OpenSSH, vsftpd, ProFTPD) & skrip smoke test
+├── .github/workflows/         # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
+└── docs/                      # Arsitektur, Spesifikasi Teknis, Model Keamanan, Workground, Review 14 Pilar, ADR 0001–0005
 ```
-
-### Struktur Aplikasi Rencana (Fase 01–08)
-
-Rincian modul lengkap (`App/`, `Packages/Core`, `Packages/Networking`, `Packages/TransferEngine`, `Packages/FileManager`, `Packages/Security`, `Packages/Terminal`, `Packages/Synchronization`, `Packages/Persistence`, `Packages/DesignSystem`, `Features/`, `Tests/`, `Tools/`) dijabarkan di [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) dan [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ---
 
 ## Ringkasan Roadmap
 
-| Fase | Tonggak | Fokus Utama |
+| Fase | Tonggak | Fokus Utama & Status |
 | :--- | :--- | :--- |
 | **Fase 00** | Bootstrap Repositori | Tata kelola, spesifikasi, perbaikan 14 pilar, ADR, pagar CI & lint *(Selesai)* |
-| **Fase 01–02** | Riset & Fondasi | PoC Citadel/libcurl, proyek Xcode Swift 6, SPM ter-pin, DesignSystem |
-| **Fase 03** | Koneksi & Keamanan | Store profil, `KeychainService` native, state machine TOFU, `SecTrust` |
-| **Fase 04** | Mesin Protokol | `SFTPService`, `SSHService`, `FTPService` (FTPS), fixture Docker |
-| **Fase 05** | Antarmuka Commander | `NSTableView` dual-pane, pintasan F5–F8, Quick Look, seret-lepas Finder |
-| **Fase 06** | Mesin Transfer | `TransferQueue` actor, limit per-host, pemulihan `TransferJournal`, unggah atomik |
-| **Fase 07** | Terminal & Sinkronisasi | PTY multi-tab/split `SwiftTerm`, port forwarding, dry-run sync, i18n EN/ID |
-| **Fase 08** | QA & Rilis | Uji transfer 10GB, audit kebocoran PTY, notarized Developer ID, DMG Sparkle |
+| **Fase 01–02** | Riset & Fondasi | Audit graf SPM ([ADR-004](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), [ADR-005](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)), `Package.swift`, `Core`, `DesignSystem` *(Selesai)* |
+| **Fase 03** | Koneksi & Keamanan | `ConnectionStore`, `KeychainService`, TOFU `HostTrustStore`, `SecTrust`, Touch ID *(Selesai)* |
+| **Fase 04** | Mesin Protokol | `SSHClientService` (`swift-nio-ssh 0.15.1`), codec SFTP v3, SCP, `Clibcurl` FTP/FTPS *(Selesai)* |
+| **Fase 05** | Antarmuka Commander | `NSTableView` dual-pane, pintasan F5–F8, Quick Look, seret-lepas Finder *(Selesai)* |
+| **Fase 06** | Mesin Transfer | `TransferQueue` actor, limit per-host, `SQLite3` `TransferJournal`, unggah atomik SHA-256 *(Selesai)* |
+| **Fase 07** | Terminal & Sinkronisasi | PTY multi-tab/split `SwiftTerm`, port forwarding `-L`/`-R`, dry-run sync, EN/ID *(Selesai)* |
+| **Fase 08** | QA & Rilis | 45 test di 11 suite, DMG Universal 2 (`release.yml`), CI/lint hijau; notarization produksi menunggu Developer ID *(Berjalan)* |
 
 ---
 
 ## Dokumentasi & ADR
 
 - **[Rencana Implementasi (`docs/IMPLEMENTATION_PLAN.md`)](docs/IMPLEMENTATION_PLAN.md)** — Cetak biru lengkap, kontrak protokol, workground, 125 tugas, dan matriks pengujian Docker.
+- **[Spesifikasi Teknis (`docs/TECHNICAL_SPECIFICATION.md`)](docs/TECHNICAL_SPECIFICATION.md)** — Graf target, kontrak toolchain, dan gerbang penerimaan milestone.
+- **[Model Keamanan (`docs/SECURITY_MODEL.md`)](docs/SECURITY_MODEL.md)** — Kontrol ancaman, state machine TOFU, ACL Keychain, dan aturan TLS.
+- **[Workground Breakdown (`docs/WORKGROUND.md`)](docs/WORKGROUND.md)** — Alur kerja domain (`WG-1`–`WG-9`) dan graf dependensi modul.
+- **[Daftar Tugas (`docs/TASK_LIST.md`)](docs/TASK_LIST.md)** — Daftar tugas eksekusi di seluruh Milestone M1–M6.
+- **[Catatan Teknis (`DOCNOTE.md`)](DOCNOTE.md)** — Temuan dependensi terverifikasi dan solusi kompatibilitas SDK.
 - **[Review Kode 14 Pilar (`docs/CODE_REVIEW_14_PILLARS.md`)](docs/CODE_REVIEW_14_PILLARS.md)** — 55 temuan berbasis bukti di 14 pilar (bug, concurrency, memori, CVE keamanan, skalabilitas, dan linter).
 - **[Arsitektur Sistem (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)** — Batasan dependensi modul dan aturan concurrency.
 - **[Roadmap & Gerbang Rilis (`docs/ROADMAP.md`)](docs/ROADMAP.md)** — Jadwal fase dan syarat mutlak gerbang rilis MVP.
 - **[ADR-001: Tech Stack & Protokol](docs/ADR/0001-tech-stack-and-protocols.md)**
 - **[ADR-002: Isolasi Keychain & Host Trust](docs/ADR/0002-security-keychain-and-host-trust.md)**
 - **[ADR-003: Strategi Persistensi (JSON vs SwiftData)](docs/ADR/0003-metadata-persistence-swiftdata-vs-json.md)**
+- **[ADR-004: Direct `swift-nio-ssh` & Engine SFTP v3 Native](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md)**
+- **[ADR-005: Jurnal SQLite3 & `ObservableObject` macOS 13+](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)**
 
 ---
 
 ## Kontribusi & Gerbang Kualitas
 
-Kontribusi sangat terbuka setelah fase implementasi dibuka. Harap baca [`CONTRIBUTING.md`](CONTRIBUTING.md) dan [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) sebelum mengirim pull request.
+Kontribusi sangat terbuka! Harap baca [`CONTRIBUTING.md`](CONTRIBUTING.md) dan [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) sebelum mengirim pull request.
 
-Pemeriksaan lokal repositori dapat dijalankan dengan:
+Pemeriksaan build, pengujian, dan linter lokal repositori dapat dijalankan dengan:
 
 ```bash
-markdownlint-cli2 "**/*.md" "#.build" "#DerivedData"
+swiftlint lint --strict
+swiftformat --lint .
+swift build -j 2
+swift test -j 2
+markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#.trunk"
+yamllint -c .yamllint.yml .
+shellcheck -s bash Tools/**/*.sh
 actionlint
 ```
 

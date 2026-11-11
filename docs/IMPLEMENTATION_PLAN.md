@@ -42,7 +42,7 @@
 | **Distribusi** | Developer ID + Notarization + Sparkle | DMG direct distribution; opsional Mac App Store |
 
 > [!NOTE]
-> **Mengapa Citadel vs libssh2?** Citadel memiliki API async/await yang bersih, dukungan PTY, jump host, dan dokumentasi aktif. libssh2 adalah kandidat fallback untuk SCP legacy. Apple DTS sendiri merekomendasikan SwiftNIO SSH sebagai dasar.
+> **Keputusan Arsitektur Terkini ([ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md) & [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md)):** Draft awal merencanakan `Citadel`, `GlasSecretStore`, `SwiftData`, dan `@Observable`. Verifikasi manifest membuktikan keempatnya mensyaratkan macOS 14–26 atau bergantung pada fork lama `swift-nio-ssh`. Implementasi aktual memin langsung **`apple/swift-nio-ssh 0.15.1`** (`>= 0.14.1`, patch CVE-2026-43798) + **codec SFTP v3 internal** (`SFTPPacketCodec`), **`Security.framework`**, **`SQLite3` WAL**, JSON `ConnectionStore`, dan `@MainActor ObservableObject` agar kompatibel penuh mulai **macOS 13 Ventura**.
 
 ---
 
@@ -50,12 +50,12 @@
 
 ```mermaid
 flowchart TD
-    UI["🖥️ UI LAYER\nSwiftUI Views\nDualPaneView · SessionSidebar\nTransferQueueView · TerminalView"]
-    VM["📦 VIEW MODEL / STATE\n@Observable ViewModels\nConnectionVM · PaneVM · TransferManager"]
-    SL["⚙️ SERVICE LAYER\nRemoteFileService Protocol\nSessionCoordinator · TransferScheduler"]
-    PA["🔌 PROTOCOL ADAPTERS\nSFTPService (Citadel)\nFTPService (libcurl)\nSSHService (Citadel PTY)"]
-    SEC["🔐 SECURITY LAYER\nKeychainService · HostTrustStore\nTLS Certificate Validation\nApp Sandbox Bookmarks"]
-    PERS["💾 PERSISTENCE\nSwiftData (session metadata)\nTransferJournal (durable state)"]
+    UI["🖥️ UI LAYER\nSwiftUI + AppKit Views\nDualPaneCommanderView · FilePaneTableView\nTransferQueueView · TerminalWorkspaceView"]
+    VM["📦 VIEW MODEL / STATE\n@MainActor ObservableObject\nAppState (+Connections · +Operations · +Imports)"]
+    SL["⚙️ SERVICE & ENGINE LAYER\nRemoteFileSystem Protocol\nTransferQueue Actor · TransferScheduler"]
+    PA["🔌 PROTOCOL ADAPTERS\nSFTPService (NIOSSH + SFTPPacketCodec)\nFTPService (Clibcurl) · SSHClientService · SCP"]
+    SEC["🔐 SECURITY LAYER\nKeychainService · HostTrustStore\nTLSCertificateValidator · UpdateConfigurationValidator"]
+    PERS["💾 PERSISTENCE\nConnectionStore (JSON Codable)\nTransferJournal (SQLite3 WAL)"]
 
     UI --> VM
     VM --> SL
@@ -68,14 +68,15 @@ flowchart TD
 ### Aturan Dependensi (Non-Negotiable)
 
 ```text
-App → ApplicationCore → Domain
-ProtocolAdapters → Domain
-Security → Domain
-Persistence → Domain
+App (SparkleSFTP) → SparkleFeatures → Packages/*
+SparkleNetworking → SparkleSecurity, SparkleCore, Clibcurl, NIOSSH
+SparkleTransferEngine → SparkleSecurity, SparkleCore, Crypto
+SparkleSecurity → SparkleCore, NIOSSH, Crypto
+SparklePersistence → SparkleCore, SQLite3
 ```
 
 > [!CAUTION]
-> **UI tidak boleh pernah** memanggil Citadel, libcurl, atau Keychain secara langsung. View tidak menyimpan password. Transfer tidak bergantung pada lifecycle sebuah window.
+> **UI tidak boleh pernah** memanggil `NIOSSH`, `Clibcurl`, `SQLite3`, atau Keychain secara langsung. View tidak menyimpan password. Transfer berjalan di `TransferQueue` actor terpisah dari lifecycle jendela.
 
 ---
 
@@ -83,97 +84,61 @@ Persistence → Domain
 
 ```text
 SparkleSFTP/
+├── Package.swift                      # Swift 6.0 manifest (.macOS(.v13), dependensi ter-pin)
 ├── App/
 │   ├── SparkleSFTPApp.swift
 │   ├── AppDelegate.swift
 │   ├── AppEnvironment.swift           # Dependency injection root
-│   └── AppLifecycle.swift
+│   ├── SparkleUpdaterService.swift
+│   ├── SparkleSFTP.entitlements
+│   └── Resources/                     # Info.plist, AppIcon.icns, AppIcon.png
 │
 ├── Packages/
-│   ├── Core/                          # Domain models, interfaces, errors
-│   │   ├── Domain/
-│   │   ├── Interfaces/                # RemoteFileSystem, TransferEngine, CredentialStore
-│   │   ├── Models/                    # Session, RemoteFile, TransferTask, CredentialRef
-│   │   └── Errors/                    # AppError enum, user-friendly messages
-│   │
-│   ├── Networking/                    # Protocol adapters (tidak import SwiftUI)
-│   │   ├── SSH/                       # SSHService.swift (Citadel)
-│   │   ├── SFTP/                      # SFTPService.swift + SCPCompatibilityAdapter.swift
-│   │   ├── FTP/                       # FTPService.swift (libcurl C bridge)
-│   │   ├── FTPS/                      # Explicit + Implicit TLS
-│   │   └── Proxy/                     # ProxyJump / bastion support
-│   │
-│   ├── TransferEngine/
-│   │   ├── Queue/                     # TransferQueue actor
-│   │   ├── Scheduler/                 # Admission, concurrency, priority
-│   │   ├── Workers/                   # TransferWorker (satu job per worker)
-│   │   ├── Resume/                    # Checkpoint & partial file handling
-│   │   ├── Recovery/                  # TransferJournal, crash recovery
-│   │   └── Verification/             # SHA-256, atomic rename, finalization
-│   │
-│   ├── FileManager/
-│   │   ├── Local/                     # LocalFileService (FileManager + FSEvents)
-│   │   ├── Remote/                    # RemoteFileService implementations
-│   │   ├── Commander/                 # DualPane state, focus management
-│   │   ├── Comparison/               # DirCompare, SyncPlanner, SyncExecutor
-│   │   └── Operations/               # Copy, move, delete, rename
-│   │
-│   ├── Security/
-│   │   ├── Keychain/                  # KeychainService, SecretReference
-│   │   ├── HostKeys/                  # HostTrustStore, TOFU fingerprint
-│   │   ├── Certificates/             # TLS validation, SecTrust
-│   │   ├── Identity/                  # Private key import (PEM/OpenSSH)
-│   │   └── Audit/                    # Credential redaction logging
-│   │
-│   ├── Terminal/
-│   │   ├── Sessions/                  # TerminalSession, PTY lifecycle
-│   │   ├── Emulator/                  # SwiftTerm NSViewRepresentable wrapper
-│   │   ├── Snippets/                  # Command templates
-│   │   └── Forwarding/               # Port forwarding manager
-│   │
-│   ├── Synchronization/
-│   │   ├── Scanner/                   # Snapshot enumerator
-│   │   ├── Comparator/               # Size/time/hash comparison
-│   │   ├── Planner/                   # Pure sync plan (no mutations)
-│   │   └── Executor/                  # Plan execution via TransferEngine
-│   │
-│   ├── Persistence/
-│   │   ├── SwiftData/                 # Session metadata models
-│   │   ├── Repositories/             # SessionStore, TransferJournal
-│   │   └── Migrations/               # Schema versioning
-│   │
-│   └── DesignSystem/
-│       ├── Components/               # Reusable SwiftUI components
-│       ├── Colors/                    # Semantic color tokens
-│       ├── Typography/               # Font scale
-│       └── Themes/                    # Light/Dark/Custom accent
+│   ├── Clibcurl/                      # Non-variadic C wrapper atas macOS system libcurl
+│   ├── Core/                          # RemotePath, AppError, Protocols, TransferModels, ConnectionModels
+│   ├── Networking/                    # SSHClientService (+Helpers/+Forwarding), SFTPPacketCodec (+Decode), SFTPService, SCPCompatibilityAdapter, FTPService, CurlClientHelper, SSHProxyChannelHandler
+│   ├── TransferEngine/                # TransferQueue (+Execution/+Checkpoint), TransferScheduler, ResumeValidator, SHA256Verifier, ConflictResolver, ProgressThrottler
+│   ├── FileManager/                   # LocalFileService, DualPaneState, FileSortDescriptor, POSIXPermissions
+│   ├── Security/                      # KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator, PrivateKeyParser, UpdateConfigurationValidator
+│   ├── Terminal/                      # TerminalViewRepresentable (SwiftTerm), TerminalSessionManager, PortForwardingManager, CommandSnippetStore
+│   ├── Synchronization/               # DirectoryScanner, SyncPlanner, SyncExecutor
+│   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters
+│   └── DesignSystem/                  # Theme, Components, EN/ID AppStrings
 │
-├── Features/                          # Feature-level SwiftUI Views + ViewModels
+├── Features/                          # SwiftUI + AppKit Views & AppState (+Connections/+Operations/+Imports/+TransferHelpers)
 │   ├── Dashboard/
-│   ├── Connections/                   # ConnectionManagerView, ConnectionEditorView
-│   ├── Commander/                     # DualPaneView, FilePaneView, PathBar
-│   ├── Transfers/                     # TransferQueueView, TransferRowView
-│   ├── Terminal/                      # TerminalTabView, TerminalSplitView
-│   ├── Synchronization/              # SyncProfileView, SyncPreviewView
-│   ├── Settings/                      # Preferences, keyboard shortcuts
-│   └── Diagnostics/                  # Connection health, security dashboard
+│   ├── Connections/                   # ConnectionViews, ConnectionAdvancedSection, ConnectionSecuritySheets
+│   ├── Commander/                     # DualPaneCommanderView (+Actions), FilePaneTableView, CommanderSheets
+│   ├── Transfers/                     # TransferQueueView
+│   ├── Terminal/                      # TerminalWorkspaceView
+│   ├── Synchronization/               # SyncPreviewSheet
+│   └── Settings/                      # PreferencesView
 │
-├── Tests/
-│   ├── UnitTests/
-│   ├── IntegrationTests/             # Docker SSH/FTP server fixtures
-│   ├── ProtocolTests/                # SFTP/FTP/SCP compatibility matrix
-│   ├── SecurityTests/                # Host key, TLS, secret leakage
-│   └── UITests/                      # Connect → Browse → Transfer → Disconnect
+├── Tests/                             # 8 test target (45 test di 11 suite Swift Testing)
+│   ├── CoreTests/
+│   ├── SecurityTests/
+│   ├── PersistenceTests/
+│   ├── NetworkingTests/
+│   ├── TransferEngineTests/           # TransferEngineTests + TransferEngineResumeTests
+│   ├── FileManagerTests/
+│   ├── SynchronizationTests/
+│   └── IntegrationTests/              # Loopback SSH/SFTP, Proxy, Bastion, -L/-R Forward, E2E
 │
 ├── Tools/
-│   ├── TestServers/                   # Docker Compose: OpenSSH, vsftpd, ProFTPD
-│   └── Release/                       # Notarization, Sparkle scripts
+│   ├── TestServers/                   # Docker Compose: OpenSSH, vsftpd, ProFTPD + run-integration-tests.sh
+│   └── Release/                       # build-universal.sh, create-dmg.sh, notarize.sh
+│
+├── .github/workflows/                 # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
 │
 └── docs/
     ├── ARCHITECTURE.md
     ├── CODE_REVIEW_14_PILLARS.md
     ├── IMPLEMENTATION_PLAN.md
-    ├── ADR/                           # Architecture Decision Records
+    ├── SECURITY_MODEL.md
+    ├── TECHNICAL_SPECIFICATION.md
+    ├── WORKGROUND.md
+    ├── TASK_LIST.md
+    ├── ADR/                           # ADR 0001–0005
     └── ROADMAP.md
 ```
 
@@ -297,106 +262,101 @@ struct SyncPlan: Sendable {
 
 | # | Workground | Deskripsi | Dependensi |
 | :-- | :----------- | :---------- | :----------- |
-| **WG-1** | Fondasi Proyek & Domain Layer | Xcode setup, modul, model domain, protocol kontrak, error handling, CI | — |
-| **WG-2** | Core SSH & SFTP Engine | Citadel integration, auth (password/key/2FA), SFTP client, host key TOFU | WG-1 |
-| **WG-3** | FTP/FTPS Engine | libcurl C bridge, async/await wrapper, explicit/implicit TLS | WG-1 |
-| **WG-4** | UI Shell & Dual-Pane | SwiftUI window, NavigationSplitView, HSplitView, sidebar, toolbar, FilePaneView | WG-1 |
-| **WG-5** | Terminal SSH Terintegrasi | SwiftTerm NSViewRepresentable, PTY channel via Citadel, multi-tab | WG-2, WG-4 |
-| **WG-6** | Transfer Queue & Drag-and-Drop | TransferQueue actor, progress via AsyncStream, drag-drop, conflict dialog | WG-2, WG-3, WG-4 |
-| **WG-7** | Persistensi & Keamanan | GlasSecretStore/Keychain, SessionStore JSON, Touch ID, SSH config parser | WG-1 |
-| **WG-8** | Fitur Lanjutan | Remote editor, port forwarding, command snippets, dir compare, S3 opsional | WG-2, WG-5, WG-6 |
-| **WG-9** | Testing, Polish & Distribusi | Unit/integration/UI tests, notarization, Sparkle, dokumentasi | Semua WG |
+| **WG-1** | Fondasi Proyek & Domain Layer | SwiftPM manifest (`Package.swift`), modul asiklik, model domain, protocol kontrak, CI | — |
+| **WG-2** | Core SSH & SFTP Engine | `apple/swift-nio-ssh 0.15.1` + codec SFTP v3 native, auth, `ProxyJump`, SCP, host key TOFU ([ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md)) | WG-1 |
+| **WG-3** | FTP/FTPS Engine | `Clibcurl` C bridge (`ftp,ftps`), async/await wrapper, explicit/implicit TLS (`SecTrust`) | WG-1 |
+| **WG-4** | UI Shell & Dual-Pane | SwiftUI window, NavigationSplitView, HSplitView, `FilePaneTableView` (`NSTableView`), `AppState` | WG-1 |
+| **WG-5** | Terminal SSH Terintegrasi | `SwiftTerm` `NSViewRepresentable` (Swift 6.0–6.2), PTY via `SSHClientService`, multi-tab & `-L`/`-R` forward | WG-2, WG-4 |
+| **WG-6** | Transfer Queue & Drag-and-Drop | `TransferQueue` actor, `AsyncStream` ter-throttle, drag-drop, conflict resolver, checkpoint resume | WG-2, WG-3, WG-4 |
+| **WG-7** | Persistensi & Keamanan | Native `Security.framework` Keychain, `ConnectionStore` JSON, `TransferJournal` SQLite3 WAL, Touch ID ([ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md)) | WG-1 |
+| **WG-8** | Fitur Lanjutan | Remote editor SHA-256, port forwarding, command snippets, `SyncPlanner`/`Executor`, EN/ID | WG-2, WG-5, WG-6 |
+| **WG-9** | Testing, Polish & Distribusi | Unit/loopback integration tests, Docker fixtures, Universal 2 DMG, `.github/workflows/release.yml` | Semua WG |
 
 ---
 
 ## 📋 Phased Roadmap (8 Fase)
 
+> [!IMPORTANT]
+> **Status Realisasi:** Fase 01–07 sudah diimplementasikan penuh di repositori (diverifikasi `45 tests in 11 suites` & `94` file Swift bersih SwiftLint/SwiftFormat), sedangkan Fase 08 tinggal menunggu eksekusi Docker runtime eksternal dan sertifikat Apple Developer ID untuk notarization produksi.
+
 ```mermaid
 flowchart LR
-    P1["Phase 01\nResearch &\nArchitecture\nMinggu 1–2"]
-    P2["Phase 02\nFoundation &\nUI Framework\nMinggu 3–4"]
-    P3["Phase 03\nConnection &\nSecurity\nMinggu 5–7"]
-    P4["Phase 04\nProtocol Engine\nMinggu 8–11"]
-    P5["Phase 05\nCommander\nFile Manager\nMinggu 12–14"]
-    P6["Phase 06\nTransfer Engine\nMinggu 15–17"]
-    P7["Phase 07\nAdvanced Features\nMinggu 18–21"]
-    P8["Phase 08\nQA & Release\nMinggu 22–24"]
+    P1["Phase 01\nResearch &\nArchitecture\nMinggu 1–2 (Done)"]
+    P2["Phase 02\nFoundation &\nUI Framework\nMinggu 3–4 (Done)"]
+    P3["Phase 03\nConnection &\nSecurity\nMinggu 5–7 (Done)"]
+    P4["Phase 04\nProtocol Engine\nMinggu 8–11 (Done)"]
+    P5["Phase 05\nCommander\nFile Manager\nMinggu 12–14 (Done)"]
+    P6["Phase 06\nTransfer Engine\nMinggu 15–17 (Done)"]
+    P7["Phase 07\nAdvanced Features\nMinggu 18–21 (Done)"]
+    P8["Phase 08\nQA & Release\nMinggu 22–24 (In Progress)"]
 
     P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8
 ```
 
-### Phase 01 — Research & Architecture (Minggu 1–2)
+### Phase 01 — Research & Architecture (Minggu 1–2) *(Selesai)*
 
-- Audit library dan lisensi (Citadel MIT, SwiftTerm MIT, libcurl MIT/curl)
-- Proof-of-concept: SSH connect → auth → SFTP listing → upload/download → cancel
-- Proof-of-concept: libcurl FTP/FTPS → TLS valid & invalid certificate test
+- Audit library, SDK, dan lisensi (`apple/swift-nio-ssh 0.15.1` MIT, `SwiftTerm 1.20.0` MIT, system `libcurl` MIT/curl, `Sparkle 2.10.1` MIT — lihat [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md) & [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md))
+- Verifikasi pembatasan protokol `Clibcurl` (`ftp,ftps`) untuk mencegah permukaan `libssh` (CVE-2025-15224)
 - Threat modeling: trust boundary, attack surface, credential lifecycle
-- Finalisasi minimum macOS (target: **macOS 13 Ventura**, ideal: **macOS 14 Sonoma**)
-- Pilihan ADR: backend SSH, database metadata, distribusi, file table, transfer recovery
+- Finalisasi target minimum **macOS 13 Ventura** (`Universal 2`: `arm64` + `x86_64`)
 
-### Phase 02 — Foundation & UI Framework (Minggu 3–4)
+### Phase 02 — Foundation & UI Framework (Minggu 3–4) *(Selesai)*
 
-- Xcode project (Swift 6, Universal Binary arm64+x86_64)
-- SPM dependencies: Citadel, SwiftTerm, GlasSecretStore
-- SwiftUI + AppKit integration skeleton
-- Design system: color tokens, typography, SF Symbols 6, dark/light
-- SwiftData schema v1 + Keychain wrapper
-- CI/CD (GitHub Actions: build + test)
+- SwiftPM manifest (`Package.swift`, Swift 6, Universal Binary `arm64+x86_64`)
+- SPM dependencies ter-pin: `swift-nio-ssh 0.15.1`, `SwiftTerm 1.20.0`, `Sparkle 2.10.1`, `swift-crypto`
+- SwiftUI + AppKit integration (`MainWindowView` + `FilePaneTableView` + `@MainActor ObservableObject`)
+- Design system (`SparkleDesignSystem`): color tokens, typography, SF Symbols, dark/light, EN/ID strings
+- CI/CD GitHub Actions (`ci.yml`, `mega-linter.yml`, `codeql.yml`, `release.yml`)
 
-### Phase 03 — Connection & Security (Minggu 5–7)
+### Phase 03 — Connection & Security (Minggu 5–7) *(Selesai)*
 
-- ConnectionProfile CRUD (SwiftData)
-- KeychainService: save/load/delete password, passphrase, private key
-- Host key TOFU: fingerprint SHA-256, known_hosts style, changed-key blocking
-- SSH auth: password, ed25519/RSA key, keyboard-interactive (2FA)
-- TLS certificate validation: chain + hostname + expiry verification
-- SSH config parser (`~/.ssh/config`)
+- `ConnectionStore` CRUD berbasis atomic versioned JSON (tanpa rahasia)
+- `KeychainService`: save/load/delete password, passphrase, private key (`WhenUnlockedThisDeviceOnly`)
+- Host key TOFU: SHA-256 fingerprint, 6-state machine, changed-key blocking
+- SSH auth: password, Ed25519/ECDSA key, keyboard-interactive (2FA)
+- TLS certificate validation: `SecTrustEvaluateWithError` chain + hostname + OCSP
+- SSH config parser (`~/.ssh/config`) + `FileZilla XML` & `WinSCP .ini` importers
 
-### Phase 04 — Protocol Engine (Minggu 8–11)
+### Phase 04 — Protocol Engine (Minggu 8–11) *(Selesai)*
 
-- SFTPService: listDirectory, download, upload, rename, delete, mkdir, stat
-- SCPCompatibilityAdapter.swift: SCP fallback via `execCommand`
-- SSHService: PTY channel, session lifecycle, reconnect, keepalive
-- FTPService via libcurl: listing, upload, download, explicit/implicit FTPS
-- Protocol capability detection (resume, rename, permissions)
-- Integration tests terhadap Docker server fixtures
+- `SFTPService` + `SFTPPacketCodec`: `listDirectory`, `download`, `upload`, `rename`, `delete`, `mkdir`, `stat`, `symlink`
+- `SCPCompatibilityAdapter.swift`: 24KB chunked streaming fallback via `execCommand`
+- `SSHClientService`: PTY channel, session lifecycle, keepalive, `ProxyJump`, `SOCKS5`/`HTTP` proxy, `-L`/`-R` forward
+- `FTPService` via `Clibcurl`: `MLSD`/Unix `LIST` parser, upload, download, explicit/implicit FTPS (`SecTrust`)
+- Unit & live loopback encrypted SSH/SFTP/Proxy/Bastion integration tests (`NetworkingTests`, `IntegrationTests`)
 
-### Phase 05 — Commander File Manager (Minggu 12–14)
+### Phase 05 — Commander File Manager (Minggu 12–14) *(Selesai)*
 
-- MainWindow: `NavigationSplitView` sidebar + `HSplitView` dual pane
-- `FilePaneView` (reusable local/remote): `NSTableView` via `NSViewRepresentable`
-- PathBar + breadcrumb + Back/Forward/Up navigation
-- Multi-select, range select, keyboard shortcuts (Tab switch pane)
-- Commander keys: F5 Copy, F6 Move, F7 New Folder, F8 Delete
-- Context menu, Quick Look (`QLPreviewPanel`), Inspector view
-- Drag-and-drop: local ↔ remote, Finder interop
+- `MainWindowView`: `NavigationSplitView` sidebar + `HSplitView` dual pane
+- `FilePaneTableView`: `NSTableView` via `NSViewRepresentable` dengan cell reuse + selection preservation
+- PathBar + breadcrumb + Back/Forward/Up navigation + pagination (`PaginatedFileWindow`)
+- Keyboard shortcuts: `Tab` switch pane, `Cmd+T/K/R`, menu kontekstual, Quick Look, Inspector + async SHA-256
+- Drag-and-drop rekursif: lokal ↔ remote & Finder interop
 
-### Phase 06 — Transfer Engine (Minggu 15–17)
+### Phase 06 — Transfer Engine (Minggu 15–17) *(Selesai)*
 
-- `TransferQueue` actor: bounded concurrency (max 3 simultaneous), priority
-- `TransferJournal`: durable state, crash recovery, interrupted job reconciliation
-- Progress via `AsyncStream<Double>`, throttled UI updates (tidak flood MainActor)
-- Conflict resolution: Ask/Skip/Rename/Overwrite
-- Pause/resume: checkpoint-based, hanya jika backend mendukung
-- Atomic upload: download ke temp file → verify → rename atomik
-- `TransferQueueView`: progress bar, speed, ETA, retry, cancel
+- `TransferQueue` actor: bounded global/per-host concurrency (`TransferScheduler`), priority
+- `TransferJournal` (`SQLite3` WAL): durable checkpoints, crash reconciliation, bounded retention (10k / 30 hari)
+- Progress via `AsyncStream`, `ProgressThrottler` (100 ms / 10 Hz)
+- Conflict resolution: Ask / Skip / Rename / Overwrite (unggah maupun unduh)
+- Pause/resume berbasis byte aktual disk + revalidasi metadata remote (`LOG-002`) + atomic `replaceItemAt`
+- `TransferQueueView`: progress bar, speed, ETA, retry, cancel, clear finished
 
-### Phase 07 — Advanced Features (Minggu 18–21)
+### Phase 07 — Advanced Features (Minggu 18–21) *(Selesai)*
 
-- SwiftTerm integration: `TerminalViewRepresentable`, PTY dari SSHService
-- Multi-tab terminal, horizontal/vertical split
-- Port forwarding: local/remote tunnel, preset layanan
-- Directory comparison: snapshot enumerator + pure SyncPlanner
-- Sync dry-run preview UI (create/update/delete terpisah, destructive confirmation)
-- Remote file editor: temp workspace + FSEvents + auto-upload on save
-- Import FileZilla sitemanager.xml, WinSCP .ini
-- Localization (EN + ID)
+- `SwiftTerm` integration: `TerminalViewRepresentable` (kompatibel Swift 6.0–6.2), PTY dari `SSHClientService`
+- Multi-tab terminal, horizontal/vertical split, explicit PTY resource cleanup
+- Port forwarding: `-L` local / `-R` remote tunnel dengan bounded timeout
+- Directory comparison: `DirectoryScanner` + pure `SyncPlanner` (60s TTL) + dry-run preview & destructive confirmation
+- Remote file editor: temp workspace + hash guard + auto-upload on save
+- Localization penuh English (`EN`) + Bahasa Indonesia (`ID`)
 
-### Phase 08 — QA & Release (Minggu 22–24)
+### Phase 08 — QA & Release (Minggu 22–24) *(Berjalan — Tooling Siap)*
 
-- Full protocol regression terhadap semua Docker fixtures
-- Security audit: credential leakage, log redaction, path traversal
-- Performance profiling: 10K+ file listing, 10GB transfer, memory bounds
+- Live loopback protocol regression lulus; Docker multi-server fixtures (`Tools/TestServers/`) siap dijalankan di runtime Docker
+- Security audit: credential leakage, `OSLog` privacy, path/symlink traversal, proxy status hardening, Sparkle HTTPS + Ed25519 key enforcement
+- Performance profiling: `100MB` off-MainActor SHA-256 & 10k paginated slicing teruji; 10GB soak test menunggu environment produksi
+- Universal 2 DMG (`arm64` + `x86_64`) + SHA-256 terverifikasi (`Tools/Release/*.sh` + `.github/workflows/release.yml`); Developer ID notarization menunggu sertifikat rilis
 - Accessibility: VoiceOver, keyboard-only navigation
 - Code signing + notarization (`xcrun notarytool`)
 - Sparkle framework auto-update
@@ -417,9 +377,9 @@ flowchart LR
   - `Sparkle`: **`2.10.1`** (`"2.10.1" ..< "3.0.0"`)
   - `KeychainService` native over Apple `Security.framework` + `LAContext` (`WhenUnlockedThisDeviceOnly`, supersedes `GlasSecretStore`)
   - `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`) over macOS `libcurl` (`libssh2`, zero `libssh` surface — mitigates **CVE-2025-15224**)
-- [x] **TASK-004** Configure SwiftLint (`swiftlint --strict`, `0` violations) + SwiftFormat (`.swiftformat`)
-- [x] **TASK-005** Configure unit testing (`Swift Testing` framework — 35 tests in 9 suites)
-- [x] **TASK-006** Configure CI/CD (GitHub Actions: `.github/workflows/ci.yml`, verified by `actionlint`)
+- [x] **TASK-004** Configure SwiftLint (`swiftlint --strict`, `0` violations in 94 files) + SwiftFormat (`.swiftformat`, `--trailing-commas never`)
+- [x] **TASK-005** Configure unit & loopback integration testing (`Swift Testing` framework — 45 tests in 11 suites)
+- [x] **TASK-006** Configure CI/CD (GitHub Actions: `.github/workflows/ci.yml` + `release.yml`, verified by `actionlint`)
 - [ ] **TASK-007** Configure production Apple Developer ID code signing (`Tools/Release/notarize.sh` ready; local ad-hoc `codesign` verified)
 - [x] **TASK-008** Create architecture documentation (`README.md`, `README-id.md`, `docs/ADR/0001`–`0005`)
 - [x] **TASK-009** Create App Sandbox entitlements (`App/SparkleSFTP.entitlements`):
@@ -483,7 +443,7 @@ flowchart LR
 - [x] **TASK-049** Implement `SFTPService` (listDir, download, upload, metadata, rename, delete, mkdir, chmod)
 - [x] **TASK-050** Implement `SSHClientService` (connect with `UserAuthSuccessEvent`, auth, exec, keepalive timeout, PTY, DirectTCPIP)
 - [x] **TASK-051** Implement `SCPCompatibilityAdapter` (SCP fallback + POSIX single-quote escaping)
-- [ ] **TASK-052** Implement multi-hop SSH jump host tunnel chaining in `SSHClientService` (model field `jumpHostProfileID` & parser ready; post-MVP enhancement)
+- [x] **TASK-052** Implement multi-hop SSH jump host tunnel chaining in `SSHClientService` (`jumpHostProfileID` + `openJumpTunnel` bastion `DirectTCPIP` bridge, live loopback test)
 - [x] **TASK-053** Implement `Clibcurl` C bridge (`Package.swift` + `Clibcurl.h` + `ClibcurlHelpers.c` linking `-lcurl`)
 - [x] **TASK-054** Implement `FTPService` via libcurl (listing, upload, download, CWE-93 CRLF sanitizer)
 - [x] **TASK-055** Implement explicit FTPS (`CURLOPT_USE_SSL` = `CURLUSESSL_ALL`, port 21)
@@ -535,12 +495,12 @@ flowchart LR
 - [x] **TASK-092** Implement `TerminalViewDelegate` (`sizeChanged` → `WindowChangeRequest`, `clipboardCopy`/`Read` → `NSPasteboard`)
 - [x] **TASK-093** Implement terminal tabs (`TerminalWorkspaceView`)
 - [x] **TASK-094** Implement split terminal (`HSplitView` split mode)
-- [ ] **TASK-095** Implement SSH agent socket forwarding (post-MVP enhancement)
-- [ ] **TASK-096** Implement interactive 2FA keyboard-interactive challenge sheet (post-MVP enhancement)
-- [ ] **TASK-097** Implement ProxyJump multi-hop bastion execution (post-MVP enhancement)
+- [ ] **TASK-095** Implement SSH agent socket forwarding (deferred upstream: `apple/swift-nio-ssh 0.15.1` uses internal `BackingKey` without external agent signer hook)
+- [x] **TASK-096** Implement interactive credential / 2FA challenge prompt (`CredentialPromptRequest` + `CredentialPromptSheet` + loopback test)
+- [x] **TASK-097** Implement `ProxyJump` multi-hop bastion execution (`SSHClientService.openJumpTunnel` + Bastion UI picker + loopback test)
 - [x] **TASK-098** Implement local port forwarding (`PortForwardingManager` + live `DirectTCPIP` loopback test)
-- [ ] **TASK-099** Implement remote `-R` port forwarding (`tcpip-forward` global request negotiation; post-MVP enhancement)
-- [x] **TASK-100** Implement command snippets (`CommandSnippetStore` + `SnippetsSheet`)
+- [x] **TASK-099** Implement remote `-R` port forwarding (`tcpip-forward` global request + `forwardedTCPIP` channel bridging + `PortForwardingSheet` `-L`/`-R` mode)
+- [x] **TASK-100** Implement command snippets (`CommandSnippetStore` + `SnippetsSheet` add/delete/run)
 
 ### EPIC-09 — Synchronization
 
@@ -710,16 +670,16 @@ services:
 - [x] Interrupted transfer dapat direkonsiliasi setelah restart (`TransferJournal` SQLite3 WAL di `PersistenceTests`)
 - [x] Tidak ada secret dalam log (`DiagnosticsLogger` + rule `no_password_in_logs` 0 pelanggaran)
 - [x] Streaming SHA-256 & chunked I/O tanpa alokasi buffer penuh (`100MB` off-MainActor verified di `TransferEngineTests`)
-- [x] Build Universal `arm64` + `x86_64` terverifikasi (`lipo -archs` `x86_64 arm64` + DMG `SparkleSFTP-0.2.0-mvp-universal.dmg`); [ ] notarization Apple Developer ID (`xcrun notarytool`) menunggu sertifikat produksi
+- [x] Build Universal `arm64` + `x86_64` terverifikasi (`lipo -archs` `x86_64 arm64` + DMG `SparkleSFTP-0.2.0-universal.dmg` + `.github/workflows/release.yml`); [ ] notarization Apple Developer ID (`xcrun notarytool`) menunggu sertifikat produksi
 - [x] `apple/swift-nio-ssh` `0.15.1` >= `0.14.1` terverifikasi (**CVE-2026-43798** mitigated)
 - [x] `Clibcurl` mengunci `CURLOPT_PROTOCOLS_STR = "ftp,ftps"` (macOS `libcurl` memakai `libssh2/1.11.1`, permukaan SSH libcurl dimatikan — mitigasi **CVE-2025-15224**)
 - [x] Semua Keychain items pakai `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (`SecurityTests` + `no_icloud_keychain_sync`)
 - [x] Path traversal test: download dengan `../` → rejected (`CWE-22`) & FTP CRLF (`CWE-93`) teruji di `SecurityTests` / `NetworkingTests`
-- [x] Symlink attack test: recursive download malicious symlink → rejected (`CWE-59`) teruji di `SecurityTests` & `SynchronizationTests`
+- [x] Symlink attack test: recursive download & pre-existing local destination symlink → rejected (`CWE-59`) teruji di `SecurityTests` & `SynchronizationTests`
 - [x] Actor reentrancy test: cancel mid-transfer → `.cancelled` deterministik (`TransferEngineTests`)
-- [x] PTY leak test: open/close 100 terminal tabs → clean teardown (`NetworkingTests`)
+- [x] PTY leak test: open/close 100 terminal tabs → clean teardown (`IntegrationTests`)
 - [x] SHA-256 verification: off-MainActor untuk file `100MB` (`TransferEngineTests`)
-- [ ] Sparkle runtime live appcast update check dengan kunci Ed25519 produksi & feed HTTPS (adapter `SparkleUpdaterService` sudah memblokir check tanpa `SUPublicEDKey` + HTTPS feed)
+- [x] `UpdateConfigurationValidator` menolak feed non-HTTPS & `SUPublicEDKey` placeholder (`SecurityTests`); [ ] live appcast signing menggunakan kunci Ed25519 produksi pada host rilis
 - [x] OSLog privacy redaction diaudit via `DiagnosticsLogger` & SwiftLint `no_password_in_logs`
 
 ---
@@ -746,8 +706,8 @@ services:
 
 | Sumber | URL |
 | :------- | :---- |
-| Citadel (SSH/SFTP) | <https://github.com/orlandos-nl/Citadel> |
-| SwiftNIO SSH | <https://github.com/apple/swift-nio-ssh> |
+| SwiftNIO SSH (`0.15.1` — menggantikan Citadel, [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md)) | <https://github.com/apple/swift-nio-ssh> |
+| Sparkle Auto-Update | <https://github.com/sparkle-project/Sparkle> |
 | SwiftTerm | <https://github.com/migueldeicaza/SwiftTerm> |
 | Apple Keychain Services | <https://developer.apple.com/documentation/security/keychain_services> |
 | App Sandbox Entitlements | <https://developer.apple.com/documentation/security/app_sandbox> |

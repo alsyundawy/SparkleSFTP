@@ -1,4 +1,8 @@
-<h1 align="center">✨ SparkleSFTP</h1>
+<p align="center">
+  <img src="App/Resources/AppIcon.png" width="144" height="144" alt="SparkleSFTP Logo">
+</p>
+
+<h1 align="center">SparkleSFTP</h1>
 
 <p align="center">
   <b>Native macOS Dual-Pane SFTP, FTP/FTPS, SCP &amp; SSH Commander — Built with Swift 6 &amp; SwiftUI</b><br>
@@ -45,7 +49,7 @@
 ## Navigation
 
 - [Overview & Vision](#overview--vision)
-- [Planned Technology Stack](#planned-technology-stack)
+- [Technology Stack](#technology-stack)
 - [System Architecture](#system-architecture)
 - [Security & Hardening Baseline](#security--hardening-baseline)
 - [Repository Layout](#repository-layout)
@@ -67,9 +71,9 @@
 
 ---
 
-## Planned Technology Stack
+## Technology Stack
 
-| Layer | Planned Technology | Purpose & Security Baseline |
+| Layer | Technology | Purpose & Security Baseline |
 | :--- | :--- | :--- |
 | **Language** | Swift 6 | Strict concurrency, actor isolation, `Sendable` safety |
 | **UI Framework** | SwiftUI + AppKit (`NSTableView`) | Native macOS HIG with cell-reused high-volume tables (`ObservableObject` for macOS 13+) |
@@ -88,12 +92,12 @@
 ```mermaid
 flowchart TD
     UI["UI Layer (SwiftUI + NSTableView + SwiftTerm)"]
-    VM["ViewModels (@Observable)"]
-    APP["Application Core (SessionCoordinator · TransferScheduler)"]
+    VM["ViewModels (@MainActor ObservableObject)"]
+    APP["Application Core (AppState · TransferQueue · TransferScheduler)"]
     DOM["Domain Layer (RemoteConnection · RemoteFileSystem · AppError)"]
     PA["Protocol Adapters (SFTP · SSH · FTP/FTPS · SCP)"]
     SEC["Security Layer (KeychainService · HostTrustStore · SecTrust)"]
-    PERS["Persistence (ConnectionStore JSON · TransferJournal)"]
+    PERS["Persistence (ConnectionStore JSON · TransferJournal SQLite3)"]
 
     UI --> VM
     VM --> APP
@@ -109,8 +113,8 @@ flowchart TD
 
 ### Non-Negotiable Layering Invariants
 
-1. `App -> ApplicationCore -> Domain`, `ProtocolAdapters -> Domain`, `Security -> Domain`, `Persistence -> Domain`.
-2. Views and ViewModels must **never** invoke `Citadel`, `libcurl`, or Keychain directly.
+1. `App -> SparkleFeatures -> Packages/*`; `ProtocolAdapters -> Domain`, `Security -> Domain`, `Persistence -> Domain`.
+2. Views and ViewModels must **never** invoke `NIOSSH`, `Clibcurl`, `SQLite3`, or Keychain directly.
 3. `Packages/` modules must **never** import from `Features/`.
 4. Transfer lifecycles live inside the actor-isolated `TransferQueue` — completely independent of window/tab lifecycles.
 
@@ -122,91 +126,95 @@ Every design decision in SparkleSFTP enforces the remediation outcomes documente
 
 | Control | Standard / Reference | Enforcement |
 | :--- | :--- | :--- |
-| **SSH Pre-Auth Safety** | CVE-2026-43798 | Pin `swift-nio-ssh >= 0.14.1` in `Package.swift` |
-| **libcurl SSH Auth Safety** | CVE-2025-15224 | Build with `libssh2` backend only (never `libssh`) |
+| **SSH Pre-Auth Safety** | CVE-2026-43798 | Pin `apple/swift-nio-ssh >= 0.15.1` (`>= 0.14.1`) in `Package.swift` |
+| **libcurl SSH Auth Safety** | CVE-2025-15224 | Lock `Clibcurl` to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`); zero `libssh` surface |
 | **Keychain Device Lock** | CWE-312 / CWE-522 | `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` + SwiftLint rule |
 | **TLS Verification** | CWE-295 | `SecTrustEvaluateWithError` + OCSP + zero silent FTPS downgrade |
 | **Host Key Trust** | TOFU State Machine | 6-state lifecycle; changed keys hard-block connection |
-| **Path & Symlink Safety** | CWE-22 / CWE-59 | Canonical path containment + inode/target validation |
+| **Path & Symlink Safety** | CWE-22 / CWE-59 | Canonical path containment + symlink destination & loop guards |
+| **Update Integrity** | Ed25519 + TLS | `UpdateConfigurationValidator` blocks non-HTTPS feeds & placeholder keys |
 | **Log Redaction** | CWE-532 | `OSLog` privacy labels + SwiftLint `no_password_in_logs` |
 
 ---
 
 ## Repository Layout
 
-### Current Files (Phase 0 Repository Foundation)
+### Implemented Swift 6 Repository Structure (Full MVP)
 
 ```text
 SparkleSFTP/
-├── .github/
-│   ├── ISSUE_TEMPLATE/        # Bug report & feature request forms
-│   ├── workflows/ci.yml       # Markdown/YAML/Shell lint + conditional Swift CI
-│   ├── FUNDING.yml
-│   ├── dependabot.yml
-│   └── pull_request_template.md
-├── docs/
-│   ├── ADR/                   # Architecture Decision Records (0001–0003)
-│   ├── ARCHITECTURE.md        # Layering & concurrency boundaries
-│   ├── CODE_REVIEW_14_PILLARS.md
-│   ├── IMPLEMENTATION_PLAN.md
-│   └── ROADMAP.md
-├── .editorconfig
-├── .gitattributes
-├── .gitignore
-├── .markdownlint.json
-├── .swiftformat
-├── .swiftlint.yml
-├── .yamllint.yml
-├── CHANGELOG.md
-├── CODE_OF_CONDUCT.md
-├── CONTRIBUTING.md
-├── LICENSE                    # MIT License
-├── README.md                  # English documentation
-├── README-id.md               # Indonesian documentation
-└── SECURITY.md                # Security policy & vulnerability disclosure
+├── Package.swift              # Swift 6.0 manifest (.macOS(.v13), pinned SPM dependencies)
+├── App/                       # Executable entry, AppDelegate, SparkleUpdaterService, Info.plist, Entitlements
+├── Packages/
+│   ├── Clibcurl/              # Non-variadic C helper bridge over system libcurl
+│   ├── Core/                  # Domain models, RemotePath, AppError, Protocols, FeatureFlags
+│   ├── DesignSystem/          # Theme tokens, reusable components, EN/ID AppStrings
+│   ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
+│   ├── Networking/            # SFTPPacketCodec, SFTPService, SSHClientService, SCP, FTPService, Proxy
+│   ├── Persistence/           # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), Config Importers
+│   ├── Security/              # KeychainService, HostTrustStore, SecTrust, PathValidator, KeyParser, UpdateValidator
+│   ├── Synchronization/       # DirectoryScanner, SyncPlanner (60s TTL), SyncExecutor
+│   ├── Terminal/              # SwiftTerm TerminalViewRepresentable, SessionManager, PortForwardingManager
+│   └── TransferEngine/        # TransferQueue actor, TransferScheduler, ResumeValidator, SHA256Verifier
+├── Features/                  # SwiftUI + AppKit Views (Commander, Connections, Terminal, Transfers, Sync, Settings) & AppState
+├── Tests/                     # 8 test targets (45 tests across 11 Swift Testing suites, incl. live loopback SSH/SFTP)
+├── Tools/
+│   ├── Release/               # Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
+│   └── TestServers/           # Docker Compose fixtures (OpenSSH, vsftpd, ProFTPD) & smoke runner
+├── .github/workflows/         # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
+└── docs/                      # Architecture, Technical Spec, Security Model, Workground, 14-Pillar Review, ADRs 0001–0005
 ```
-
-### Planned Application Structure (Phase 01–08)
-
-Detailed module breakdown (`App/`, `Packages/Core`, `Packages/Networking`, `Packages/TransferEngine`, `Packages/FileManager`, `Packages/Security`, `Packages/Terminal`, `Packages/Synchronization`, `Packages/Persistence`, `Packages/DesignSystem`, `Features/`, `Tests/`, `Tools/`) is specified in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ---
 
 ## Roadmap Summary
 
-| Phase | Milestone | Focus |
+| Phase | Milestone | Focus & Status |
 | :--- | :--- | :--- |
 | **Phase 00** | Repository Bootstrap | Governance, specs, 14-pillar fixes, ADRs, CI & lint guardrails *(Done)* |
-| **Phase 01–02** | Research & Foundation | Citadel/libcurl PoCs, Swift 6 Xcode project, pinned SPM, DesignSystem |
-| **Phase 03** | Connection & Security | Profile store, native `KeychainService`, TOFU state machine, `SecTrust` |
-| **Phase 04** | Protocol Engines | `SFTPService`, `SSHService`, `FTPService` (FTPS), Docker fixtures |
-| **Phase 05** | Commander UI | Dual-pane `NSTableView`, F5–F8 shortcuts, Quick Look, Finder drag-drop |
-| **Phase 06** | Transfer Engine | Actor `TransferQueue`, per-host throttling, `TransferJournal`, atomic upload |
-| **Phase 07** | Terminal & Sync | `SwiftTerm` multi-tab/split PTY, port forwarding, dry-run sync, EN/ID |
-| **Phase 08** | QA & Release | 10GB tests, PTY leak check, Developer ID notarization, Sparkle DMG |
+| **Phase 01–02** | Research & Foundation | Audited SPM graph ([ADR-004](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), [ADR-005](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)), `Package.swift`, `Core`, `DesignSystem` *(Done)* |
+| **Phase 03** | Connection & Security | `ConnectionStore`, `KeychainService`, TOFU `HostTrustStore`, `SecTrust`, Touch ID *(Done)* |
+| **Phase 04** | Protocol Engines | `SSHClientService` (`swift-nio-ssh 0.15.1`), SFTP v3 codec, SCP, `Clibcurl` FTP/FTPS *(Done)* |
+| **Phase 05** | Commander UI | Dual-pane `NSTableView`, F5–F8 shortcuts, Quick Look, Finder drag-drop *(Done)* |
+| **Phase 06** | Transfer Engine | Actor `TransferQueue`, per-host throttling, `SQLite3` `TransferJournal`, SHA-256 atomic write *(Done)* |
+| **Phase 07** | Terminal & Sync | `SwiftTerm` multi-tab/split PTY, `-L`/`-R` port forwarding, dry-run sync, EN/ID *(Done)* |
+| **Phase 08** | QA & Release | 45 tests in 11 suites, Universal 2 DMG (`release.yml`), ci/lint green; production notarization pending Developer ID *(In Progress)* |
 
 ---
 
 ## Documentation & ADRs
 
 - **[Implementation Plan (`docs/IMPLEMENTATION_PLAN.md`)](docs/IMPLEMENTATION_PLAN.md)** — Full blueprint, interfaces, workgrounds, 125 tasks, and Docker test matrix.
-- **[14-Pillar Code Review (`docs/CODE_REVIEW_14_PILLARS.md`)](docs/CODE_REVIEW_14_PILLARS.md)** — 55 critical/medium/low findings across bugs, concurrency, memory, security CVEs, scalability, and linting.
+- **[Technical Specification (`docs/TECHNICAL_SPECIFICATION.md`)](docs/TECHNICAL_SPECIFICATION.md)** — Target graph, toolchain contracts, and milestone acceptance gates.
+- **[Security Model (`docs/SECURITY_MODEL.md`)](docs/SECURITY_MODEL.md)** — Threat controls, TOFU state machine, Keychain ACLs, and TLS rules.
+- **[Workground Breakdown (`docs/WORKGROUND.md`)](docs/WORKGROUND.md)** — Domain workstreams (`WG-1`–`WG-9`) and module dependency graph.
+- **[Task List (`docs/TASK_LIST.md`)](docs/TASK_LIST.md)** — Executable checklist across Milestones M1–M6.
+- **[Engineering Notes (`DOCNOTE.md`)](DOCNOTE.md)** — Verified dependency findings and SDK compatibility resolutions.
+- **[14-Pillar Code Review (`docs/CODE_REVIEW_14_PILLARS.md`)](docs/CODE_REVIEW_14_PILLARS.md)** — 55 findings across bugs, concurrency, memory, security CVEs, scalability, and linting.
 - **[System Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)** — Module boundaries and concurrency invariants.
 - **[Roadmap & Release Gate (`docs/ROADMAP.md`)](docs/ROADMAP.md)** — Delivery milestones and MVP gate criteria.
 - **[ADR-001: Tech Stack & Protocols](docs/ADR/0001-tech-stack-and-protocols.md)**
 - **[ADR-002: Keychain Isolation & Host Trust](docs/ADR/0002-security-keychain-and-host-trust.md)**
 - **[ADR-003: Metadata Persistence (JSON vs SwiftData)](docs/ADR/0003-metadata-persistence-swiftdata-vs-json.md)**
+- **[ADR-004: Direct `swift-nio-ssh` & Native SFTP v3](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md)**
+- **[ADR-005: macOS 13+ SQLite3 Journal & `ObservableObject`](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)**
 
 ---
 
 ## Contributing & Quality Gates
 
-Contributions are welcome once implementation milestones open! Please review [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before opening a pull request.
+Contributions are welcome! Please review [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before opening a pull request.
 
-Repository checks can be run locally:
+Repository build, test, and linter gates can be run locally:
 
 ```bash
-markdownlint-cli2 "**/*.md" "#.build" "#DerivedData"
+swiftlint lint --strict
+swiftformat --lint .
+swift build -j 2
+swift test -j 2
+markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#.trunk"
+yamllint -c .yamllint.yml .
+shellcheck -s bash Tools/**/*.sh
 actionlint
 ```
 

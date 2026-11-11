@@ -41,8 +41,8 @@ This task list tracks every concrete engineering task required to deliver the **
 
 - [x] **T-021** Create `Tools/TestServers/` (`docker-compose.test.yml`, fixture configs, `run-integration-tests.sh`) and `Tools/Release/` (`build-universal.sh`, `notarize.sh`, `create-dmg.sh`).
 - [x] **T-022** Reconcile `README.md`, `README-id.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, `CHANGELOG.md`, `DOCNOTE.md`, `TODO.md`, and `tasks/`.
-- [x] **T-023** Run full verification gates: `swift build`, `swift test` (`35 tests in 9 suites` incl. live loopback SSH/SFTP, `DirectTCPIP`, TLS rejection, 100MB SHA-256, mid-transfer cancel, CRLF guard), `swiftlint --strict` (`0 violations` in 81 files), `shellcheck -s bash`, `markdownlint-cli2`, `actionlint` — 0 errors across every executed gate.
-- [x] **T-024** Build and verify Universal 2 (`x86_64 arm64`) `.app` bundle (with embedded `Sparkle.framework` & entitlements) + `.dmg` + `.sha256` via `Tools/Release/build-universal.sh` & `create-dmg.sh`.
+- [x] **T-023** Run full verification gates: `swift build -j 2`, `swift test -j 2` (`45 tests in 11 suites` incl. live encrypted loopback SSH/SFTP, `ProxyJump`, `SOCKS5`/`HTTP` SSH proxy, `DirectTCPIP` + remote `-R` forwarding, TLS rejection, `UpdateConfigurationValidator`, 100MB SHA-256, upload conflict & disk-partial pause/resume, mid-transfer cancel, pre-existing destination symlink check, CRLF guard, strict HTTP proxy `200` status validation, `AppState` UI coordinator), `swiftlint lint --strict` (`0 violations` in 94 files), `swiftformat --lint .` (`0/94`), `yamllint -c .yamllint.yml .`, `shellcheck -s bash`, `shfmt -d -i 2 -ci`, `markdownlint-cli2`, `actionlint` — 0 errors across every executed gate.
+- [x] **T-024** Build and verify Universal 2 (`x86_64 arm64`) `.app` bundle (with embedded `Sparkle.framework` & entitlements) + `SparkleSFTP-0.2.0-universal.dmg` + `.sha256` locally via `Tools/Release/build-universal.sh` & `create-dmg.sh`, plus `.github/workflows/release.yml` CI/CD release automation.
 
 ## Post-MVP / External Infrastructure Gates (Deferred)
 

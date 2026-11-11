@@ -34,7 +34,7 @@ flowchart TD
 1. **Strict Acyclic Layering (`CIRC-001`, `CIRC-002`)**:
    - `App -> SparkleFeatures -> Packages/*`
    - `SparkleNetworking -> SparkleSecurity, SparkleCore, Clibcurl, NIOSSH`
-   - `SparkleTransferEngine -> SparklePersistence, SparkleSecurity, SparkleCore` (communicates via `RemoteFileSystem` closures — never imports `SparkleNetworking`)
+   - `SparkleTransferEngine -> SparkleSecurity, SparkleCore, Crypto` (communicates with remote protocols via `RemoteFileSystem` closures and persists checkpoints via `TransferJournalProtocol` injected by `AppEnvironment` — never imports `SparkleNetworking` or `SparklePersistence`)
    - `SparkleSecurity -> SparkleCore, NIOSSH, Crypto`
    - `SparklePersistence -> SparkleCore, SQLite3`
    - No `Packages/*` target may ever import `SparkleFeatures` (enforced by `Package.swift`).

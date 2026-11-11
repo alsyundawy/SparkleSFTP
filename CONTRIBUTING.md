@@ -3,7 +3,7 @@
 Thank you for your interest in contributing to **SparkleSFTP**!
 
 > [!NOTE]
-> SparkleSFTP is currently in the **Repository & Architecture Foundation** phase. Before writing application code, please read [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md), [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md), and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+> SparkleSFTP has completed its **Full MVP** Swift 6 (`macOS 13+`) implementation. Before writing or modifying code, please read [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md), [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/ADR/`](docs/ADR/).
 
 ## Development Workflow
 
@@ -28,16 +28,16 @@ Thank you for your interest in contributing to **SparkleSFTP**!
 
 ## Architectural & Coding Standards
 
-All Swift code (once Phase 02 begins) must adhere to the following non-negotiable standards:
+All Swift code must adhere to the following non-negotiable standards:
 
 - **Swift 6 Strict Concurrency**: Full `Sendable` conformance and actor isolation; no data races.
 - **`@unchecked Sendable` Guardrail**: Any `@unchecked Sendable` usage requires an inline `// JUSTIFICATION: ...` comment and passes SwiftLint review.
 - **Strict Dependency Boundaries**:
-  - `App -> ApplicationCore -> Domain`
+  - `App -> SparkleFeatures -> Packages/*`
   - `ProtocolAdapters -> Domain`
   - `Security -> Domain`
   - `Persistence -> Domain`
-  - SwiftUI Views must never call Citadel, libcurl, or Keychain directly, and `Packages/` must never import from `Features/`.
+  - SwiftUI Views must never call `NIOSSH`, `Clibcurl`, `SQLite3`, or Keychain directly, and `Packages/` must never import from `Features/`.
 - **Code Language**: All Swift identifiers, types, comments, and error keys must be written in clear English (`READ-001`). Documentation may include English and Indonesian translations.
 - **14-Pillar Quality Gate**: Every non-trivial change is evaluated against the 14 pillars documented in [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md).
 
@@ -47,15 +47,18 @@ Run all applicable checks locally before pushing:
 
 ```bash
 # Markdown & YAML hygiene
-markdownlint-cli2 "**/*.md" "#.build" "#DerivedData"
+markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#.trunk"
 yamllint -c .yamllint.yml .
 
-# GitHub Actions workflow validation
+# GitHub Actions & shell script validation
 actionlint
+shellcheck -s bash Tools/**/*.sh
 
-# Once Swift sources are added:
-swiftlint --strict
+# Swift lint, formatting, build & tests
+swiftlint lint --strict
 swiftformat --lint .
+swift build -j 2
+swift test -j 2
 ```
 
 ## Security Disclosures

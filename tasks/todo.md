@@ -41,8 +41,8 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 
 - [x] `T-021` Create `Tools/TestServers/` & `Tools/Release/` scripts
 - [x] `T-022` Reconcile `README.md`, `README-id.md`, `docs/*.md`, `CHANGELOG.md`, `TODO.md`
-- [x] `T-023` Run full build, tests (`35 tests in 9 suites`), SwiftLint, ShellCheck, Markdownlint, Actionlint
-- [x] `T-024` Build and verify Universal 2 (`x86_64 arm64`) `.app` + `.dmg` via `Tools/Release/build-universal.sh` & `create-dmg.sh`
+- [x] `T-023` Run full build, tests (`45 tests in 11 suites`), SwiftLint (`94` files), SwiftFormat (`0/94`), YAMLlint, ShellCheck, Shfmt, Markdownlint, Actionlint
+- [x] `T-024` Build and verify Universal 2 (`x86_64 arm64`) `.app` + `SparkleSFTP-0.2.0-universal.dmg` + `.sha256` via `Tools/Release/build-universal.sh`, `create-dmg.sh`, and `.github/workflows/release.yml`
 
 ## External Operational & Release Gates (Deferred to Release Environment)
 

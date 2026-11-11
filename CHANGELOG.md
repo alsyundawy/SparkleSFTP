@@ -12,7 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned (Post-MVP / External Infrastructure)
 
 - Live Docker multi-server interop test execution (`Tools/TestServers/run-integration-tests.sh`).
-- Universal 2 (`arm64` + `x86_64`) Apple Developer ID signing, notarization, and DMG / Sparkle appcast publishing (`Tools/Release/*.sh`).
+- Universal 2 (`arm64` + `x86_64`) Apple Developer ID signing, notarization, and signed Sparkle Ed25519 appcast publishing (`Tools/Release/notarize.sh`).
+
+---
+
+## [0.2.0] - 2026-11-11
+
+### Added & Fixed (14-Pillar Security, Runtime, CI & Release Hardening)
+
+- **CI Compatibility & Tooling Alignment**:
+  - Updated `TerminalViewRepresentable` to keep `@MainActor` on `Coordinator` with `nonisolated TerminalViewDelegate` methods forwarding safely onto `MainActor`, resolving Swift 6.0/6.1 Xcode compilation errors on GitHub Actions `macos-15` runners while preserving Swift 6.2 strict concurrency.
+  - Harmonized `.swiftformat` (`--trailing-commas never`, `--exclude .build,.swiftpm,DerivedData,build,dist,.trunk`, disabling `trailingCommas` conflict & `wrapMultilineStatementBraces`) with `.swiftlint.yml`, and added build artifact `ignore:` rules to `.yamllint.yml`.
+  - Added `.github/workflows/release.yml` to run `swift test -j 2`, build the Universal 2 (`arm64` + `x86_64`) `.app` and `.dmg` + `.sha256` checksum on GitHub Actions `macos-15` runners, and publish GitHub Releases on `v*` tags / manual dispatch.
+- **Security & Networking Hardening (`SparkleSecurity` & `SparkleNetworking`)**:
+  - Added `UpdateConfigurationValidator` + `SparkleUpdaterService` enforcement rejecting non-HTTPS appcast URLs and placeholder/invalid Ed25519 `SUPublicEDKey` values (`Info.plist`).
+  - Hardened `PathValidator.safeLocalDestination` (`CWE-59`) to reject pre-existing symbolic links at local destination paths.
+  - Hardened `SSHProxyChannelHandler` to reject whitespace/NUL/out-of-range ports and enforce exact `"200"` HTTP CONNECT status tokens (`HTTP/... 200`), and added IPv6 host bracketing plus integer-overflow guards in `FTPService` / `CurlClientHelper`.
+  - Bounded `SFTPChannelBridge` initialization/request futures, `SSHClientService+Forwarding` remote `-R` forward requests with stall timeouts + cancellation handlers, `.name` packet decoded entry count validation (`SFTPPacketCodec+Decode`), and streamed 24KB chunked uploads in `SCPCompatibilityAdapter` (avoiding `ARG_MAX` limits).
+- **Transfer Engine, State & UI Fixes (`SparkleTransferEngine`, `Packages/TransferEngine`, `Features/`)**:
+  - Fixed `TransferQueue` `LOG-002` resume validation ordering so remote size/mtime changes are checked before updating checkpoint context, reset stale `.part` state cleanly, switched final overwrite moves to `FileManager.default.replaceItemAt`, wired `journal.pruneOldEntries(maxEntries: 10_000, maxAgeDays: 30)` on crash restore, and split checkpoint helpers into `TransferQueue+Checkpoint.swift`.
+  - Guarded `AppState` against redundant local directory watcher teardowns (`watchedLocalURL`), ensured active sessions disconnect when deleted (`deleteProfile`), preserved `FilePaneTableView` selection across programmatic refreshes, and used `lastIndex(of: ":")` for IPv6-safe host-key revocation in `ConnectionSecuritySheets`.
+- **Deep Audit Capabilities Completed**:
+  - Pause/resume byte measurement, `ConflictResolver` remote upload enforcement (`.skip`/`.overwrite`/`.rename`), `SSHProxyChannelHandler` (SOCKS5 + HTTP CONNECT), SSH `ProxyJump` bastion chaining, 2FA interactive prompt (`CredentialPromptSheet`), `-L`/`-R` port forwarding, remote path sync + `PaneNavigationHistory`, `RenameItemSheet`, `FileInspectorSheet` (async SHA-256), `NSMenu` context menu, remote Quick Look, recursive folder upload/download, and `ServerGroup`/Recents management.
+- **Verification**: All `45 tests in 11 suites` pass via `swift test -j 2` (with 5 new regression tests in `SecurityTests`, `NetworkingTests`, and `TransferEngineResumeTests`), `94` Swift files pass `swiftlint lint --strict` and `swiftformat --lint .` with `0` violations, and `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, and `shfmt` report `0` errors.
 
 ---
 

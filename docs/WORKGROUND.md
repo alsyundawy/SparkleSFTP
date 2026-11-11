@@ -47,7 +47,7 @@ flowchart LR
 2. **`SparkleSecurity`** depends only on `SparkleCore`, `Crypto`, `NIOSSH` (public key fingerprinting), and Apple system frameworks (`Security`, `LocalAuthentication`, `Network`, `OSLog`).
 3. **`SparklePersistence`** depends only on `SparkleCore` and macOS system `SQLite3`.
 4. **`SparkleNetworking`** depends on `SparkleCore`, `SparkleSecurity`, `Clibcurl`, `NIO`, `NIOSSH`, and `Crypto`. It never imports `SparkleTransferEngine` or `SparkleFeatures`.
-5. **`SparkleTransferEngine`** depends on `SparkleCore`, `SparkleSecurity`, `SparklePersistence`, and `Crypto`. It communicates with remote protocols strictly via `RemoteFileSystem` closures (`onProgress: @escaping @Sendable (TransferProgress) -> Void`), preventing `CIRC-001`.
+5. **`SparkleTransferEngine`** depends only on `SparkleCore`, `SparkleSecurity`, and `Crypto`. It communicates with remote protocols via `RemoteFileSystem` closures (`onProgress: @escaping @Sendable (TransferProgress) -> Void`, preventing `CIRC-001`) and persists durable checkpoints via `TransferJournalProtocol` (`SparkleCore`) injected at composition time (`SparklePersistence` in `AppEnvironment`).
 6. **`SparkleFileManager`** depends on `SparkleCore` and `SparkleSecurity`.
 7. **`SparkleTerminal`** depends on `SparkleCore`, `SparkleNetworking`, `NIO`, `NIOPosix`, `NIOSSH`, and `SwiftTerm`.
 8. **`SparkleSynchronization`** depends on `SparkleCore`, `SparkleSecurity`, and `SparkleTransferEngine`.

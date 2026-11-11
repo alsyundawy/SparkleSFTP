@@ -43,8 +43,8 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 
 - [x] Implement `Tools/TestServers/` & `Tools/Release/` scripts (`T-021`)
 - [x] Update `README.md`, `README-id.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, `CHANGELOG.md` (`T-022`)
-- [x] Verify 0 errors across `swift build`, `swift test` (35 tests in 9 suites incl. live encrypted loopback SSH/SFTP, `DirectTCPIP`, MITM block, TLS rejection, 100MB SHA-256), `swiftlint --strict`, `shellcheck -s bash`, `markdownlint-cli2`, and `actionlint` (`T-023`)
-- [x] Verify Universal 2 (`x86_64 arm64`) release `.app` bundle (with embedded `Sparkle.framework` & entitlements) + DMG packaging via `Tools/Release/build-universal.sh` & `create-dmg.sh` (`T-024`)
+- [x] Verify 0 errors across `swift build -j 2`, `swift test -j 2` (45 tests in 11 suites incl. live encrypted loopback SSH/SFTP, `ProxyJump`, `SOCKS5`/`HTTP` SSH proxy, `DirectTCPIP` & remote `-R` forwarding, MITM block, TLS rejection, `UpdateConfigurationValidator`, destination symlink block, strict HTTP `200` proxy token check, 100MB SHA-256, upload conflict & pause/resume), `swiftlint lint --strict` (94 files), `swiftformat --lint .` (0/94), `yamllint -c .yamllint.yml .`, `shellcheck -s bash`, `shfmt -d -i 2 -ci`, `markdownlint-cli2`, and `actionlint` (`T-023`)
+- [x] Verify Universal 2 (`x86_64 arm64`) release `.app` bundle (with embedded `Sparkle.framework` & entitlements) + `SparkleSFTP-0.2.0-universal.dmg` + `.sha256` via `Tools/Release/build-universal.sh`, `create-dmg.sh`, and `.github/workflows/release.yml` (`T-024`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 

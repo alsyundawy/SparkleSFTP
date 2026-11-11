@@ -1402,18 +1402,20 @@ jobs:
 
 ## ✅ Updated Acceptance Criteria Additions
 
-**Tambahkan ke MVP Gate (berdasarkan review ini):**
+**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 45 tests in 11 suites, 94 Swift files):**
 
-- [ ] `swift-nio-ssh` version ≥ 0.14.1 (patch CVE-2026-43798)
-- [ ] libcurl uses `libssh2` backend (tidak `libssh`) — patch CVE-2025-15224
-- [ ] `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` pada semua Keychain entries
-- [ ] Path traversal test: download dengan `../` path → harus rejected
-- [ ] Symlink attack test: recursive download dengan malicious symlink → harus rejected
-- [ ] Actor reentrancy test: cancel mid-transfer, verifikasi tidak ada double-process
-- [ ] PTY leak test: open/close 100 terminal tabs → memory tidak leak
-- [ ] SHA-256 verification: tidak blocking main thread untuk file > 100MB
-- [ ] Sparkle: unsigned update ditolak
-- [ ] OSLog: tidak ada secret dalam Console.app output
+- [x] `swift-nio-ssh` version ≥ 0.14.1 (`0.15.1`, patch CVE-2026-43798 — lihat [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md))
+- [x] `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`, memblokir permukaan `libssh` — mitigasi CVE-2025-15224)
+- [x] `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` pada semua Keychain entries (`SecurityTests` + `no_icloud_keychain_sync` — lihat [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md))
+- [x] Path traversal test: download dengan `../` path → rejected (`SecurityTests`)
+- [x] Symlink attack test: recursive download/scan & pre-existing local symlink destination → rejected (`SecurityTests`, `SynchronizationTests`)
+- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, upload conflict policy, remote mutation revalidation → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`)
+- [x] Proxy tunnel strict HTTP `200` status token enforcement & bounded stall timeouts (`NetworkingTests`, `LoopbackAdvancedIntegrationTests`)
+- [x] PTY leak test: open/close 100 terminal tabs → memory tidak leak (`IntegrationTests`)
+- [x] SHA-256 verification: tidak blocking main thread untuk file > 100MB (`TransferEngineTests`)
+- [x] Sparkle: unsigned/non-HTTPS update check dan placeholder `SUPublicEDKey` ditolak (`UpdateConfigurationValidator`, `SecurityTests`, `SparkleUpdaterService`); Ed25519 appcast signing dilakukan pada host rilis
+- [x] OSLog: tidak ada secret dalam log (`DiagnosticsLogger` + SwiftLint `no_password_in_logs`)
+- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/94 files), `swiftformat --lint .` (0/94 files), `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`
 
 ---
 

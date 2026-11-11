@@ -127,22 +127,26 @@ SparkleSFTP/
 │   ├── SparkleSFTPApp.swift
 │   ├── AppDelegate.swift
 │   ├── AppEnvironment.swift
-│   ├── AppLifecycle.swift
 │   ├── SparkleUpdaterService.swift
 │   ├── SparkleSFTP.entitlements
-│   └── Resources/Info.plist
+│   └── Resources/
+│       ├── Info.plist
+│       ├── AppIcon.icns
+│       └── AppIcon.png
 ├── Packages/
 │   ├── Clibcurl/
 │   ├── Core/
 │   ├── Security/
 │   ├── Persistence/
 │   ├── Networking/
-│   ├── TransferEngine/
+│   ├── TransferEngine/        # TransferQueue (+Execution, +Checkpoint), TransferScheduler, ResumeValidator, SHA256Verifier
 │   ├── FileManager/
 │   ├── Terminal/
 │   ├── Synchronization/
 │   └── DesignSystem/
 ├── Features/
+│   ├── AppState*.swift        # Main coordinator + Connections/Operations/Imports/TransferHelpers extensions
+│   ├── MainWindowView.swift
 │   ├── Dashboard/
 │   ├── Connections/
 │   ├── Commander/

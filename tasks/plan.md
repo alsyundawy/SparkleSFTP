@@ -25,4 +25,4 @@ Build the complete initial Swift 6 SwiftPM repository implementation of **Sparkl
 3. **M3 (`T-009`–`T-012`)**: `SparkleNetworking` (SSH, SFTP, SCP, FTP/FTPS) → **Checkpoint:** `NetworkingTests` pass.
 4. **M4 (`T-013`–`T-016`)**: `SparkleTransferEngine`, `SparkleFileManager`, `SparkleSynchronization` → **Checkpoint:** `TransferEngineTests`, `FileManagerTests`, `SynchronizationTests` pass.
 5. **M5 (`T-017`–`T-020`)**: `SparkleTerminal`, `SparkleFeatures`, `App/` → **Checkpoint:** `IntegrationTests` & `swift build` executable pass.
-6. **M6 (`T-021`–`T-023`)**: `Tools/`, docs reconciliation, `CHANGELOG.md` → **Checkpoint:** Full test suite + SwiftLint + Markdownlint + ShellCheck + Actionlint exit `0`.
+6. **M6 (`T-021`–`T-024`)**: `Tools/`, `.github/workflows/release.yml`, docs reconciliation, `CHANGELOG.md` → **Checkpoint:** Full test suite (`45 tests in 11 suites`) + SwiftLint + SwiftFormat + Markdownlint + YAMLlint + ShellCheck + Actionlint exit `0`.
