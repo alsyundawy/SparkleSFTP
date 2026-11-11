@@ -30,7 +30,7 @@ public struct SyncExecutionTarget: Sendable {
     }
 }
 
-/// Executes validated non-stale SyncPlans with destructive action revalidation (LOG-003).
+/// Executes validated non-stale SyncPlans across Upload, Download, and Bidirectional modes (LOG-003, TASK-108).
 public actor SyncExecutor {
     private let transferQueue: TransferQueue
 
@@ -62,15 +62,30 @@ public actor SyncExecutor {
 
     private func applyAction(_ action: SyncAction, target: SyncExecutionTarget) async throws {
         let remoteTarget = try PathValidator.canonicalizeRemote(action.relativePath, relativeTo: target.remoteRoot)
-        let localSource = target.localRoot.appendingPathComponent(action.relativePath)
+        let localURL = try resolveSafeLocalURL(relativePath: action.relativePath, localRoot: target.localRoot)
 
+        switch action.transferDirection {
+        case .upload:
+            try await applyUploadAction(action, localURL: localURL, remoteTarget: remoteTarget, target: target)
+        case .download:
+            try await applyDownloadAction(action, localURL: localURL, remoteTarget: remoteTarget, target: target)
+        }
+    }
+
+    private func applyUploadAction(
+        _ action: SyncAction,
+        localURL: URL,
+        remoteTarget: RemotePath,
+        target: SyncExecutionTarget
+    ) async throws {
         switch action.kind {
         case .create:
             if action.isDirectory {
                 try await target.remoteFS.createDirectory(at: remoteTarget)
             } else {
-                await enqueueUpload(
-                    localURL: localSource,
+                await enqueueTransfer(
+                    direction: .upload,
+                    localURL: localURL,
                     remoteTarget: remoteTarget,
                     target: target,
                     size: action.size
@@ -78,8 +93,9 @@ public actor SyncExecutor {
             }
         case .update:
             try await verifyUnchangedRemote(action: action, remoteTarget: remoteTarget, remoteFS: target.remoteFS)
-            await enqueueUpload(
-                localURL: localSource,
+            await enqueueTransfer(
+                direction: .upload,
+                localURL: localURL,
                 remoteTarget: remoteTarget,
                 target: target,
                 size: action.size,
@@ -89,6 +105,58 @@ public actor SyncExecutor {
             try await verifyUnchangedRemote(action: action, remoteTarget: remoteTarget, remoteFS: target.remoteFS)
             try await target.remoteFS.delete(at: remoteTarget, isDirectory: action.isDirectory)
         }
+    }
+
+    private func applyDownloadAction(
+        _ action: SyncAction,
+        localURL: URL,
+        remoteTarget: RemotePath,
+        target: SyncExecutionTarget
+    ) async throws {
+        switch action.kind {
+        case .create:
+            if action.isDirectory {
+                try FileManager.default.createDirectory(at: localURL, withIntermediateDirectories: true)
+            } else {
+                try FileManager.default.createDirectory(
+                    at: localURL.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                await enqueueTransfer(
+                    direction: .download,
+                    localURL: localURL,
+                    remoteTarget: remoteTarget,
+                    target: target,
+                    size: action.size
+                )
+            }
+        case .update:
+            try await verifyUnchangedRemote(action: action, remoteTarget: remoteTarget, remoteFS: target.remoteFS)
+            await enqueueTransfer(
+                direction: .download,
+                localURL: localURL,
+                remoteTarget: remoteTarget,
+                target: target,
+                size: action.size,
+                conflictPolicyOverride: .overwrite
+            )
+        case .delete:
+            if FileManager.default.fileExists(atPath: localURL.path) {
+                try FileManager.default.removeItem(at: localURL)
+            }
+        }
+    }
+
+    private func resolveSafeLocalURL(relativePath: String, localRoot: URL) throws -> URL {
+        let parts = relativePath.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        guard !parts.isEmpty else {
+            throw AppError.pathTraversal(attempted: relativePath)
+        }
+        var currentDir = localRoot.standardizedFileURL.resolvingSymlinksInPath()
+        for segment in parts.dropLast() {
+            currentDir = currentDir.appendingPathComponent(segment, isDirectory: true)
+        }
+        return try PathValidator.safeLocalDestination(filename: parts[parts.count - 1], baseDirectory: currentDir)
     }
 
     private func verifyUnchangedRemote(
@@ -104,17 +172,24 @@ public actor SyncExecutor {
         }
     }
 
-    private func enqueueUpload(
+    private func enqueueTransfer(
+        direction: TransferDirection,
         localURL: URL,
         remoteTarget: RemotePath,
         target: SyncExecutionTarget,
         size: Int64,
         conflictPolicyOverride: TransferConflictPolicy? = nil
     ) async {
+        let sourceEndpoint: TransferEndpoint = direction == .upload
+            ? .local(url: localURL)
+            : .remote(profileID: target.profileID, host: target.host, path: remoteTarget)
+        let destEndpoint: TransferEndpoint = direction == .upload
+            ? .remote(profileID: target.profileID, host: target.host, path: remoteTarget)
+            : .local(url: localURL)
         let meta = TransferTaskMetadata(
-            direction: .upload,
-            source: .local(url: localURL),
-            destination: .remote(profileID: target.profileID, host: target.host, path: remoteTarget),
+            direction: direction,
+            source: sourceEndpoint,
+            destination: destEndpoint,
             totalBytes: size,
             conflictPolicyOverride: conflictPolicyOverride
         )

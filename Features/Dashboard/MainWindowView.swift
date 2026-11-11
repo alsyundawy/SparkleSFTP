@@ -14,6 +14,7 @@ public struct MainWindowView: View {
     }
 
     public var body: some View {
+        let palette = appState.activePalette
         NavigationSplitView {
             ConnectionManagerView(
                 appState: appState,
@@ -44,7 +45,12 @@ public struct MainWindowView: View {
 
                 statusBar
             }
+            .background(palette.windowColor)
         }
+        .preferredColorScheme(
+            appState.appearanceMode == .auto ? nil : (appState.appearanceMode == .dark ? .dark : .light)
+        )
+        .environment(\.sparklePalette, palette)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
@@ -64,6 +70,13 @@ public struct MainWindowView: View {
                         Label(appState.strings.disconnect, systemImage: SparkleTheme.Symbols.disconnect)
                     }
                 }
+
+                Button {
+                    appState.openInternalEditorWindow()
+                } label: {
+                    Label(appState.strings.t("nav.editor"), systemImage: SparkleTheme.Symbols.editor)
+                }
+                .help(appState.strings.t("nav.editor"))
 
                 Button {
                     Task { await appState.openTerminalTab() }
@@ -87,6 +100,23 @@ public struct MainWindowView: View {
                     Label(appState.strings.securityDiagnostics, systemImage: SparkleTheme.Symbols.sftp)
                 }
                 .accessibilityLabel(appState.strings.securityDiagnostics)
+
+                Menu {
+                    ForEach(appState.availableThemes.prefix(16)) { theme in
+                        Button {
+                            appState.selectTheme(theme)
+                        } label: {
+                            if appState.activePalette.id == theme.id {
+                                Label(theme.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(theme.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(appState.strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme)
+                }
+                .help(appState.activePalette.displayName)
             }
         }
         .task {
@@ -94,6 +124,9 @@ public struct MainWindowView: View {
         }
         .sheet(isPresented: $isShowingEditor) {
             ConnectionEditorView(appState: appState, existingProfile: editingProfile)
+        }
+        .sheet(isPresented: $appState.isShowingImportSheet) {
+            ImportConnectionsSheet(appState: appState)
         }
         .sheet(isPresented: $isShowingSecurityDiagnostics) {
             SecurityDiagnosticsView(appState: appState)
@@ -121,12 +154,12 @@ public struct MainWindowView: View {
                 }
             )
         ) {
-            Button("OK", role: .cancel) { appState.hostMismatchAlert = nil }
+            Button(appState.strings.t("common.ok"), role: .cancel) { appState.hostMismatchAlert = nil }
         } message: {
             Text(appState.hostMismatchAlert?.errorDescription ?? "")
         }
         .alert(
-            "Error",
+            appState.strings.t("common.error"),
             isPresented: Binding(
                 get: { appState.lastError != nil },
                 set: {
@@ -136,7 +169,7 @@ public struct MainWindowView: View {
                 }
             )
         ) {
-            Button("OK", role: .cancel) { appState.lastError = nil }
+            Button(appState.strings.t("common.ok"), role: .cancel) { appState.lastError = nil }
         } message: {
             Text(appState.lastError?.errorDescription ?? "")
         }
@@ -196,7 +229,7 @@ public struct MainWindowView: View {
                 Text("\(session.profile.username)@\(session.profile.host):\(session.profile.port)")
                     .font(SparkleTheme.Typography.monoSmall)
             } else {
-                Text("Disconnected")
+                Text(appState.strings.t("nav.disconnected"))
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
             }
@@ -209,18 +242,25 @@ public struct MainWindowView: View {
 
             Spacer()
 
-            Toggle("Terminal", isOn: $appState.isTerminalVisible)
+            Text(appState.activePalette.displayName)
+                .font(SparkleTheme.Typography.caption)
+                .foregroundStyle(SparkleTheme.Colors.secondaryText)
+
+            Toggle(appState.strings.t("nav.terminal"), isOn: $appState.isTerminalVisible)
                 .toggleStyle(.button)
                 .controlSize(.small)
 
-            Toggle("Transfers", isOn: $appState.isTransferDrawerVisible)
+            Toggle(appState.strings.t("nav.transfers"), isOn: $appState.isTransferDrawerVisible)
                 .toggleStyle(.button)
                 .controlSize(.small)
 
-            Button(appState.language == .english ? "EN" : "ID") {
-                appState.language = appState.language == .english ? .indonesian : .english
+            Menu(appState.activeLocaleCode.uppercased()) {
+                ForEach(appState.availableLocales) { doc in
+                    Button(doc.displayName) {
+                        appState.selectLocale(code: doc.code)
+                    }
+                }
             }
-            .buttonStyle(.bordered)
             .controlSize(.small)
         }
         .padding(.horizontal, SparkleTheme.Spacing.medium)

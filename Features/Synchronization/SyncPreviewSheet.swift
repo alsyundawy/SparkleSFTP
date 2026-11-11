@@ -21,76 +21,92 @@ public struct SyncPreviewSheet: View {
                 Label(appState.strings.synchronize, systemImage: SparkleTheme.Symbols.sync)
                     .font(SparkleTheme.Typography.title)
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(appState.strings.t("common.close")) { dismiss() }
             }
 
-            HStack {
-                TextField("Exclusions (comma-separated)", text: $exclusionsText)
-                    .textFieldStyle(.roundedBorder)
-                Picker("Compare", selection: $appState.syncComparisonMode) {
-                    Text("Size + Time").tag(SyncComparisonMode.sizeAndMtime)
-                    Text("Size Only").tag(SyncComparisonMode.sizeOnly)
-                    Text("SHA-256").tag(SyncComparisonMode.sha256Strict)
-                }
-                .frame(width: 130)
-                Toggle("Delete Extras", isOn: $deleteExtras)
-                Button(appState.strings.dryRunPreview) {
-                    let patterns = exclusionsText
-                        .split(separator: ",")
-                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    Task {
-                        await appState.prepareSyncDryRun(
-                            exclusions: patterns,
-                            deleteExtras: deleteExtras,
-                            mode: appState.syncComparisonMode
-                        )
+            VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
+                HStack {
+                    TextField(appState.strings.t("sync.exclusions"), text: $exclusionsText)
+                        .textFieldStyle(.roundedBorder)
+                    Picker(appState.strings.t("sync.direction"), selection: $appState.syncDirection) {
+                        Text(appState.strings.t("sync.localToRemote")).tag(SyncDirection.localToRemote)
+                        Text(appState.strings.t("sync.remoteToLocal")).tag(SyncDirection.remoteToLocal)
+                        Text(appState.strings.t("sync.bidirectional")).tag(SyncDirection.bidirectional)
                     }
+                    .frame(width: 210)
                 }
-                .buttonStyle(.borderedProminent)
+
+                HStack {
+                    Picker(appState.strings.t("sync.compareMode"), selection: $appState.syncComparisonMode) {
+                        Text(appState.strings.t("sync.sizeAndTime")).tag(SyncComparisonMode.sizeAndMtime)
+                        Text(appState.strings.t("sync.sizeOnly")).tag(SyncComparisonMode.sizeOnly)
+                        Text(appState.strings.t("sync.sha256Strict")).tag(SyncComparisonMode.sha256Strict)
+                    }
+                    .frame(width: 170)
+                    Toggle(appState.strings.t("sync.deleteExtras"), isOn: $deleteExtras)
+                        .disabled(appState.syncDirection == .bidirectional)
+                    Spacer()
+                    Button(appState.strings.dryRunPreview) {
+                        let patterns = exclusionsText
+                            .split(separator: ",")
+                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        Task {
+                            await appState.prepareSyncDryRun(
+                                exclusions: patterns,
+                                deleteExtras: appState.syncDirection == .bidirectional ? false : deleteExtras,
+                                direction: appState.syncDirection,
+                                mode: appState.syncComparisonMode
+                            )
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             }
 
             if let plan = appState.syncPlan {
                 HStack {
                     StatusPill(
-                        title: "Create: \(plan.createActions.count)",
+                        title: "\(appState.strings.t("sync.actionCreate")): \(plan.createActions.count)",
                         systemImage: "plus.circle",
                         tint: SparkleTheme.Colors.success
                     )
                     StatusPill(
-                        title: "Update: \(plan.updateActions.count)",
+                        title: "\(appState.strings.t("sync.actionUpdate")): \(plan.updateActions.count)",
                         systemImage: "arrow.triangle.2.circlepath",
                         tint: SparkleTheme.Colors.warning
                     )
                     StatusPill(
-                        title: "Delete: \(plan.deleteActions.count)",
+                        title: "\(appState.strings.t("sync.actionDelete")): \(plan.deleteActions.count)",
                         systemImage: "trash",
                         tint: SparkleTheme.Colors.danger
                     )
                     Spacer()
-                    Text("Expires: \(plan.expiresAt.formatted(date: .omitted, time: .standard))")
-                        .font(SparkleTheme.Typography.caption)
+                    Text(
+                        "\(appState.strings.t("sync.expires")): "
+                            + "\(plan.expiresAt.formatted(date: .omitted, time: .standard))"
+                    )
+                    .font(SparkleTheme.Typography.caption)
                 }
 
                 List {
                     if !plan.createActions.isEmpty {
-                        Section("Create") {
+                        Section(appState.strings.t("sync.actionCreate")) {
                             ForEach(plan.createActions) { action in
-                                Text("+ \(action.relativePath)").font(SparkleTheme.Typography.monoSmall)
+                                actionRow(prefix: "+", action: action)
                             }
                         }
                     }
                     if !plan.updateActions.isEmpty {
-                        Section("Update") {
+                        Section(appState.strings.t("sync.actionUpdate")) {
                             ForEach(plan.updateActions) { action in
-                                Text("~ \(action.relativePath)").font(SparkleTheme.Typography.monoSmall)
+                                actionRow(prefix: "~", action: action)
                             }
                         }
                     }
                     if !plan.deleteActions.isEmpty {
-                        Section("Delete") {
+                        Section(appState.strings.t("sync.actionDelete")) {
                             ForEach(plan.deleteActions) { action in
-                                Text("- \(action.relativePath)")
-                                    .font(SparkleTheme.Typography.monoSmall)
+                                actionRow(prefix: "-", action: action)
                                     .foregroundStyle(SparkleTheme.Colors.danger)
                             }
                         }
@@ -98,9 +114,9 @@ public struct SyncPreviewSheet: View {
                 }
                 .frame(minHeight: 200)
 
-                Toggle("Dry-Run Only (No Mutations)", isOn: $dryRunOnly)
+                Toggle(appState.strings.t("sync.dryRunOnly"), isOn: $dryRunOnly)
                 if !dryRunOnly, !plan.deleteActions.isEmpty || !plan.updateActions.isEmpty {
-                    Toggle("Confirm destructive updates/deletes against revalidated targets", isOn: $confirmDestructive)
+                    Toggle(appState.strings.t("sync.confirmDestructive"), isOn: $confirmDestructive)
                         .foregroundStyle(SparkleTheme.Colors.danger)
                 }
 
@@ -120,13 +136,19 @@ public struct SyncPreviewSheet: View {
                     )
                 }
             } else {
-                Text("Click Dry-Run Preview to compare Local and Remote folders safely.")
+                Text(appState.strings.t("sync.emptyPrompt"))
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
                     .frame(maxWidth: .infinity, minHeight: 160)
             }
         }
         .padding(SparkleTheme.Spacing.large)
-        .frame(width: 620)
+        .frame(width: 680)
+    }
+
+    private func actionRow(prefix: String, action: SyncAction) -> some View {
+        let arrow = action.transferDirection == .upload ? "↑" : "↓"
+        return Text("\(arrow) \(prefix) \(action.relativePath)")
+            .font(SparkleTheme.Typography.monoSmall)
     }
 }

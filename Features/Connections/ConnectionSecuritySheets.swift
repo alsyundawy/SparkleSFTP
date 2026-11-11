@@ -22,8 +22,8 @@ public struct HostKeyVerificationSheet: View {
                 .font(SparkleTheme.Typography.body)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Algorithm: \(challenge.algorithm)")
-                Text("Fingerprint: \(challenge.fingerprintSHA256)")
+                Text("\(appState.strings.t("conn.algorithm")): \(challenge.algorithm)")
+                Text("\(appState.strings.t("conn.fingerprint")): \(challenge.fingerprintSHA256)")
             }
             .font(SparkleTheme.Typography.monoSmall)
             .padding(SparkleTheme.Spacing.small)
@@ -33,10 +33,10 @@ public struct HostKeyVerificationSheet: View {
 
             HStack {
                 Spacer()
-                Button("Reject", role: .cancel) {
+                Button(appState.strings.t("conn.reject"), role: .cancel) {
                     appState.resolveHostChallenge(trusted: false)
                 }
-                Button("Trust & Save to Keychain") {
+                Button(appState.strings.t("conn.trustAndSave")) {
                     appState.resolveHostChallenge(trusted: true)
                 }
                 .buttonStyle(.borderedProminent)
@@ -61,10 +61,10 @@ public struct SecurityDiagnosticsView: View {
                 Label(appState.strings.securityDiagnostics, systemImage: "lock.shield")
                     .font(SparkleTheme.Typography.title)
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(appState.strings.t("common.close")) { dismiss() }
             }
 
-            GroupBox("Security Baseline") {
+            GroupBox(appState.strings.t("conn.securityBaseline")) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("• SSH Engine: apple/swift-nio-ssh >= 0.15.1 (CVE-2026-43798 mitigated)")
                     Text("• Keychain Isolation: kSecAttrAccessibleWhenUnlockedThisDeviceOnly (No iCloud sync)")
@@ -75,7 +75,7 @@ public struct SecurityDiagnosticsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            GroupBox("Trusted SSH Host Keys (TOFU)") {
+            GroupBox(appState.strings.t("conn.trustedHostKeys")) {
                 List {
                     ForEach(appState.trustedHosts.keys.sorted(), id: \.self) { hostPort in
                         if let entry = appState.trustedHosts[hostPort] {
@@ -85,7 +85,7 @@ public struct SecurityDiagnosticsView: View {
                                     Text(entry.fingerprint).font(SparkleTheme.Typography.monoSmall)
                                 }
                                 Spacer()
-                                Button("Revoke") {
+                                Button(appState.strings.t("conn.revoke")) {
                                     if let colonIdx = hostPort.lastIndex(of: ":"),
                                        let port = Int(hostPort[hostPort.index(after: colonIdx)...]) {
                                         let host = String(hostPort[..<colonIdx])

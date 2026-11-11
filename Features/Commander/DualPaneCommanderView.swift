@@ -53,7 +53,7 @@ public struct DualPaneCommanderView: View {
             newFolderSheet
         }
         .sheet(item: $editingPermissionsFile) { file in
-            PermissionsEditorSheet(file: file) { mode in
+            PermissionsEditorSheet(file: file, strings: appState.strings) { mode in
                 Task { await appState.setRemotePermissions(mode, for: file) }
             }
         }
@@ -68,24 +68,24 @@ public struct DualPaneCommanderView: View {
             )
         ) {
             if let ctx = renamingContext {
-                RenameItemSheet(item: ctx.item) { updatedName in
+                RenameItemSheet(item: ctx.item, strings: appState.strings) { updatedName in
                     Task { await appState.renameItem(ctx.item, to: updatedName, isLocal: ctx.isLocal) }
                 }
             }
         }
         .sheet(item: $inspectorContext) { ctx in
-            FileInspectorSheet(item: ctx.item, isLocal: ctx.isLocal)
+            FileInspectorSheet(item: ctx.item, isLocal: ctx.isLocal, strings: appState.strings)
         }
     }
 
     private var newFolderSheet: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
             Text(appState.strings.newFolder).font(SparkleTheme.Typography.title)
-            TextField("Folder Name", text: $newFolderName)
+            TextField(appState.strings.t("pane.folderName"), text: $newFolderName)
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { isShowingNewFolderSheet = false }
-                Button("Create") {
+                Button(appState.strings.t("common.cancel"), role: .cancel) { isShowingNewFolderSheet = false }
+                Button(appState.strings.t("common.create")) {
                     let name = newFolderName
                     newFolderName = ""
                     isShowingNewFolderSheet = false
@@ -108,7 +108,7 @@ public struct DualPaneCommanderView: View {
                     Image(systemName: "chevron.left")
                 }
                 .disabled(!appState.localHistory.canGoBack)
-                .help("Back")
+                .help(appState.strings.t("common.back"))
 
                 Button {
                     appState.activePane = .left
@@ -117,7 +117,7 @@ public struct DualPaneCommanderView: View {
                     Image(systemName: "chevron.right")
                 }
                 .disabled(!appState.localHistory.canGoForward)
-                .help("Forward")
+                .help(appState.strings.t("common.forward"))
 
                 Button {
                     let parent = appState.localCurrentURL.deletingLastPathComponent()
@@ -125,9 +125,9 @@ public struct DualPaneCommanderView: View {
                 } label: {
                     Image(systemName: "arrow.up")
                 }
-                .help("Parent Directory")
+                .help(appState.strings.t("nav.parentDirectory"))
 
-                TextField("Local Path", text: $localPathText)
+                TextField(appState.strings.t("nav.localPath"), text: $localPathText)
                     .textFieldStyle(.roundedBorder)
                     .font(SparkleTheme.Typography.monoSmall)
                     .onSubmit {
@@ -142,7 +142,7 @@ public struct DualPaneCommanderView: View {
                 } label: {
                     Image(systemName: "eye")
                 }
-                .help("Quick Look")
+                .help(appState.strings.t("nav.quickLook"))
             }
             .padding(SparkleTheme.Spacing.tiny)
             .background(SparkleTheme.Colors.panelBackground)
@@ -151,9 +151,12 @@ public struct DualPaneCommanderView: View {
                 files: Array(appState.localFiles.visibleFiles),
                 selectedIDs: $appState.selectedLocalFileIDs,
                 isLocalPane: true,
+                strings: appState.strings,
                 onActivateRow: { item in
                     if item.isDirectory {
                         Task { await appState.refreshLocalDirectory(URL(fileURLWithPath: item.path.rawValue)) }
+                    } else if appState.openDoubleClickInInternalEditor {
+                        appState.openLocalFileInInternalEditor(item)
                     } else {
                         quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
                     }
@@ -194,9 +197,12 @@ public struct DualPaneCommanderView: View {
                         }
                     ),
                     isLocalPane: false,
+                    strings: appState.strings,
                     onActivateRow: { item in
                         if item.isDirectory {
                             Task { await appState.refreshRemoteDirectory(at: item.path) }
+                        } else if appState.openDoubleClickInInternalEditor {
+                            Task { await appState.openRemoteFileInInternalEditor(item) }
                         } else {
                             Task { await appState.openRemoteFileInEditor(item) }
                         }
@@ -222,7 +228,7 @@ public struct DualPaneCommanderView: View {
                     Image(systemName: "server.rack")
                         .font(.system(size: 34))
                         .foregroundStyle(SparkleTheme.Colors.secondaryText)
-                    Text("Select a connection profile and click Connect")
+                    Text(appState.strings.t("nav.selectConnectionPrompt"))
                         .font(SparkleTheme.Typography.body)
                         .foregroundStyle(SparkleTheme.Colors.secondaryText)
                 }

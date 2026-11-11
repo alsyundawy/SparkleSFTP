@@ -119,7 +119,10 @@ let package = Package(
             dependencies: [
                 "SparkleCore"
             ],
-            path: "Packages/DesignSystem"
+            path: "Packages/DesignSystem",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .target(
             name: "SparkleFeatures",
@@ -222,6 +225,7 @@ let package = Package(
             name: "IntegrationTests",
             dependencies: [
                 "SparkleCore",
+                "SparkleDesignSystem",
                 "SparkleFeatures",
                 "SparkleFileManager",
                 "SparkleNetworking",

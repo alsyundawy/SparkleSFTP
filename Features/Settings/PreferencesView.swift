@@ -9,53 +9,76 @@ public struct PreferencesView: View {
         self.appState = appState
     }
 
+    private var strings: AppStrings {
+        appState.strings
+    }
+
     public var body: some View {
-        Form {
-            Section("Appearance & Localization") {
-                Picker("Language / Bahasa", selection: $appState.language) {
-                    ForEach(AppLanguage.allCases) { lang in
-                        Text(lang.displayName).tag(lang)
-                    }
+        TabView {
+            PreferencesLocalizationTab(appState: appState)
+                .tabItem {
+                    Label(strings.t("prefs.tabGeneral"), systemImage: "globe")
                 }
-                .pickerStyle(.segmented)
+
+            PreferencesThemeTab(appState: appState)
+                .tabItem {
+                    Label(strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme)
+                }
+
+            transfersAndBehaviorTab
+                .tabItem {
+                    Label(strings.t("prefs.tabTransfers"), systemImage: "arrow.up.arrow.down.circle")
+                }
+
+            PreferencesUpdatesTab(appState: appState)
+                .tabItem {
+                    Label(strings.t("prefs.tabUpdates"), systemImage: SparkleTheme.Symbols.updates)
+                }
+        }
+        .padding(SparkleTheme.Spacing.medium)
+        .frame(width: 640, height: 480)
+        .environment(\.sparklePalette, appState.activePalette)
+    }
+
+    private var transfersAndBehaviorTab: some View {
+        Form {
+            Section(strings.t("prefs.doubleClick")) {
+                Picker(strings.t("prefs.doubleClick"), selection: $appState.openDoubleClickInInternalEditor) {
+                    Text(strings.t("prefs.doubleClickInternal")).tag(true)
+                    Text(strings.t("prefs.doubleClickQuickLook")).tag(false)
+                }
             }
 
-            Section("Transfer Engine & Conflicts") {
+            Section(strings.t("prefs.tabTransfers")) {
                 Stepper(
-                    "Max Simultaneous Transfers: \(appState.maxGlobalConcurrentTransfers)",
+                    "\(strings.t("prefs.maxGlobal")): \(appState.maxGlobalConcurrentTransfers)",
                     value: $appState.maxGlobalConcurrentTransfers,
                     in: 1 ... 8
                 )
                 .onChange(of: appState.maxGlobalConcurrentTransfers) { _ in
                     Task { await appState.applyTransferConcurrencySettings() }
                 }
+
                 Stepper(
-                    "Max Per-Host Connections: \(appState.maxPerHostConcurrentTransfers)",
+                    "\(strings.t("prefs.maxPerHost")): \(appState.maxPerHostConcurrentTransfers)",
                     value: $appState.maxPerHostConcurrentTransfers,
                     in: 1 ... 4
                 )
                 .onChange(of: appState.maxPerHostConcurrentTransfers) { _ in
                     Task { await appState.applyTransferConcurrencySettings() }
                 }
-                Picker("Default Conflict Action", selection: $appState.defaultConflictPolicy) {
-                    Text("Ask Every Time").tag(TransferConflictPolicy.ask)
-                    Text("Overwrite").tag(TransferConflictPolicy.overwrite)
-                    Text("Auto-Rename").tag(TransferConflictPolicy.rename)
-                    Text("Skip").tag(TransferConflictPolicy.skip)
+
+                Picker(strings.t("prefs.defaultConflict"), selection: $appState.defaultConflictPolicy) {
+                    Text(strings.t("prefs.conflictAsk")).tag(TransferConflictPolicy.ask)
+                    Text(strings.t("prefs.conflictOverwrite")).tag(TransferConflictPolicy.overwrite)
+                    Text(strings.t("prefs.conflictRename")).tag(TransferConflictPolicy.rename)
+                    Text(strings.t("prefs.conflictSkip")).tag(TransferConflictPolicy.skip)
                 }
                 .onChange(of: appState.defaultConflictPolicy) { _ in
                     Task { await appState.applyConflictPolicySettings() }
                 }
             }
-
-            Section("Updates (Sparkle Ed25519)") {
-                Button("Check for Updates...") {
-                    appState.checkForUpdates()
-                }
-            }
         }
         .formStyle(.grouped)
-        .padding()
-        .frame(width: 440, height: 300)
     }
 }

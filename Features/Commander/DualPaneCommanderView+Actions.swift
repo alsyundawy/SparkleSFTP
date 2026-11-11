@@ -13,6 +13,7 @@ extension DualPaneCommanderView {
                 Image(systemName: "chevron.left")
             }
             .disabled(!session.history.canGoBack)
+            .help(appState.strings.t("common.back"))
 
             Button {
                 appState.activePane = .right
@@ -21,14 +22,16 @@ extension DualPaneCommanderView {
                 Image(systemName: "chevron.right")
             }
             .disabled(!session.history.canGoForward)
+            .help(appState.strings.t("common.forward"))
 
             Button {
                 Task { await appState.refreshRemoteDirectory(at: session.currentRemotePath.parent) }
             } label: {
                 Image(systemName: "arrow.up")
             }
+            .help(appState.strings.t("nav.parentDirectory"))
 
-            TextField("Remote Path", text: $remotePathText)
+            TextField(appState.strings.t("nav.remotePath"), text: $remotePathText)
                 .textFieldStyle(.roundedBorder)
                 .font(SparkleTheme.Typography.monoSmall)
                 .onSubmit {
@@ -40,13 +43,14 @@ extension DualPaneCommanderView {
             } label: {
                 Image(systemName: "eye")
             }
-            .help("Quick Look Remote")
+            .help(appState.strings.t("nav.quickLookRemote"))
 
             Button {
                 Task { await appState.refreshRemoteDirectory(recordHistory: false) }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
+            .help(appState.strings.refresh)
         }
         .padding(SparkleTheme.Spacing.tiny)
         .background(SparkleTheme.Colors.panelBackground)
@@ -54,11 +58,11 @@ extension DualPaneCommanderView {
 
     func paginationBanner(isLocal: Bool) -> some View {
         HStack {
-            Text("Showing first page of large directory")
+            Text(appState.strings.t("nav.showingFirstPage"))
                 .font(SparkleTheme.Typography.caption)
                 .foregroundStyle(SparkleTheme.Colors.secondaryText)
             Spacer()
-            Button("Load More") {
+            Button(appState.strings.t("nav.loadMore")) {
                 appState.activePane = isLocal ? .left : .right
                 appState.loadMoreFilesInActivePane()
             }
@@ -88,13 +92,21 @@ extension DualPaneCommanderView {
             .accessibilityLabel(appState.strings.newFolder)
 
             if let target = selectedFile(isLocal: isLocal) {
-                Button("Rename") { renamingContext = (target, isLocal) }
-                Button("Info") { inspectorContext = FileInspectorContext(item: target, isLocal: isLocal) }
+                Button(appState.strings.t("common.rename")) { renamingContext = (target, isLocal) }
+                Button(appState.strings.t("pane.info")) {
+                    inspectorContext = FileInspectorContext(item: target, isLocal: isLocal)
+                }
+                if !target.isDirectory {
+                    Button(appState.strings.t("common.edit")) {
+                        if isLocal {
+                            appState.openLocalFileInInternalEditor(target)
+                        } else {
+                            Task { await appState.openRemoteFileInInternalEditor(target) }
+                        }
+                    }
+                }
                 if !isLocal {
                     Button("chmod") { editingPermissionsFile = target }
-                    if !target.isDirectory {
-                        Button("Edit") { Task { await appState.openRemoteFileInEditor(target) } }
-                    }
                 }
             }
 
@@ -131,8 +143,10 @@ extension DualPaneCommanderView {
             Task { await appState.enqueueSelectedTransfer() }
         case .quickLook:
             previewQuickLook(target, isLocal: isLocal)
-        case .edit, .permissions:
-            handleRemoteOnlyAction(action, target: target, isLocal: isLocal)
+        case .edit:
+            openTargetInInternalEditor(target, isLocal: isLocal)
+        case .permissions:
+            handleRemotePermissions(target: target, isLocal: isLocal)
         case .rename:
             target.map { renamingContext = ($0, isLocal) }
         case .inspect:
@@ -144,12 +158,17 @@ extension DualPaneCommanderView {
         }
     }
 
-    private func handleRemoteOnlyAction(_ action: FilePaneContextAction, target: RemoteFile?, isLocal: Bool) {
+    private func handleRemotePermissions(target: RemoteFile?, isLocal: Bool) {
         guard !isLocal, let target else { return }
-        if action == .edit, !target.isDirectory {
-            Task { await appState.openRemoteFileInEditor(target) }
-        } else if action == .permissions {
-            editingPermissionsFile = target
+        editingPermissionsFile = target
+    }
+
+    private func openTargetInInternalEditor(_ target: RemoteFile?, isLocal: Bool) {
+        guard let target, !target.isDirectory else { return }
+        if isLocal {
+            appState.openLocalFileInInternalEditor(target)
+        } else {
+            Task { await appState.openRemoteFileInInternalEditor(target) }
         }
     }
 
@@ -159,11 +178,15 @@ extension DualPaneCommanderView {
             let localURL = URL(fileURLWithPath: target.path.rawValue)
             if target.isDirectory {
                 Task { await appState.refreshLocalDirectory(localURL) }
+            } else if appState.openDoubleClickInInternalEditor {
+                appState.openLocalFileInInternalEditor(target)
             } else {
                 quickLookCoordinator.preview(url: localURL)
             }
         } else if target.isDirectory {
             Task { await appState.refreshRemoteDirectory(at: target.path) }
+        } else if appState.openDoubleClickInInternalEditor {
+            Task { await appState.openRemoteFileInInternalEditor(target) }
         } else {
             Task { await appState.openRemoteFileInEditor(target) }
         }

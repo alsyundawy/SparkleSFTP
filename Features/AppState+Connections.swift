@@ -7,43 +7,6 @@ import SparkleTransferEngine
 import UserNotifications
 
 public extension AppState {
-    private enum PreferenceKey {
-        static let language = "sparklesftp.language"
-        static let maxGlobal = "sparklesftp.maxGlobalTransfers"
-        static let maxPerHost = "sparklesftp.maxPerHostTransfers"
-        static let conflictPolicy = "sparklesftp.conflictPolicy"
-    }
-
-    internal func loadPersistedPreferences() {
-        let defaults = UserDefaults.standard
-        if let rawLang = defaults.string(forKey: PreferenceKey.language),
-           let loadedLang = AppLanguage(rawValue: rawLang) {
-            language = loadedLang
-        }
-        let storedGlobal = defaults.integer(forKey: PreferenceKey.maxGlobal)
-        if storedGlobal >= 1, storedGlobal <= 8 {
-            maxGlobalConcurrentTransfers = storedGlobal
-        }
-        let storedHost = defaults.integer(forKey: PreferenceKey.maxPerHost)
-        if storedHost >= 1, storedHost <= 4 {
-            maxPerHostConcurrentTransfers = storedHost
-        }
-        if let rawPolicy = defaults.string(forKey: PreferenceKey.conflictPolicy),
-           let policy = TransferConflictPolicy(rawValue: rawPolicy) {
-            defaultConflictPolicy = policy
-        }
-        didLoadPreferences = true
-    }
-
-    internal func savePreferencesIfLoaded() {
-        guard didLoadPreferences else { return }
-        let defaults = UserDefaults.standard
-        defaults.set(language.rawValue, forKey: PreferenceKey.language)
-        defaults.set(maxGlobalConcurrentTransfers, forKey: PreferenceKey.maxGlobal)
-        defaults.set(maxPerHostConcurrentTransfers, forKey: PreferenceKey.maxPerHost)
-        defaults.set(defaultConflictPolicy.rawValue, forKey: PreferenceKey.conflictPolicy)
-    }
-
     internal func promptHostKeyChallenge(_ challenge: HostKeyChallenge) async -> Bool {
         await withCheckedContinuation { continuation in
             hostChallengeContinuation = continuation
@@ -98,6 +61,12 @@ public extension AppState {
         startTransferObserver()
         if let restored = try? await transferQueue.restoreInterruptedFromJournal(), !restored.isEmpty {
             transferSnapshots = restored
+        }
+        applyAutoUpdateConfiguration()
+        if autoUpdateSettings.isOverdue {
+            Task { [weak self] in
+                await self?.checkForUpdates(manual: false)
+            }
         }
     }
 

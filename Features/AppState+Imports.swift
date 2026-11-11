@@ -35,10 +35,12 @@ public extension AppState {
     func prepareSyncDryRun(
         exclusions: [String],
         deleteExtras: Bool,
+        direction: SyncDirection? = nil,
         mode: SyncComparisonMode = .sizeAndMtime
     ) async {
         guard let session = currentSession else { return }
         do {
+            let resolvedDirection = direction ?? syncDirection
             let localScanned = try await DirectoryScanner.scanLocal(
                 rootURL: localCurrentURL,
                 exclusionGlobs: exclusions,
@@ -52,6 +54,7 @@ public extension AppState {
             syncPlan = SyncPlanner.buildPlan(
                 source: localScanned,
                 destination: remoteScanned,
+                direction: resolvedDirection,
                 mode: mode,
                 deleteExtras: deleteExtras
             )
@@ -109,26 +112,69 @@ public extension AppState {
         }
     }
 
+    func inspectExternalConnections(from url: URL) {
+        do {
+            let report = try ExternalConnectionFileReader.inspect(url: url)
+            pendingImportReport = report
+            isShowingImportSheet = true
+        } catch {
+            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+        }
+    }
+
     func importExternalConnections(from url: URL) async {
         do {
-            let data = try Data(contentsOf: url)
-            let imported: [ImportedConnection]
-            if url.pathExtension.lowercased() == "xml" {
-                imported = try FileZillaImporter.parse(xmlData: data)
-            } else {
-                let text = String(data: data, encoding: .utf8) ?? ""
-                imported = WinSCPIniImporter.parse(iniContents: text)
-            }
-            for item in imported {
+            let report = try ExternalConnectionFileReader.inspect(url: url)
+            await commitImportedConnections(report.connections, createGroups: true, skipDuplicates: false)
+        } catch {
+            lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
+        }
+    }
+
+    func commitImportedConnections(
+        _ entries: [ImportedConnection],
+        createGroups: Bool,
+        skipDuplicates: Bool
+    ) async {
+        do {
+            var groupByName = Dictionary(uniqueKeysWithValues: groups.map { ($0.name.lowercased(), $0) })
+            var existingKeys = Set(profiles.map {
+                "\($0.protocolType.rawValue)|\($0.host.lowercased())|\($0.port)|\($0.username.lowercased())"
+            })
+            var importedCount = 0
+
+            for item in entries {
                 var profile = item.profile
+                let key = "\(profile.protocolType.rawValue)|"
+                    + "\(profile.host.lowercased())|\(profile.port)|"
+                    + "\(profile.username.lowercased())"
+                if skipDuplicates, existingKeys.contains(key) {
+                    continue
+                }
+                existingKeys.insert(key)
+
+                if createGroups, let rawGroup = item.groupName, !rawGroup.isEmpty {
+                    let normalized = rawGroup.lowercased()
+                    if let matched = groupByName[normalized] {
+                        profile.groupID = matched.id
+                    } else {
+                        let newGroup = ServerGroup(name: rawGroup, sortOrder: groupByName.count)
+                        try await connectionStore.saveGroup(newGroup)
+                        groupByName[normalized] = newGroup
+                        profile.groupID = newGroup.id
+                    }
+                }
+
                 if let secret = item.transientSecret {
                     let ref = profile.passwordRef ?? SecretReference(kind: .password)
                     try await credentialStore.saveSecret(secret, for: ref, requireTouchID: false)
                     profile.passwordRef = ref
                 }
                 try await connectionStore.saveProfile(profile)
+                importedCount += 1
             }
             await refreshProfilesAndGroups()
+            statusBannerMessage = "Imported \(importedCount) connection(s)"
         } catch {
             lastError = (error as? AppError) ?? .persistenceFailure(reason: error.localizedDescription)
         }

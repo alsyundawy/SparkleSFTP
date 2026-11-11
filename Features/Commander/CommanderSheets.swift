@@ -8,29 +8,31 @@ import SwiftUI
 
 public struct PermissionsEditorSheet: View {
     let file: RemoteFile
+    let strings: AppStrings
     let onApply: (UInt32) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var octalText: String
 
-    public init(file: RemoteFile, onApply: @escaping (UInt32) -> Void) {
+    public init(file: RemoteFile, strings: AppStrings = AppStrings(), onApply: @escaping (UInt32) -> Void) {
         self.file = file
+        self.strings = strings
         self.onApply = onApply
         _octalText = State(initialValue: POSIXPermissions(mode: file.permissions).octalString)
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text("POSIX Permissions — \(file.name)").font(SparkleTheme.Typography.title)
-            TextField("Octal (e.g. 755)", text: $octalText)
+            Text("\(strings.t("pane.posixPermissions")) — \(file.name)").font(SparkleTheme.Typography.title)
+            TextField(strings.t("pane.octalExample"), text: $octalText)
                 .font(SparkleTheme.Typography.mono)
             if let parsed = POSIXPermissions.from(octalString: octalText) {
-                Text("Symbolic: \(parsed.symbolicString)")
+                Text("\(strings.t("pane.symbolic")): \(parsed.symbolicString)")
                     .font(SparkleTheme.Typography.monoSmall)
             }
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                Button("Apply") {
+                Button(strings.t("common.cancel"), role: .cancel) { dismiss() }
+                Button(strings.t("common.apply")) {
                     if let parsed = POSIXPermissions.from(octalString: octalText) {
                         onApply(parsed.mode)
                         dismiss()
@@ -46,25 +48,27 @@ public struct PermissionsEditorSheet: View {
 
 public struct RenameItemSheet: View {
     let item: RemoteFile
+    let strings: AppStrings
     let onRename: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var newName: String
 
-    public init(item: RemoteFile, onRename: @escaping (String) -> Void) {
+    public init(item: RemoteFile, strings: AppStrings = AppStrings(), onRename: @escaping (String) -> Void) {
         self.item = item
+        self.strings = strings
         self.onRename = onRename
         _newName = State(initialValue: item.name)
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text("Rename Item").font(SparkleTheme.Typography.title)
-            TextField("New name", text: $newName)
+            Text(strings.t("pane.renameItem")).font(SparkleTheme.Typography.title)
+            TextField(strings.t("pane.newName"), text: $newName)
                 .textFieldStyle(.roundedBorder)
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                Button("Rename") {
+                Button(strings.t("common.cancel"), role: .cancel) { dismiss() }
+                Button(strings.t("common.rename")) {
                     let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
                         onRename(trimmed)
@@ -83,12 +87,14 @@ public struct RenameItemSheet: View {
 public struct FileInspectorSheet: View {
     let item: RemoteFile
     let isLocal: Bool
+    let strings: AppStrings
     @Environment(\.dismiss) private var dismiss
     @State private var computedSHA256: String?
 
-    public init(item: RemoteFile, isLocal: Bool) {
+    public init(item: RemoteFile, isLocal: Bool, strings: AppStrings = AppStrings()) {
         self.item = item
         self.isLocal = isLocal
+        self.strings = strings
     }
 
     public var body: some View {
@@ -97,30 +103,38 @@ public struct FileInspectorSheet: View {
                 Label(item.name, systemImage: item.isDirectory ? "folder.fill" : "doc.text")
                     .font(SparkleTheme.Typography.title)
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(strings.t("common.close")) { dismiss() }
             }
 
             Form {
-                LabeledContent("Path", value: item.path.rawValue)
-                LabeledContent("Kind", value: item.isDirectory ? "Directory" : (item.isSymlink ? "Symlink" : "File"))
-                LabeledContent("Size", value: "\(item.size) bytes")
+                LabeledContent(strings.t("pane.path"), value: item.path.rawValue)
                 LabeledContent(
-                    "Permissions",
+                    strings.t("pane.kind"),
+                    value: item.isDirectory
+                        ? strings.t("pane.directory")
+                        : (item.isSymlink ? strings.t("pane.symlink") : strings.t("pane.file"))
+                )
+                LabeledContent(strings.t("pane.size"), value: "\(item.size) bytes")
+                LabeledContent(
+                    strings.t("pane.permissions"),
                     value: "\(POSIXPermissions(mode: item.permissions).symbolicString)"
                         + " (\(POSIXPermissions(mode: item.permissions).octalString))"
                 )
                 if let mtime = item.modificationTime {
-                    LabeledContent("Modified", value: mtime.formatted(date: .abbreviated, time: .standard))
+                    LabeledContent(
+                        strings.t("pane.modified"),
+                        value: mtime.formatted(date: .abbreviated, time: .standard)
+                    )
                 }
                 if let target = item.symlinkTarget {
-                    LabeledContent("Symlink Target", value: target)
+                    LabeledContent(strings.t("pane.symlinkTarget"), value: target)
                 }
                 if isLocal, !item.isDirectory {
                     if let digest = computedSHA256 {
-                        LabeledContent("SHA-256", value: digest)
+                        LabeledContent(strings.t("pane.sha256"), value: digest)
                             .font(SparkleTheme.Typography.monoSmall)
                     } else {
-                        Button("Compute SHA-256") {
+                        Button(strings.t("pane.computeSHA256")) {
                             let url = URL(fileURLWithPath: item.path.rawValue)
                             Task {
                                 computedSHA256 = try? await SHA256Verifier.computeHexDigest(of: url)

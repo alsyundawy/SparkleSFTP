@@ -216,5 +216,28 @@ struct SecurityTests {
         #expect(!UpdateConfigurationValidator.isValidEd25519PublicKey("short"))
         let validKey = Data(repeating: 0xAB, count: 32).base64EncodedString()
         #expect(UpdateConfigurationValidator.isValidEd25519PublicKey(validKey))
+        #expect(UpdateConfigurationValidator.validatedHTTPSURL("http://insecure.example.com") == nil)
+        #expect(UpdateConfigurationValidator.validatedHTTPSURL("https://releases.example.com/appcast.xml") != nil)
+    }
+
+    @Test("UpdateConfigurationValidator semantic version comparison and AutoUpdateSettings overdue logic")
+    func updateVersionComparisonAndOverdueCadence() {
+        #expect(UpdateConfigurationValidator.isNewerVersion("v0.3.0", than: "0.2.0"))
+        #expect(UpdateConfigurationValidator.isNewerVersion("v0.2.1-beta.1", than: "0.2.0"))
+        #expect(!UpdateConfigurationValidator.isNewerVersion("0.2.0", than: "0.2.0"))
+        #expect(!UpdateConfigurationValidator.isNewerVersion("v0.1.9", than: "0.2.0"))
+
+        let manual = AutoUpdateSettings(automaticallyChecks: true, checkFrequency: .manual, lastCheckedAt: nil)
+        #expect(!manual.isOverdue)
+
+        let freshDaily = AutoUpdateSettings(automaticallyChecks: true, checkFrequency: .daily, lastCheckedAt: Date())
+        #expect(!freshDaily.isOverdue)
+
+        let staleHourly = AutoUpdateSettings(
+            automaticallyChecks: true,
+            checkFrequency: .hourly,
+            lastCheckedAt: Date().addingTimeInterval(-7200)
+        )
+        #expect(staleHourly.isOverdue)
     }
 }

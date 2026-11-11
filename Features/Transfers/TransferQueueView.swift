@@ -22,11 +22,11 @@ public struct TransferQueueView: View {
                 Label(appState.strings.transfers, systemImage: "arrow.up.arrow.down.circle")
                     .font(SparkleTheme.Typography.headline)
                 Spacer()
-                Text("\(appState.transferSnapshots.count) items")
+                Text("\(appState.transferSnapshots.count) \(appState.strings.t("transfers.items"))")
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
                 if appState.transferSnapshots.contains(where: \.status.isTerminal) {
-                    Button("Clear Finished") {
+                    Button(appState.strings.t("transfers.clearFinished")) {
                         Task { await appState.transferQueue.clearFinished() }
                     }
                     .buttonStyle(.borderless)
@@ -38,7 +38,7 @@ public struct TransferQueueView: View {
             .background(SparkleTheme.Colors.panelBackground)
 
             if appState.transferSnapshots.isEmpty {
-                Text("No active or recent transfers.")
+                Text(appState.strings.t("transfers.noTransfers"))
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(SparkleTheme.Colors.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -106,7 +106,7 @@ public struct TransferQueueView: View {
                         }
 
                         if case let .failed(error) = snapshot.status {
-                            Text(error.errorDescription ?? "Transfer failed")
+                            Text(error.errorDescription ?? appState.strings.t("transfers.transferFailed"))
                                 .font(SparkleTheme.Typography.caption)
                                 .foregroundStyle(SparkleTheme.Colors.danger)
                                 .lineLimit(2)
@@ -155,18 +155,21 @@ public struct ConflictResolutionSheet: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text("File Already Exists").font(SparkleTheme.Typography.title)
+            Text(appState.strings.t("transfers.fileAlreadyExists")).font(SparkleTheme.Typography.title)
             Text(conflict.destinationDisplayPath)
                 .font(SparkleTheme.Typography.monoSmall)
-            Text("Existing: \(conflict.existingSize) bytes · Incoming: \(conflict.incomingSize) bytes")
-                .font(SparkleTheme.Typography.caption)
+            Text(
+                "\(appState.strings.t("transfers.existingSize")): \(conflict.existingSize) bytes · "
+                    + "\(appState.strings.t("transfers.incomingSize")): \(conflict.incomingSize) bytes"
+            )
+            .font(SparkleTheme.Typography.caption)
 
-            TextField("Optional rename filename", text: $customName)
+            TextField(appState.strings.t("transfers.optionalRename"), text: $customName)
                 .textFieldStyle(.roundedBorder)
 
             HStack {
-                Button("Skip") { appState.resolveConflict(.skip) }
-                Button("Rename") {
+                Button(appState.strings.t("common.skip")) { appState.resolveConflict(.skip) }
+                Button(appState.strings.t("common.rename")) {
                     let existingName = URL(fileURLWithPath: conflict.destinationDisplayPath).lastPathComponent
                     let chosen = customName.isEmpty
                         ? ConflictResolver.uniqueName(from: existingName)
@@ -174,7 +177,7 @@ public struct ConflictResolutionSheet: View {
                     appState.resolveConflict(.rename(newFilename: chosen))
                 }
                 Spacer()
-                Button("Overwrite", role: .destructive) {
+                Button(appState.strings.t("transfers.overwrite"), role: .destructive) {
                     appState.resolveConflict(.overwrite)
                 }
                 .buttonStyle(.borderedProminent)

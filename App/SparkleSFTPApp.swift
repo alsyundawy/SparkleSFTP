@@ -24,18 +24,29 @@ struct SparkleSFTPApp: App {
                 }
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button(appState.strings.t("prefs.checkNow")) {
+                    Task { await appState.checkForUpdates(manual: true) }
+                }
+            }
+
             CommandMenu("Commander") {
-                Button("Transfer Selected (F5)") {
+                Button(appState.strings.t("nav.upload")) {
                     Task { await appState.enqueueSelectedTransfer() }
                 }
                 .keyboardShortcut("t", modifiers: [.command])
 
-                Button("Open SSH Terminal") {
+                Button(appState.strings.t("nav.editor")) {
+                    appState.openInternalEditorWindow()
+                }
+                .keyboardShortcut("e", modifiers: [.command])
+
+                Button(appState.strings.t("nav.terminal")) {
                     Task { await appState.openTerminalTab() }
                 }
                 .keyboardShortcut("k", modifiers: [.command])
 
-                Button("Refresh Active Pane") {
+                Button(appState.strings.t("common.refresh")) {
                     Task {
                         if appState.activePane == .left {
                             await appState.refreshLocalDirectory(appState.localCurrentURL)

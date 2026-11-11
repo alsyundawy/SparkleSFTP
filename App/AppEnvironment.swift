@@ -1,4 +1,5 @@
 import AppKit
+import SparkleCore
 import SparkleFeatures
 import SparklePersistence
 import SparkleSecurity
@@ -17,8 +18,16 @@ public final class AppEnvironment {
             hostTrustStore: HostTrustStore(),
             connectionStore: ConnectionStore(),
             transferJournal: try? TransferJournal(),
-            checkUpdatesAction: { [weak updater] in
-                updater?.checkForUpdates()
+            installedAppVersion: updater.installedVersion,
+            isSignedUpdatesReady: updater.isConfiguredForSignedUpdates,
+            performUpdateCheckAction: { [weak updater] settings, manual in
+                guard let updater else {
+                    return .failed(reason: "Updater unavailable")
+                }
+                return await updater.checkForUpdates(settings: settings, manual: manual)
+            },
+            applyAutoUpdateSettingsAction: { [weak updater] settings in
+                updater?.applySettings(settings)
             }
         )
     }

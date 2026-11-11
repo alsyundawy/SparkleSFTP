@@ -9,7 +9,6 @@ import SparkleSecurity
 import SparkleSynchronization
 import SparkleTerminal
 import SparkleTransferEngine
-import UserNotifications
 
 public struct ActiveSessionModel: Identifiable, Sendable {
     public let id: UUID
@@ -74,11 +73,49 @@ public final class AppState: ObservableObject {
     @Published public var pendingCredentialPrompt: CredentialPromptRequest?
     @Published public var hostMismatchAlert: AppError?
     @Published public var pendingConflict: ConflictContext?
+    @Published public var pendingImportReport: ExternalImportReport?
+    @Published public var isShowingImportSheet: Bool = false
     @Published public var syncPlan: SyncPlan?
     @Published public var statusBannerMessage: String?
     @Published public var lastError: AppError?
 
     @Published public var language: AppLanguage = .english {
+        didSet {
+            if activeLocaleCode != language.rawValue {
+                activeLocaleCode = language.rawValue
+            }
+            savePreferencesIfLoaded()
+        }
+    }
+
+    @Published public var activeLocaleCode: String = "en" {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var availableLocales: [LocaleDocument] = LocalizationCatalog.loadAvailableLocales()
+
+    @Published public var appearanceMode: ThemeAppearanceMode = .auto {
+        didSet {
+            applyAppearanceToApplication()
+            savePreferencesIfLoaded()
+        }
+    }
+
+    @Published public var selectedThemeID: String = SparkleThemeCatalog.defaultLight.id {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var availableThemes: [SparkleThemePalette] = SparkleThemeStore.loadAllPalettes()
+
+    @Published public var autoUpdateSettings = AutoUpdateSettings() {
+        didSet { savePreferencesIfLoaded() }
+    }
+
+    @Published public var autoUpdateStatus: AutoUpdateCheckStatus = .idle
+    @Published public var isSignedUpdatesReady: Bool = false
+    @Published public var installedAppVersion: String
+
+    @Published public var openDoubleClickInInternalEditor: Bool = true {
         didSet { savePreferencesIfLoaded() }
     }
 
@@ -98,9 +135,20 @@ public final class AppState: ObservableObject {
     }
 
     @Published public var syncComparisonMode: SyncComparisonMode = .sizeAndMtime
+    @Published public var syncDirection: SyncDirection = .localToRemote
 
     public var strings: AppStrings {
-        AppStrings(language: language)
+        AppStrings(language: language, localeCode: activeLocaleCode, availableLocales: availableLocales)
+    }
+
+    public var activePalette: SparkleThemePalette {
+        let isDarkSystem = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        return SparkleThemeCatalog.palette(
+            id: selectedThemeID,
+            appearanceMode: appearanceMode,
+            systemIsDark: isDarkSystem,
+            available: availableThemes
+        )
     }
 
     public let credentialStore: KeychainService
@@ -111,6 +159,8 @@ public final class AppState: ObservableObject {
     public let snippetStore: CommandSnippetStore
     public let portForwardingManager: PortForwardingManager
     public let featureFlags: FeatureFlags
+    public let editorManager = EditorSessionManager()
+    let editorWindowController = EditorWindowController()
 
     var transferQueueInstance: TransferQueue?
     var snapshotStreamTask: Task<Void, Never>?
@@ -122,7 +172,8 @@ public final class AppState: ObservableObject {
     var remoteEditWatches: [URL: LocalDirectoryWatcher] = [:]
     var notifiedTerminalTransferIDs: Set<UUID> = []
     var didLoadPreferences = false
-    let checkUpdatesAction: @MainActor () -> Void
+    let performUpdateCheckAction: @MainActor (AutoUpdateSettings, Bool) async -> AutoUpdateCheckStatus
+    let applyAutoUpdateSettingsAction: @MainActor (AutoUpdateSettings) -> Void
     let transferJournal: TransferJournal?
 
     public var transferQueue: TransferQueue {
@@ -156,7 +207,13 @@ public final class AppState: ObservableObject {
         snippetStore: CommandSnippetStore = CommandSnippetStore(),
         portForwardingManager: PortForwardingManager = PortForwardingManager(),
         featureFlags: FeatureFlags = .fromEnvironment(),
-        checkUpdatesAction: @escaping @MainActor () -> Void = {}
+        installedAppVersion: String? = nil,
+        isSignedUpdatesReady: Bool = false,
+        performUpdateCheckAction: @escaping @MainActor (AutoUpdateSettings, Bool) async
+            -> AutoUpdateCheckStatus = { _, _ in
+                .upToDate(version: "0.2.0")
+            },
+        applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
         self.credentialStore = credentialStore
         self.hostTrustStore = hostTrustStore
@@ -167,8 +224,13 @@ public final class AppState: ObservableObject {
         self.snippetStore = snippetStore
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
-        self.checkUpdatesAction = checkUpdatesAction
+        let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.2.0"
+        self.isSignedUpdatesReady = isSignedUpdatesReady
+        self.performUpdateCheckAction = performUpdateCheckAction
+        self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction
         loadPersistedPreferences()
+        applyAppearanceToApplication()
     }
 
     deinit {
@@ -216,10 +278,6 @@ public final class AppState: ObservableObject {
         pendingConflict = nil
         conflictContinuation?.resume(returning: resolution)
         conflictContinuation = nil
-    }
-
-    public func checkForUpdates() {
-        checkUpdatesAction()
     }
 
     func resolveRemoteFileSystem(for profileID: UUID) throws -> any RemoteFileSystem {

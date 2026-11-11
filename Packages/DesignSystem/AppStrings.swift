@@ -17,99 +17,120 @@ public enum AppLanguage: String, Sendable, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// Type-safe localized UI strings for English and Bahasa Indonesia.
+/// Type-safe localized UI strings backed by JSON locale catalogs (`Resources/Locales/*.json`)
+/// and runtime custom overrides for easy multi-language maintenance.
 public struct AppStrings: Sendable {
     public let language: AppLanguage
+    public let localeCode: String
+    private let englishFallback: [String: String]
+    private let table: [String: String]
 
-    public init(language: AppLanguage = .english) {
+    public init(
+        language: AppLanguage = .english,
+        localeCode: String? = nil,
+        availableLocales: [LocaleDocument]? = nil
+    ) {
         self.language = language
+        let resolvedCode = localeCode ?? language.rawValue
+        self.localeCode = resolvedCode
+        let docs = availableLocales ?? LocalizationCatalog.loadAvailableLocales()
+        let englishDoc = docs.first { $0.code == "en" }?.strings ?? LocalizationCatalog.loadBundledStrings(code: "en")
+        englishFallback = englishDoc
+        table = docs.first { $0.code == resolvedCode }?.strings
+            ?? LocalizationCatalog.loadBundledStrings(code: resolvedCode)
+    }
+
+    public func t(_ key: String, fallback: String? = nil) -> String {
+        if let value = table[key], !value.isEmpty {
+            return value
+        }
+        if let enValue = englishFallback[key], !enValue.isEmpty {
+            return enValue
+        }
+        return fallback ?? key
     }
 
     public var appName: String {
-        "SparkleSFTP"
+        t("app.name")
     }
 
     public var connectionsTitle: String {
-        language == .indonesian ? "Koneksi" : "Connections"
+        t("nav.connections")
     }
 
     public var newConnection: String {
-        language == .indonesian ? "Koneksi Baru" : "New Connection"
+        t("nav.newConnection")
     }
 
     public var connect: String {
-        language == .indonesian ? "Hubungkan" : "Connect"
+        t("nav.connect")
     }
 
     public var disconnect: String {
-        language == .indonesian ? "Putuskan" : "Disconnect"
+        t("nav.disconnect")
     }
 
     public var refresh: String {
-        language == .indonesian ? "Segarkan" : "Refresh"
+        t("common.refresh")
     }
 
     public var upload: String {
-        language == .indonesian ? "Unggah (F5)" : "Upload (F5)"
+        t("nav.upload")
     }
 
     public var download: String {
-        language == .indonesian ? "Unduh (F5)" : "Download (F5)"
+        t("nav.download")
     }
 
     public var move: String {
-        language == .indonesian ? "Pindah (F6)" : "Move (F6)"
+        t("nav.move")
     }
 
     public var newFolder: String {
-        language == .indonesian ? "Folder Baru (F7)" : "New Folder (F7)"
+        t("nav.newFolder")
     }
 
     public var delete: String {
-        language == .indonesian ? "Hapus (F8)" : "Delete (F8)"
+        t("nav.deleteShortcut")
     }
 
     public var terminal: String {
-        language == .indonesian ? "Terminal SSH" : "SSH Terminal"
+        t("nav.terminal")
     }
 
     public var transfers: String {
-        language == .indonesian ? "Antrean Transfer" : "Transfer Queue"
+        t("nav.transfers")
     }
 
     public var synchronize: String {
-        language == .indonesian ? "Sinkronisasi" : "Synchronize"
+        t("nav.synchronize")
     }
 
     public var plaintextFTPWarning: String {
-        language == .indonesian
-            ? "PERINGATAN: FTP tanpa enkripsi mengirimkan kredensial dan berkas dalam teks biasa."
-            : "WARNING: Plain FTP transmits credentials and files unencrypted."
+        t("conn.plaintextFTPWarning")
     }
 
     public var hostKeyUnknownTitle: String {
-        language == .indonesian ? "Verifikasi Sidik Jari Host SSH" : "Verify SSH Host Key Fingerprint"
+        t("conn.hostKeyUnknown")
     }
 
     public var hostKeyMismatchTitle: String {
-        language == .indonesian
-            ? "BAHAYA: Sidik Jari Host SSH Berubah!"
-            : "SECURITY ALERT: SSH Host Key Changed!"
+        t("conn.hostKeyMismatch")
     }
 
     public var securityDiagnostics: String {
-        language == .indonesian ? "Diagnostik Keamanan" : "Security Diagnostics"
+        t("nav.securityDiagnostics")
     }
 
     public var dryRunPreview: String {
-        language == .indonesian ? "Pratinjau Dry-Run" : "Dry-Run Preview"
+        t("sync.dryRunPreview")
     }
 
     public var executeSync: String {
-        language == .indonesian ? "Jalankan Sinkronisasi" : "Execute Sync"
+        t("sync.executeSync")
     }
 
     public var settings: String {
-        language == .indonesian ? "Pengaturan" : "Settings"
+        t("nav.settings")
     }
 }

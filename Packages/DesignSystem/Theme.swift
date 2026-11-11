@@ -1,4 +1,39 @@
+import AppKit
 import SwiftUI
+
+public extension Color {
+    init(hex: String) {
+        if let rgb = SparkleThemePalette.rgbComponents(fromHex: hex) {
+            self.init(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue, opacity: 1.0)
+        } else {
+            self.init(.sRGB, red: 0.5, green: 0.5, blue: 0.5, opacity: 1.0)
+        }
+    }
+}
+
+public extension NSColor {
+    convenience init(hex: String) {
+        if let rgb = SparkleThemePalette.rgbComponents(fromHex: hex) {
+            self.init(srgbRed: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1.0)
+        } else {
+            self.init(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        }
+    }
+}
+
+// swiftformat:disable environmentEntry
+private struct SparklePaletteEnvironmentKey: EnvironmentKey {
+    static let defaultValue: SparkleThemePalette = SparkleThemeCatalog.defaultLight
+}
+
+public extension EnvironmentValues {
+    var sparklePalette: SparkleThemePalette {
+        get { self[SparklePaletteEnvironmentKey.self] }
+        set { self[SparklePaletteEnvironmentKey.self] = newValue }
+    }
+}
+
+// swiftformat:enable environmentEntry
 
 /// Semantic color and typography design tokens for SparkleSFTP (macOS 13+).
 public enum SparkleTheme {
@@ -48,5 +83,8 @@ public enum SparkleTheme {
         public static let disconnect = "xmark.circle.fill"
         public static let key = "key.fill"
         public static let tunnel = "network"
+        public static let editor = "doc.text.fill"
+        public static let theme = "paintpalette.fill"
+        public static let updates = "arrow.down.app.fill"
     }
 }

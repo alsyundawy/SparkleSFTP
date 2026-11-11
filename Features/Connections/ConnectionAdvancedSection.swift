@@ -26,45 +26,45 @@ struct ConnectionAdvancedSection: View {
     @State private var isPickingKeyFile = false
 
     var body: some View {
-        Section("Security, Key & Path Options") {
+        Section(appState.strings.t("conn.securityKeyPathOptions")) {
             if authMethod == .publicKey {
                 HStack {
-                    Button("Import Key File...") {
+                    Button(appState.strings.t("conn.importKeyFile")) {
                         isPickingKeyFile = true
                     }
                     if options.privateKeyBookmarkData != nil {
-                        Label("Scoped key bookmark saved", systemImage: "checkmark.seal.fill")
+                        Label(appState.strings.t("conn.scopedKeySaved"), systemImage: "checkmark.seal.fill")
                             .font(SparkleTheme.Typography.caption)
                             .foregroundStyle(SparkleTheme.Colors.success)
                     }
                 }
-                SecureField("Optional Key Passphrase (Keychain)", text: $options.passphraseInput)
+                SecureField(appState.strings.t("conn.keyPassphrase"), text: $options.passphraseInput)
             }
 
-            Picker("Server Group", selection: $options.groupID) {
-                Text("None").tag(UUID?.none)
+            Picker(appState.strings.t("conn.serverGroup"), selection: $options.groupID) {
+                Text(appState.strings.t("common.none")).tag(UUID?.none)
                 ForEach(appState.groups) { group in
                     Text(group.name).tag(UUID?.some(group.id))
                 }
             }
 
-            TextField("Default Local Path (Optional)", text: $options.defaultLocalPath)
+            TextField(appState.strings.t("conn.defaultLocalPath"), text: $options.defaultLocalPath)
         }
 
-        Section("Proxy & SSH Jump Host") {
-            Picker("Proxy Type", selection: $options.proxyKind) {
-                Text("None").tag(ProxyKind.none)
+        Section(appState.strings.t("conn.proxyAndJump")) {
+            Picker(appState.strings.t("conn.proxyType"), selection: $options.proxyKind) {
+                Text(appState.strings.t("common.none")).tag(ProxyKind.none)
                 Text("SOCKS5").tag(ProxyKind.socks5)
                 Text("HTTP CONNECT").tag(ProxyKind.http)
             }
             if options.proxyKind != .none {
-                TextField("Proxy Host", text: $options.proxyHost)
-                TextField("Proxy Port", text: $options.proxyPort)
+                TextField(appState.strings.t("conn.proxyHost"), text: $options.proxyHost)
+                TextField(appState.strings.t("conn.proxyPort"), text: $options.proxyPort)
             }
 
             if protocolType == .sftp || protocolType == .scp {
-                Picker("SSH Jump Host", selection: $options.jumpHostProfileID) {
-                    Text("Direct Connection").tag(UUID?.none)
+                Picker(appState.strings.t("conn.sshJumpHost"), selection: $options.jumpHostProfileID) {
+                    Text(appState.strings.t("conn.directConnection")).tag(UUID?.none)
                     ForEach(availableBastions) { candidate in
                         Text("\(candidate.name) (\(candidate.host))").tag(UUID?.some(candidate.id))
                     }

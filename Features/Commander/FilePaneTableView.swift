@@ -1,5 +1,6 @@
 import AppKit
 import SparkleCore
+import SparkleDesignSystem
 import SparkleFileManager
 import SwiftUI
 
@@ -26,6 +27,7 @@ public struct FilePaneTableView: NSViewRepresentable {
     public let files: [RemoteFile]
     @Binding public var selectedIDs: Set<String>
     public let isLocalPane: Bool
+    public let strings: AppStrings
     public let onActivateRow: (RemoteFile) -> Void
     public let onSortColumn: (FileSortField) -> Void
     public let onFocusPane: () -> Void
@@ -35,6 +37,7 @@ public struct FilePaneTableView: NSViewRepresentable {
         files: [RemoteFile],
         selectedIDs: Binding<Set<String>>,
         isLocalPane: Bool = true,
+        strings: AppStrings = AppStrings(),
         onActivateRow: @escaping (RemoteFile) -> Void,
         onSortColumn: @escaping (FileSortField) -> Void,
         onFocusPane: @escaping () -> Void,
@@ -43,6 +46,7 @@ public struct FilePaneTableView: NSViewRepresentable {
         self.files = files
         _selectedIDs = selectedIDs
         self.isLocalPane = isLocalPane
+        self.strings = strings
         self.onActivateRow = onActivateRow
         self.onSortColumn = onSortColumn
         self.onFocusPane = onFocusPane
@@ -70,10 +74,10 @@ public struct FilePaneTableView: NSViewRepresentable {
         tableView.dataSource = context.coordinator
 
         let columns: [TableColumnSpec] = [
-            TableColumnSpec(identifier: "name", title: "Name", width: 240),
-            TableColumnSpec(identifier: "size", title: "Size", width: 80),
-            TableColumnSpec(identifier: "modified", title: "Modified", width: 140),
-            TableColumnSpec(identifier: "permissions", title: "Permissions", width: 90)
+            TableColumnSpec(identifier: "name", title: strings.t("pane.name"), width: 240),
+            TableColumnSpec(identifier: "size", title: strings.t("pane.size"), width: 80),
+            TableColumnSpec(identifier: "modified", title: strings.t("pane.modified"), width: 140),
+            TableColumnSpec(identifier: "permissions", title: strings.t("pane.permissions"), width: 90)
         ]
         for spec in columns {
             let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(spec.identifier))
@@ -85,6 +89,7 @@ public struct FilePaneTableView: NSViewRepresentable {
 
         scrollView.documentView = tableView
         tableView.menu = context.coordinator.buildContextMenu()
+        context.coordinator.cachedLocaleCode = strings.localeCode
         context.coordinator.tableView = tableView
         return scrollView
     }
@@ -92,6 +97,21 @@ public struct FilePaneTableView: NSViewRepresentable {
     public func updateNSView(_: NSScrollView, context: Context) {
         context.coordinator.parent = self
         guard let tableView = context.coordinator.tableView else { return }
+        if context.coordinator.cachedLocaleCode != strings.localeCode {
+            context.coordinator.cachedLocaleCode = strings.localeCode
+            let localizedTitles: [String: String] = [
+                "name": strings.t("pane.name"),
+                "size": strings.t("pane.size"),
+                "modified": strings.t("pane.modified"),
+                "permissions": strings.t("pane.permissions")
+            ]
+            for column in tableView.tableColumns {
+                if let title = localizedTitles[column.identifier.rawValue] {
+                    column.title = title
+                }
+            }
+            tableView.menu = context.coordinator.buildContextMenu()
+        }
         if context.coordinator.cachedFiles != files {
             context.coordinator.cachedFiles = files
             context.coordinator.isProgrammaticUpdate = true
@@ -108,6 +128,7 @@ public struct FilePaneTableView: NSViewRepresentable {
     public final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         var parent: FilePaneTableView
         var cachedFiles: [RemoteFile] = []
+        var cachedLocaleCode: String = ""
         weak var tableView: NSTableView?
         var isProgrammaticUpdate = false
 
@@ -200,20 +221,17 @@ public struct FilePaneTableView: NSViewRepresentable {
         func buildContextMenu() -> NSMenu {
             let menu = NSMenu(title: "Commander Actions")
             let specs: [(String, FilePaneContextAction)] = [
-                ("Open", .open),
-                (parent.isLocalPane ? "Upload" : "Download", .transfer),
-                ("Quick Look", .quickLook),
-                ("Edit File", .edit),
-                ("Rename...", .rename),
-                ("Permissions (chmod)...", .permissions),
-                ("Get Info...", .inspect),
-                ("New Folder...", .newFolder),
-                ("Delete", .delete)
+                (parent.strings.t("common.open"), .open),
+                (parent.isLocalPane ? parent.strings.upload : parent.strings.download, .transfer),
+                (parent.strings.t("nav.quickLook"), .quickLook),
+                (parent.strings.t("pane.openInNotepad"), .edit),
+                (parent.strings.t("common.rename"), .rename),
+                (parent.strings.t("pane.chmod"), .permissions),
+                (parent.strings.t("pane.getInfo"), .inspect),
+                (parent.strings.newFolder, .newFolder),
+                (parent.strings.t("common.delete"), .delete)
             ]
             for (title, action) in specs {
-                if action == .edit, parent.isLocalPane {
-                    continue
-                }
                 if action == .permissions, parent.isLocalPane {
                     continue
                 }

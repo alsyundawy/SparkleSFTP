@@ -25,7 +25,7 @@ public struct ConnectionManagerView: View {
     public var body: some View {
         List(selection: $appState.selectedProfileID) {
             if appState.searchText.isEmpty, !appState.recentProfiles.isEmpty {
-                Section("Recent") {
+                Section(appState.strings.t("nav.recent")) {
                     ForEach(appState.recentProfiles.prefix(4)) { profile in
                         profileRow(profile)
                     }
@@ -75,16 +75,16 @@ public struct ConnectionManagerView: View {
                     }
                     .buttonStyle(.borderedProminent)
 
-                    Button("+ Group") {
+                    Button(appState.strings.t("nav.newGroup")) {
                         isAddingGroup = true
                     }
 
-                    Menu("Import") {
-                        Button("~/.ssh/config") {
+                    Menu(appState.strings.t("nav.importMenu")) {
+                        Button(appState.strings.t("nav.importSSHConfig")) {
                             Task { await appState.importFromSSHConfig() }
                         }
-                        Button("FileZilla XML / WinSCP INI...") {
-                            isShowingImporter = true
+                        Button(appState.strings.t("nav.importExternal")) {
+                            appState.isShowingImportSheet = true
                         }
                     }
                 }
@@ -93,10 +93,10 @@ public struct ConnectionManagerView: View {
             .frame(maxWidth: .infinity)
             .background(.ultraThinMaterial)
         }
-        .alert("New Server Group", isPresented: $isAddingGroup) {
-            TextField("Group name", text: $newGroupName)
-            Button("Cancel", role: .cancel) { newGroupName = "" }
-            Button("Create") {
+        .alert(appState.strings.t("nav.newGroupTitle"), isPresented: $isAddingGroup) {
+            TextField(appState.strings.t("nav.groupName"), text: $newGroupName)
+            Button(appState.strings.t("common.cancel"), role: .cancel) { newGroupName = "" }
+            Button(appState.strings.t("common.create")) {
                 let name = newGroupName
                 newGroupName = ""
                 Task { await appState.createGroup(named: name) }
@@ -104,11 +104,16 @@ public struct ConnectionManagerView: View {
         }
         .fileImporter(
             isPresented: $isShowingImporter,
-            allowedContentTypes: [.xml, .plainText],
+            allowedContentTypes: [
+                .xml,
+                .plainText,
+                UTType(filenameExtension: "ini") ?? .data,
+                .data
+            ],
             allowsMultipleSelection: false
         ) { result in
             if case let .success(urls) = result, let url = urls.first {
-                Task { await appState.importExternalConnections(from: url) }
+                appState.inspectExternalConnections(from: url)
             }
         }
     }
@@ -186,7 +191,7 @@ public struct ConnectionEditorView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text(existingProfile == nil ? appState.strings.newConnection : "Edit Connection")
+            Text(existingProfile == nil ? appState.strings.newConnection : appState.strings.t("nav.editConnection"))
                 .font(SparkleTheme.Typography.title)
 
             if protocolType == .ftp {
@@ -194,9 +199,9 @@ public struct ConnectionEditorView: View {
             }
 
             Form {
-                Section("Server & Credentials") {
-                    TextField("Profile Name", text: $name)
-                    Picker("Protocol", selection: $protocolType) {
+                Section(appState.strings.t("conn.serverAndCreds")) {
+                    TextField(appState.strings.t("conn.profileName"), text: $name)
+                    Picker(appState.strings.t("conn.protocol"), selection: $protocolType) {
                         ForEach(ProtocolType.allCases) { proto in
                             Text(proto.displayName).tag(proto)
                         }
@@ -206,10 +211,10 @@ public struct ConnectionEditorView: View {
                             port = String(newProto.defaultPort)
                         }
                     }
-                    TextField("Host", text: $host)
-                    TextField("Port", text: $port)
-                    TextField("Username", text: $username)
-                    Picker("Authentication", selection: $authMethod) {
+                    TextField(appState.strings.t("conn.host"), text: $host)
+                    TextField(appState.strings.t("conn.port"), text: $port)
+                    TextField(appState.strings.t("conn.username"), text: $username)
+                    Picker(appState.strings.t("conn.authentication"), selection: $authMethod) {
                         ForEach(AuthMethod.allCases) { method in
                             Text(method.rawValue).tag(method)
                         }
@@ -220,11 +225,11 @@ public struct ConnectionEditorView: View {
                             .frame(height: 80)
                             .overlay(RoundedRectangle(cornerRadius: 4).stroke(SparkleTheme.Colors.subtleBorder))
                     } else if authMethod != .anonymous, authMethod != .sshAgent {
-                        SecureField("Password (Stored in Apple Keychain)", text: $secretInput)
+                        SecureField(appState.strings.t("conn.passwordKeychain"), text: $secretInput)
                     }
-                    TextField("Default Remote Path", text: $remotePath)
-                    Toggle("Favorite", isOn: $isFavorite)
-                    Toggle("Require Touch ID before connecting", isOn: $requireTouchID)
+                    TextField(appState.strings.t("conn.defaultRemotePath"), text: $remotePath)
+                    Toggle(appState.strings.t("nav.favorite"), isOn: $isFavorite)
+                    Toggle(appState.strings.t("conn.requireTouchID"), isOn: $requireTouchID)
                 }
 
                 ConnectionAdvancedSection(
@@ -248,8 +253,8 @@ public struct ConnectionEditorView: View {
     private var editorButtons: some View {
         HStack {
             Spacer()
-            Button("Cancel", role: .cancel) { dismiss() }
-            Button("Save") { saveChanges() }
+            Button(appState.strings.t("common.cancel"), role: .cancel) { dismiss() }
+            Button(appState.strings.t("common.save")) { saveChanges() }
                 .buttonStyle(.borderedProminent)
                 .disabled(host.trimmingCharacters(in: .whitespaces).isEmpty)
         }

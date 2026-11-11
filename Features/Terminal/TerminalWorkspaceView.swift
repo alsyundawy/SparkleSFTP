@@ -54,13 +54,13 @@ public struct TerminalWorkspaceView: View {
                     Image(systemName: "plus")
                 }
                 .disabled(appState.currentSession?.sshClient == nil)
-                .help("New Terminal Tab")
+                .help(appState.strings.t("nav.openTerminalTab"))
 
-                Toggle("Split", isOn: $appState.splitTerminalMode)
+                Toggle(appState.strings.t("nav.split"), isOn: $appState.splitTerminalMode)
                     .toggleStyle(.button)
 
-                Button("Snippets") { isShowingSnippets = true }
-                Button("Tunnels") { isShowingForwarding = true }
+                Button(appState.strings.t("nav.snippets")) { isShowingSnippets = true }
+                Button(appState.strings.t("nav.tunnels")) { isShowingForwarding = true }
             }
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
@@ -68,11 +68,11 @@ public struct TerminalWorkspaceView: View {
 
             if terminalManager.sessions.isEmpty {
                 VStack(spacing: SparkleTheme.Spacing.tiny) {
-                    Text("No active SSH PTY sessions")
+                    Text(appState.strings.t("nav.noActivePTY"))
                         .font(SparkleTheme.Typography.body)
                         .foregroundStyle(SparkleTheme.Colors.secondaryText)
                     if appState.currentSession?.sshClient != nil {
-                        Button("Open PTY Shell") {
+                        Button(appState.strings.t("nav.openPTYShell")) {
                             Task { await appState.openTerminalTab() }
                         }
                     }
@@ -111,15 +111,15 @@ public struct SnippetsSheet: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
             HStack {
-                Text("Command Snippets").font(SparkleTheme.Typography.title)
+                Text(appState.strings.t("nav.snippets")).font(SparkleTheme.Typography.title)
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(appState.strings.t("common.close")) { dismiss() }
             }
 
             HStack {
                 TextField("Title", text: $newTitle)
                 TextField("Command", text: $newCommand)
-                Button("Add") {
+                Button(appState.strings.t("common.add")) {
                     let title = newTitle
                     let cmd = newCommand
                     newTitle = ""
