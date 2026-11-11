@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted *(`TransferJournal` storage backend superseded from SwiftData to system `SQLite3` in [ADR-005](0005-macos13-sqlite3-journal-and-observable-object.md))*
 
 ## Date
 

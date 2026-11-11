@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Long-Term Post-Release Review & Bundle Crash Fix (`docs/LONG_TERM_REVIEW_2026_11.md`, `ADR-006`)**:
+  - Completed comprehensive 14-pillar / 14-skill post-completion review covering Swift 6 concurrency, SwiftUI/NSTableView performance, SFTP/SCP/FTP/FTPS security, SwiftTerm lifecycle, TransferJournal durability, Docker test gaps, and Sparkle/Developer ID release infrastructure.
+  - Eliminated a critical `.app` packaging launch-crash hazard where `LocalizationCatalog.loadBundledStrings` and `AppDelegate.configureApplicationIcon` invoked SwiftPM's `Bundle.module` accessor directly while `Tools/Release/build-universal.sh` omitted `SparkleSFTP_*.bundle` artifacts from `Contents/Resources/` (added crash-safe `resolveResourceBundle()` lookup + `Contents/Resources/` bundle copying).
+  - Updated [ADR-001](docs/ADR/0001-tech-stack-and-protocols.md) and [ADR-003](docs/ADR/0003-metadata-persistence-swiftdata-vs-json.md) supersession headers and added [ADR-006](docs/ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md).
 - Fixed `FileZillaImporter` nested `<Folder>` parsing where child `<Folder>` or `<Server>` elements cleared buffered parent folder names prior to commit (`flushPendingFolderName()`).
 - Fixed `WinSCPIniImporter` BOM (`\u{FEFF}`) handling on line 1, `\`-first path splitting prior to percent-decoding, macOS `.fileImporter` `.ini` `UTType` selection filter, and `Optional<ImportedSecretStatus>.none` compiler warning.
 - Fixed Solarized Light `primaryTextHex` contrast to satisfy strict WCAG AA (`>= 4.5:1`) readability across all `28` built-in themes.

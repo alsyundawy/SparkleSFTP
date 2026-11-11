@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted *(SSH/SFTP transport choice partially superseded by [ADR-004](0004-direct-swift-nio-ssh-and-sftp-codec.md))*
 
 ## Date
 

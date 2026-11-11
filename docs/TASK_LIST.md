@@ -52,6 +52,7 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-028** Enhance FileZilla XML (`<Folder>` stack, `base64`, `crypt` rejection) & WinSCP INI (UTF-16LE/BE/UTF-8 BOM, nested `Sessions\Folder%2FName`, `FSProtocol` `0/1/2/5`, proxies) readers (`WinSCPAndFileReader`) + `.ini` `UTType` picker + interactive `ImportConnectionsSheet`.
 - [x] **T-029** Build Minimalist Notepad2 Internal File Editor (`Features/Editor/`: `EditorModels`, `EditorSessionManager`, `EditorSyntaxHighlighter`, `NotepadTextView`, `NotepadLineNumberRuler`, `InternalEditorToolbar`, `InternalEditorBars`, `InternalEditorView`, `EditorWindowController`) with Commander integration and remote upload-on-save.
 - [x] **T-030** Implement Bidirectional & Reverse Folder Synchronization (`TASK-108` across `SyncPlanner`, `SyncExecutor`, `SyncPreviewSheet`, `BidirectionalSyncTests`, `EditorAndSyncTests`).
+- [x] **T-031** Conduct 14-pillar / 14-skill Post-Completion Long-Term Review ([`docs/LONG_TERM_REVIEW_2026_11.md`](LONG_TERM_REVIEW_2026_11.md), [ADR-006](ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md)), verify SonarQube/MegaLinter/SwiftLint gates, and harden `.app` resource bundle lookup against `Bundle.module` `fatalError` crashes.
 
 ## Post-MVP / External Infrastructure Gates (Deferred)
 
