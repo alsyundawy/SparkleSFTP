@@ -75,10 +75,11 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
                     queue: .main
                 ) { [weak self] _ in
                     Task { @MainActor [weak self] in
-                        guard let self, let currentWindow = self.window,
+                        guard let probe = self,
+                              let currentWindow = probe.window,
                               Self.needsWindowControlsEnforcement(currentWindow)
                         else { return }
-                        applyWindowConfiguration()
+                        probe.applyWindowConfiguration()
                     }
                 }
                 nextTokens.append(token)
