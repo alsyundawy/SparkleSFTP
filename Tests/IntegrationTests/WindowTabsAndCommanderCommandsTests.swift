@@ -70,8 +70,8 @@ private struct LoopbackTestPaths: Sendable {
     }
 }
 
-@Suite("Multi-Window Isolation, Multi-Tab Sessions & WinSCP Commands Tests")
-struct WindowTabsAndWinSCPCommandsTests {
+@Suite("Multi-Window Isolation, Multi-Tab Sessions & Commander Commands Tests")
+struct WindowTabsAndCommanderCommandsTests {
     @Test("Independent windows isolate activeSessions while supporting paired multi-tab host sessions")
     func independentWindowsAndMultiTabSessions() async throws {
         let dirs = try LoopbackTestPaths.createDirectories(prefix: "SparkleWin")

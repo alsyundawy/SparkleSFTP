@@ -103,13 +103,13 @@ SparkleSFTP/
 │   │   ├── Security/                      # KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator (`CWE-22/59/78`), PrivateKeyParser, UpdateConfigurationValidator
 │   │   ├── Terminal/                      # TerminalViewRepresentable, ExternalTerminalLauncher, TerminalSessionManager, PortForwardingManager, CommandSnippetStore
 │   │   ├── Synchronization/               # DirectoryScanner, SyncPlanner, SyncExecutor
-│   │   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters, WinSCPAndFileReader
+│   │   ├── Persistence/                   # ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSHConfigParser, ExternalImporters, ExternalSessionFileReader (incl. 0xA3 WinSCP INI password decryption)
 │   │   └── DesignSystem/                  # 76 SparkNotePad/NotepadNext themes (26 families), SparkleWindowConfigurator, EN/ID JSON Locales (361 keys)
 │   │
-│   └── Features/                          # SwiftUI + AppKit Views & AppState (+WorkspaceTabs/+WinSCPCommands/+Connections/+ConnectionManagement/+Operations/+Imports/+Settings/+TransferHelpers)
+│   └── Features/                          # SwiftUI + AppKit Views & AppState (+WorkspaceTabs/+CommanderCommands/+Connections/+ConnectionManagement/+Operations/+Imports/+Settings/+TransferHelpers)
 │       ├── Dashboard/                     # MainWindowView, WorkspaceTabBar, 7-tab AboutView, AboutWindowController
 │       ├── Connections/                   # ConnectionTableView (+hover/+right-click/+menu), ConnectionViews (visible toolbar), ConnectionEditorView, ConnectionAdvancedSection, ConnectionSecuritySheets, ImportConnectionsSheet
-│       ├── Commander/                     # DualPaneCommanderView (+Actions), FilePaneTableView (+InteractiveFileTableSupport/+Menu), QuickConnectBar, CommanderSheets, WinSCPCommandSheets
+│       ├── Commander/                     # DualPaneCommanderView (+Actions), FilePaneTableView (+InteractiveFileTableSupport/+Menu), QuickConnectBar, CommanderSheets, CommanderCustomCommandSheets
 │       ├── Editor/                        # Minimalist Notepad2 Internal File Editor (NSTextView + NSRulerView)
 │       ├── Transfers/                     # TransferMonitor, TransferQueueView, ConflictResolutionSheet FileZilla
 │       ├── Terminal/                      # TerminalWorkspaceView (remote PTY + local shell + iTerm2/Terminal)

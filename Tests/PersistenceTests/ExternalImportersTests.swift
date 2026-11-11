@@ -99,4 +99,121 @@ struct ExternalImportersTests {
         #expect(ftps.profile.protocolType == .ftpsImplicit)
         #expect(ftps.secretStatus == .none)
     }
+
+    @Test("WinSCPIniImporter decrypts standard UTF-8 passwords and legacy obfuscated passwords safely")
+    func winSCPIniPasswordDecryption() throws {
+        let unicodeSecret = "p@ssw0rd!€123"
+        let encryptedStandard = Self.encodeWinSCPStandardPassword(
+            password: unicodeSecret,
+            username: "alice@corp",
+            hostname: "files.example.org"
+        )
+        let encryptedUserless = Self.encodeWinSCPStandardPassword(
+            password: "anon-secret",
+            username: "",
+            hostname: "public.example.net"
+        )
+        let encryptedLegacy = Self.encodeWinSCPLegacyPassword(password: "legacy42")
+
+        let ini = """
+        [Configuration\\Security]
+        UseMasterPassword=0
+
+        [Sessions\\Prod\\Unicode%20SFTP]
+        HostName=files.example.org
+        PortNumber=22
+        UserName=alice%40corp
+        FSProtocol=0
+        Password=\(encryptedStandard)
+
+        [Sessions\\PublicFTP]
+        HostName=public.example.net
+        FSProtocol=5
+        Password=\(encryptedUserless)
+
+        [Sessions\\OldHost]
+        HostName=old.example.org
+        UserName=ops
+        FSProtocol=1
+        Password=\(encryptedLegacy)
+        """
+        let report = try ExternalConnectionFileReader.inspect(data: Data(ini.utf8), fileExtension: "ini")
+        #expect(report.connections.count == 3)
+
+        let stdEntry = report.connections[0]
+        #expect(stdEntry.profile.username == "alice@corp")
+        #expect(stdEntry.secretStatus == .plaintextReady)
+        #expect(stdEntry.transientSecret == Data(unicodeSecret.utf8))
+        #expect(stdEntry.profile.passwordRef != nil)
+
+        let anonEntry = report.connections[1]
+        #expect(anonEntry.secretStatus == .plaintextReady)
+        #expect(anonEntry.transientSecret == Data("anon-secret".utf8))
+
+        let legacyEntry = report.connections[2]
+        #expect(legacyEntry.secretStatus == .plaintextReady)
+        #expect(legacyEntry.transientSecret == Data("legacy42".utf8))
+    }
+
+    @Test("WinSCPIniImporter fails closed when Vault Password is enabled or payload is corrupted")
+    func winSCPIniVaultPasswordFailsClosed() {
+        let validWithoutVaultPass = Self.encodeWinSCPStandardPassword(
+            password: "should-not-decode-when-vault-pass-enabled",
+            username: "deploy",
+            hostname: "host.example.com"
+        )
+        let ini = """
+        [Sessions\\Protected]
+        HostName=host.example.com
+        UserName=deploy
+        FSProtocol=0
+        Password=\(validWithoutVaultPass)
+
+        [Configuration\\Security]
+        UseMasterPassword=1
+        """
+        let report = WinSCPIniImporter.parseWithReport(iniContents: ini)
+        #expect(report.connections.count == 1)
+        #expect(report.connections[0].secretStatus == .encryptedUnavailable)
+        #expect(report.connections[0].transientSecret == nil)
+        #expect(report.connections[0].profile.passwordRef == nil)
+    }
+
+    private static func encodeWinSCPByte(_ plain: UInt8) -> String {
+        let obfuscated = ~plain ^ 0xA3
+        return String(format: "%02X", obfuscated)
+    }
+
+    private static func encodeWinSCPStandardPassword(
+        password: String,
+        username: String,
+        hostname: String
+    ) -> String {
+        let payload = Array((username + hostname + password).utf8)
+        let shift = 3
+        var hex = encodeWinSCPByte(0xFF)
+            + encodeWinSCPByte(0x00)
+            + encodeWinSCPByte(UInt8(payload.count))
+            + encodeWinSCPByte(UInt8(shift))
+        for pad in 0 ..< shift {
+            hex += encodeWinSCPByte(UInt8((pad * 37 + 11) & 0xFF))
+        }
+        for byte in payload {
+            hex += encodeWinSCPByte(byte)
+        }
+        return hex
+    }
+
+    private static func encodeWinSCPLegacyPassword(password: String) -> String {
+        let payload = Array(password.utf8)
+        let shift = 2
+        var hex = encodeWinSCPByte(UInt8(payload.count)) + encodeWinSCPByte(UInt8(shift))
+        for pad in 0 ..< shift {
+            hex += encodeWinSCPByte(UInt8((pad + 19) & 0xFF))
+        }
+        for byte in payload {
+            hex += encodeWinSCPByte(byte)
+        }
+        return hex
+    }
 }

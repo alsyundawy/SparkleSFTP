@@ -1410,9 +1410,9 @@ jobs:
 - [x] `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` pada semua Keychain entries (`SecurityTests` + `no_icloud_keychain_sync` — lihat [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md))
 - [x] Path traversal test: download dengan `../` path → rejected (`SecurityTests`)
 - [x] Symlink attack test: recursive download/scan & pre-existing local symlink destination → rejected (`SecurityTests`, `SynchronizationTests`)
-- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, 8x pipelined SFTP SHA-256 parity, FileZilla conflict policy & FIFO queue drain, multi-window isolation & paired multi-tab sessions, WinSCP `.gz` upload / SHA-256 / compare / `CWE-78` quoting → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`, `ToolchainAndConflictTests`, `WindowTabsAndWinSCPCommandsTests`)
+- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, 8x pipelined SFTP SHA-256 parity, FileZilla conflict policy & FIFO queue drain, multi-window isolation & paired multi-tab sessions, WinSCP `.gz` upload / SHA-256 / compare / `CWE-78` quoting → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`, `ToolchainAndConflictTests`, `WindowTabsAndCommanderCommandsTests`)
 - [x] Proxy tunnel strict HTTP `200` status token enforcement & bounded stall timeouts (`NetworkingTests`, `LoopbackAdvancedIntegrationTests`)
-- [x] PTY leak test: open/close 100 terminal tabs + `CWE-78` sanitasi `ExternalTerminalLauncher` & `PathValidator.escapePOSIXSingleQuoted` → aman & tidak leak (`IntegrationTests`, `ToolchainAndConflictTests`, `WindowTabsAndWinSCPCommandsTests`)
+- [x] PTY leak test: open/close 100 terminal tabs + `CWE-78` sanitasi `ExternalTerminalLauncher` & `PathValidator.escapePOSIXSingleQuoted` → aman & tidak leak (`IntegrationTests`, `ToolchainAndConflictTests`, `WindowTabsAndCommanderCommandsTests`)
 - [x] SHA-256 verification: tidak blocking main thread untuk file > 100MB (`TransferEngineTests`)
 - [x] Sparkle: unsigned/non-HTTPS update check dan placeholder `SUPublicEDKey` ditolak (`UpdateConfigurationValidator`, `SecurityTests`, `SparkleUpdaterService`); Ed25519 appcast signing dilakukan pada host rilis
 - [x] OSLog: tidak ada secret dalam log (`DiagnosticsLogger` + SwiftLint `no_password_in_logs`)
