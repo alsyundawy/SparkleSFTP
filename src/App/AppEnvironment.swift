@@ -26,6 +26,7 @@ public final class AppEnvironment {
     public let portForwardingManager: PortForwardingManager
 
     private var windowBoxes: [WeakAppStateBox] = []
+    private var queuedInitialProfileIDs: [UUID] = []
     public private(set) lazy var settingsFallbackState: AppState = makeWindowState()
 
     public init() {
@@ -38,7 +39,16 @@ public final class AppEnvironment {
         portForwardingManager = PortForwardingManager()
     }
 
-    public func makeWindowState() -> AppState {
+    public func enqueueInitialProfile(_ profileID: UUID) {
+        queuedInitialProfileIDs.append(profileID)
+    }
+
+    public func dequeueInitialProfile() -> UUID? {
+        guard !queuedInitialProfileIDs.isEmpty else { return nil }
+        return queuedInitialProfileIDs.removeFirst()
+    }
+
+    public func makeWindowState(initialProfileID: UUID? = nil) -> AppState {
         let updater = updaterService
         let state = AppState(
             credentialStore: credentialStore,
@@ -59,6 +69,7 @@ public final class AppEnvironment {
                 updater?.applySettings(settings)
             }
         )
+        state.initialProfileIDForWindow = initialProfileID
         pruneAndRegister(state)
         return state
     }

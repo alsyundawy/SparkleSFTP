@@ -213,10 +213,12 @@ public final class AppState: ObservableObject {
     public let featureFlags: FeatureFlags
     public let editorManager = EditorSessionManager()
     public let windowInstanceID = UUID()
+    public var initialProfileIDForWindow: UUID?
     public var onOpenProfileInNewWindow: ((UUID) -> Void)?
     let editorWindowController = EditorWindowController()
     let aboutWindowController = AboutWindowController()
 
+    var didBootstrap = false
     var transferQueueInstance: TransferQueue?
     var snapshotStreamTask: Task<Void, Never>?
     var localWatcher = LocalDirectoryWatcher()

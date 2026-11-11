@@ -117,6 +117,8 @@ public extension AppState {
     }
 
     func bootstrap() async {
+        guard !didBootstrap else { return }
+        didBootstrap = true
         if Bundle.main.bundleURL.pathExtension == "app" {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
@@ -326,6 +328,9 @@ public extension AppState {
         }
         trustedHosts = await hostTrustStore.allTrustedHosts()
 
+        if openInNewTab {
+            syncCurrentTabLocalSnapshot()
+        }
         if let localDefault = profile.defaultLocalPath, !localDefault.isEmpty,
            FileManager.default.fileExists(atPath: localDefault) {
             await refreshLocalDirectory(URL(fileURLWithPath: localDefault))

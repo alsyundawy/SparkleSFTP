@@ -22,9 +22,7 @@ public extension AppState {
     @discardableResult
     func openNewWorkspaceTab() -> WorkspaceTab {
         syncCurrentTabLocalSnapshot()
-        let baseTitle = strings.t("tabs.newTab")
-        let emptyCount = workspaceTabs.count { $0.sessionID == nil }
-        let title = emptyCount == 0 ? baseTitle : "\(baseTitle) #\(emptyCount + 1)"
+        let title = nextEmptyTabTitle()
         let tab = WorkspaceTab(
             id: UUID(),
             sessionID: nil,
@@ -39,10 +37,24 @@ public extension AppState {
         return tab
     }
 
-    func selectWorkspaceTab(id: UUID) async {
+    private func nextEmptyTabTitle() -> String {
+        let baseTitle = strings.t("tabs.newTab")
+        let existingTitles = Set(workspaceTabs.map(\.title))
+        if !existingTitles.contains(baseTitle) {
+            return baseTitle
+        }
+        var suffix = 2
+        while existingTitles.contains("\(baseTitle) #\(suffix)") {
+            suffix += 1
+        }
+        return "\(baseTitle) #\(suffix)"
+    }
+
+    @discardableResult
+    func selectWorkspaceTabSync(id: UUID) -> URL? {
         guard id != activeTabID,
               let target = workspaceTabs.first(where: { $0.id == id })
-        else { return }
+        else { return nil }
 
         syncCurrentTabLocalSnapshot()
         activeTabID = target.id
@@ -52,14 +64,22 @@ public extension AppState {
         if target.sessionID != nil {
             activePane = .right
         }
-
         if target.localPath.standardizedFileURL != localCurrentURL.standardizedFileURL {
-            await refreshLocalDirectory(target.localPath, recordHistory: false)
+            return target.localPath
+        }
+        return nil
+    }
+
+    func selectWorkspaceTab(id: UUID) async {
+        if let pendingURL = selectWorkspaceTabSync(id: id) {
+            await refreshLocalDirectory(pendingURL, recordHistory: false)
         }
     }
 
-    func closeWorkspaceTab(id: UUID) async {
-        guard let idx = workspaceTabs.firstIndex(where: { $0.id == id }) else { return }
+    func closeWorkspaceTabSync(id: UUID) -> (removedSessionID: UUID?, pendingLocalRefresh: URL?) {
+        guard let idx = workspaceTabs.firstIndex(where: { $0.id == id }) else {
+            return (nil, nil)
+        }
         let removedSessionID = workspaceTabs[idx].sessionID
 
         if workspaceTabs.count == 1 {
@@ -67,10 +87,7 @@ public extension AppState {
             workspaceTabs[0].title = strings.t("tabs.newTab")
             activeTabID = workspaceTabs[0].id
             activeSessionID = nil
-            if let removedSessionID {
-                await disconnect(sessionID: removedSessionID)
-            }
-            return
+            return (removedSessionID, nil)
         }
 
         let wasActive = (activeTabID == id)
@@ -83,14 +100,22 @@ public extension AppState {
             activeSessionID = nextTab.sessionID
             localHistory = nextTab.localHistory
             localSortDescriptor = nextTab.localSortDescriptor
+            if nextTab.sessionID != nil {
+                activePane = .right
+            }
             if nextTab.localPath.standardizedFileURL != localCurrentURL.standardizedFileURL {
                 pendingLocalRefresh = nextTab.localPath
             }
         }
-        if let removedSessionID {
+        return (removedSessionID, pendingLocalRefresh)
+    }
+
+    func closeWorkspaceTab(id: UUID) async {
+        let outcome = closeWorkspaceTabSync(id: id)
+        if let removedSessionID = outcome.removedSessionID {
             await disconnect(sessionID: removedSessionID)
         }
-        if let pendingLocalRefresh {
+        if let pendingLocalRefresh = outcome.pendingLocalRefresh {
             await refreshLocalDirectory(pendingLocalRefresh, recordHistory: false)
         }
     }

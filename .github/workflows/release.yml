@@ -34,7 +34,7 @@ jobs:
           xcodebuild -version
 
       - name: Run unit & loopback integration test suite
-        run: swift test -j 2
+        run: swift test --no-parallel -j 2
 
       - name: Resolve release metadata
         id: meta

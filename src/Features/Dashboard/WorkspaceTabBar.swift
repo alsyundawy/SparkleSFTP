@@ -11,26 +11,63 @@ public struct WorkspaceTabBar: View {
 
     public var body: some View {
         let palette = appState.activePalette
-        HStack(spacing: 4) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(appState.workspaceTabs) { tab in
-                        WorkspaceTabItemView(appState: appState, tab: tab, palette: palette)
+        let items = buildStripItems()
+        HStack(spacing: 6) {
+            WorkspaceTabStripRepresentable(
+                items: items,
+                activeTabID: appState.activeTabID,
+                palette: palette,
+                strings: appState.strings,
+                onSelect: { tabID in
+                    if let pendingURL = appState.selectWorkspaceTabSync(id: tabID) {
+                        Task { await appState.refreshLocalDirectory(pendingURL, recordHistory: false) }
                     }
+                },
+                onClose: { tabID in
+                    let outcome = appState.closeWorkspaceTabSync(id: tabID)
+                    if outcome.removedSessionID != nil || outcome.pendingLocalRefresh != nil {
+                        Task {
+                            if let removedID = outcome.removedSessionID {
+                                await appState.disconnect(sessionID: removedID)
+                            }
+                            if let localURL = outcome.pendingLocalRefresh {
+                                await appState.refreshLocalDirectory(localURL, recordHistory: false)
+                            }
+                        }
+                    }
+                },
+                onNewTab: { _ = appState.openNewWorkspaceTab() },
+                onDuplicateTab: { tabID in
+                    Task { await appState.duplicateWorkspaceTab(id: tabID) }
+                },
+                onReconnectTab: { tabID in
+                    Task { await appState.reconnectWorkspaceTab(id: tabID) }
+                },
+                onOpenNewWindow: { tabID in
+                    if let tab = appState.workspaceTabs.first(where: { $0.id == tabID }),
+                       let sessionID = tab.sessionID,
+                       let session = appState.activeSessions.first(where: { $0.id == sessionID }) {
+                        appState.openProfileInNewWindow(session.profile.id)
+                    }
+                },
+                onCloseOtherTabs: { tabID in
+                    Task { await appState.closeOtherWorkspaceTabs(keeping: tabID) }
                 }
-                .padding(.vertical, 4)
-            }
+            )
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .frame(height: 34)
 
             Button {
                 _ = appState.openNewWorkspaceTab()
             } label: {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))
-                    .frame(width: 24, height: 22)
-                    .contentShape(Rectangle())
+                    .frame(width: 18, height: 18)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .help(appState.strings.t("tabs.newTab"))
+            .accessibilityLabel(appState.strings.t("tabs.newTab"))
 
             Toggle(isOn: $appState.isQuickConnectBarVisible) {
                 Label(appState.strings.t("tabs.quickConnectToggle"), systemImage: "bolt.horizontal.fill")
@@ -39,139 +76,34 @@ public struct WorkspaceTabBar: View {
             }
             .toggleStyle(.button)
             .controlSize(.small)
+            .fixedSize()
             .help(appState.strings.t("tabs.quickConnectToggle"))
         }
         .padding(.horizontal, SparkleTheme.Spacing.small)
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .frame(height: 36)
+        .clipped()
         .background(palette.windowColor)
         .overlay(alignment: .bottom) {
             palette.borderColor.frame(height: 1)
         }
     }
-}
 
-private struct WorkspaceTabItemView: View {
-    @ObservedObject var appState: AppState
-    let tab: WorkspaceTab
-    let palette: SparkleThemePalette
-
-    @State private var isTabHovered = false
-    @State private var isCloseHovered = false
-
-    var body: some View {
-        let isActive = appState.activeTabID == tab.id
-        let session = appState.activeSessions.first { $0.id == tab.sessionID }
-        let canClose = appState.workspaceTabs.count > 1 || session != nil
-
-        HStack(spacing: 2) {
-            Button {
-                Task { await appState.selectWorkspaceTab(id: tab.id) }
-            } label: {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(
-                            session != nil
-                                ? SparkleTheme.Colors.encryptedBadge
-                                : palette.secondaryTextColor.opacity(0.45)
-                        )
-                        .frame(width: 6, height: 6)
-
-                    tabProtocolIcon(session: session)
-
-                    Text(tab.title)
-                        .font(SparkleTheme.Typography.caption.weight(isActive ? .semibold : .regular))
-                        .foregroundStyle(palette.primaryTextColor)
-                        .lineLimit(1)
-
-                    if isActive, let session {
-                        Text("(\(session.profile.username)@\(session.profile.host))")
-                            .font(SparkleTheme.Typography.monoSmall)
-                            .foregroundStyle(palette.secondaryTextColor)
-                            .lineLimit(1)
-                    }
-                }
-                .padding(.leading, 8)
-                .padding(.trailing, canClose ? 4 : 8)
-                .padding(.vertical, 5)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if canClose {
-                Button {
-                    Task { await appState.closeWorkspaceTab(id: tab.id) }
-                } label: {
-                    Image(systemName: isCloseHovered ? "xmark.circle.fill" : "xmark")
-                        .font(.system(size: isCloseHovered ? 11 : 9, weight: .bold))
-                        .foregroundStyle(isCloseHovered ? palette.primaryTextColor : palette.secondaryTextColor)
-                        .frame(width: 18, height: 18)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 4)
-                .onHover { isCloseHovered = $0 }
-                .help(appState.strings.t("tabs.closeTab"))
-            }
+    private func buildStripItems() -> [WorkspaceTabStripItem] {
+        let canCloseOthers = appState.workspaceTabs.count > 1
+        return appState.workspaceTabs.map { tab in
+            let session = appState.activeSessions.first { $0.id == tab.sessionID }
+            let subtitle = session.map { "(\($0.profile.username)@\($0.profile.host))" }
+            return WorkspaceTabStripItem(
+                id: tab.id,
+                title: tab.title,
+                subtitle: subtitle,
+                isConnected: session != nil,
+                isEncrypted: session?.profile.protocolType.isEncryptedByDefault ?? false,
+                isActive: appState.activeTabID == tab.id,
+                canClose: appState.workspaceTabs.count > 1 || session != nil,
+                canCloseOthers: canCloseOthers
+            )
         }
-        .background(backgroundColor(isActive: isActive))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(isActive ? palette.accentColor.opacity(0.85) : palette.borderColor, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .onHover { isTabHovered = $0 }
-        .contextMenu {
-            tabContextMenu(session: session)
-        }
-    }
-
-    private func backgroundColor(isActive: Bool) -> Color {
-        if isActive {
-            return palette.accentColor.opacity(palette.isDark ? 0.30 : 0.18)
-        }
-        if isTabHovered {
-            return palette.accentColor.opacity(palette.isDark ? 0.14 : 0.08)
-        }
-        return palette.canvasColor
-    }
-
-    @ViewBuilder
-    private func tabProtocolIcon(session: ActiveSessionModel?) -> some View {
-        if let session {
-            let encrypted = session.profile.protocolType.isEncryptedByDefault
-            Image(systemName: encrypted ? SparkleTheme.Symbols.sftp : SparkleTheme.Symbols.ftpInsecure)
-                .font(.caption)
-                .foregroundStyle(encrypted ? palette.accentColor : SparkleTheme.Colors.danger)
-        } else {
-            Image(systemName: "bolt.horizontal")
-                .font(.caption)
-                .foregroundStyle(palette.secondaryTextColor)
-        }
-    }
-
-    @ViewBuilder
-    private func tabContextMenu(session: ActiveSessionModel?) -> some View {
-        let strings = appState.strings
-        Button(strings.t("tabs.newTab")) {
-            _ = appState.openNewWorkspaceTab()
-        }
-        Button(strings.t("tabs.duplicateTab")) {
-            Task { await appState.duplicateWorkspaceTab(id: tab.id) }
-        }
-        if let session {
-            Button(strings.t("tabs.reconnect")) {
-                Task { await appState.reconnectWorkspaceTab(id: tab.id) }
-            }
-            Button(strings.t("conn.connectNewWindow")) {
-                appState.openProfileInNewWindow(session.profile.id)
-            }
-        }
-        Divider()
-        Button(strings.t("tabs.closeTab")) {
-            Task { await appState.closeWorkspaceTab(id: tab.id) }
-        }
-        Button(strings.t("tabs.closeOtherTabs")) {
-            Task { await appState.closeOtherWorkspaceTabs(keeping: tab.id) }
-        }
-        .disabled(appState.workspaceTabs.count <= 1)
     }
 }

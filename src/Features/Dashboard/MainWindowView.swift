@@ -25,31 +25,42 @@ public struct MainWindowView: View {
             VStack(spacing: 0) {
                 WorkspaceTabBar(appState: appState)
 
-                if appState.isQuickConnectBarVisible || appState.currentSession == nil {
+                if appState.isQuickConnectBarVisible {
                     QuickConnectBar(appState: appState)
                 }
 
                 VSplitView {
                     DualPaneCommanderView(appState: appState)
-                        .frame(minHeight: 280)
+                        .frame(minHeight: 180, idealHeight: 420)
 
                     if appState.isTerminalVisible {
                         TerminalWorkspaceView(appState: appState)
-                            .frame(minHeight: 180)
+                            .frame(minHeight: 120, idealHeight: 180)
                     }
 
                     if appState.isTransferDrawerVisible {
                         TransferQueueView(appState: appState)
-                            .frame(minHeight: 120, idealHeight: 160)
+                            .frame(minHeight: 90, idealHeight: 150)
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 statusBar
             }
+            .navigationSplitViewColumnWidth(min: 520, ideal: 920)
+            .clipped()
             .background(palette.windowColor)
             .foregroundStyle(palette.primaryTextColor)
             .tint(palette.accentColor)
         }
+        .frame(
+            minWidth: 820,
+            idealWidth: 1240,
+            maxWidth: .infinity,
+            minHeight: 540,
+            idealHeight: 780,
+            maxHeight: .infinity
+        )
         .preferredColorScheme(
             appState.appearanceMode == .auto ? nil : (appState.appearanceMode == .dark ? .dark : .light)
         )
@@ -224,31 +235,39 @@ private extension MainWindowView {
                 )
                 Text("\(session.profile.username)@\(session.profile.host):\(session.profile.port)")
                     .font(SparkleTheme.Typography.monoSmall)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             } else {
                 Text(appState.strings.t("nav.disconnected"))
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(palette.secondaryTextColor)
+                    .lineLimit(1)
             }
 
             if let message = appState.statusBannerMessage {
                 Text("· \(message)")
                     .font(SparkleTheme.Typography.caption)
                     .foregroundStyle(palette.secondaryTextColor)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Text(palette.displayName)
                 .font(SparkleTheme.Typography.caption)
                 .foregroundStyle(palette.secondaryTextColor)
+                .lineLimit(1)
 
             Toggle(appState.strings.t("nav.terminal"), isOn: $appState.isTerminalVisible)
                 .toggleStyle(.button)
                 .controlSize(.small)
+                .fixedSize()
 
             Toggle(appState.strings.t("nav.transfers"), isOn: $appState.isTransferDrawerVisible)
                 .toggleStyle(.button)
                 .controlSize(.small)
+                .fixedSize()
 
             languageMenuSelector
                 .controlSize(.small)
@@ -256,6 +275,8 @@ private extension MainWindowView {
         }
         .padding(.horizontal, SparkleTheme.Spacing.medium)
         .padding(.vertical, SparkleTheme.Spacing.tiny)
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .frame(height: 28)
         .background(palette.windowColor)
     }
 

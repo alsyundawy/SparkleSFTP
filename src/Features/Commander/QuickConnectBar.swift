@@ -12,52 +12,58 @@ public struct QuickConnectBar: View {
     public var body: some View {
         let strings = appState.strings
         let palette = appState.activePalette
-        HStack(spacing: 6) {
-            Picker("", selection: $appState.quickConnectProtocol) {
-                ForEach(ProtocolType.allCases, id: \.self) { proto in
-                    Text(proto.displayName).tag(proto)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                Picker("", selection: $appState.quickConnectProtocol) {
+                    ForEach(ProtocolType.allCases, id: \.self) { proto in
+                        Text(proto.displayName).tag(proto)
+                    }
                 }
-            }
-            .labelsHidden()
-            .frame(width: 112)
-            .controlSize(.small)
-
-            TextField(strings.t("conn.host"), text: $appState.quickConnectHost)
-                .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
-                .frame(minWidth: 130, idealWidth: 180)
-                .onSubmit { triggerQuickConnect() }
-
-            TextField(strings.t("conn.port"), text: $appState.quickConnectPort)
-                .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
-                .frame(width: 54)
-                .onSubmit { triggerQuickConnect() }
-
-            TextField(strings.t("conn.username"), text: $appState.quickConnectUsername)
-                .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
+                .labelsHidden()
                 .frame(width: 96)
-                .onSubmit { triggerQuickConnect() }
-
-            SecureField(strings.t("conn.password"), text: $appState.quickConnectPassword)
-                .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
-                .frame(width: 108)
-                .onSubmit { triggerQuickConnect() }
-
-            Toggle(strings.t("tabs.saveQuickSite"), isOn: $appState.quickConnectSaveProfile)
                 .controlSize(.small)
 
-            Button(strings.t("tabs.quickConnectButton")) {
-                triggerQuickConnect()
+                TextField(strings.t("conn.host"), text: $appState.quickConnectHost)
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.small)
+                    .frame(minWidth: 110, idealWidth: 160, maxWidth: 220)
+                    .onSubmit { triggerQuickConnect() }
+
+                TextField(strings.t("conn.port"), text: $appState.quickConnectPort)
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.small)
+                    .frame(width: 52)
+                    .onSubmit { triggerQuickConnect() }
+
+                TextField(strings.t("conn.username"), text: $appState.quickConnectUsername)
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.small)
+                    .frame(width: 84)
+                    .onSubmit { triggerQuickConnect() }
+
+                SecureField(strings.t("conn.password"), text: $appState.quickConnectPassword)
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.small)
+                    .frame(width: 96)
+                    .onSubmit { triggerQuickConnect() }
+
+                Toggle(strings.t("tabs.saveQuickSite"), isOn: $appState.quickConnectSaveProfile)
+                    .controlSize(.small)
+                    .fixedSize()
+
+                Button(strings.t("tabs.quickConnectButton")) {
+                    triggerQuickConnect()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .fixedSize()
+                .disabled(appState.quickConnectHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .disabled(appState.quickConnectHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .padding(.horizontal, SparkleTheme.Spacing.small)
+            .padding(.vertical, 5)
         }
-        .padding(.horizontal, SparkleTheme.Spacing.small)
-        .padding(.vertical, 5)
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .frame(height: 32)
         .background(palette.windowColor)
         .overlay(alignment: .bottom) {
             palette.borderColor.frame(height: 1)

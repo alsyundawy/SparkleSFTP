@@ -29,13 +29,21 @@ public struct DualPaneCommanderView: View {
     public var body: some View {
         HSplitView {
             localPane
-                .frame(minWidth: 280)
+                .frame(minWidth: 180)
                 .overlay(paneFocusBorder(isFocused: appState.activePane == .left))
 
             remotePane
-                .frame(minWidth: 280)
+                .frame(minWidth: 180)
                 .overlay(paneFocusBorder(isFocused: appState.activePane == .right))
         }
+        .frame(
+            minWidth: 380,
+            idealWidth: 760,
+            maxWidth: .infinity,
+            minHeight: 160,
+            idealHeight: 380,
+            maxHeight: .infinity
+        )
         .onAppear {
             localPathText = appState.localCurrentURL.path
             remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"

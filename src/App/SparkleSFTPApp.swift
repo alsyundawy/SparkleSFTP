@@ -15,27 +15,34 @@ extension FocusedValues {
 private struct SparkleWindowRootView: View {
     @StateObject private var appState: AppState
     @Environment(\.openWindow) private var openWindow
-    private let initialProfileID: UUID?
+    private let environment: AppEnvironment
 
-    init(environment: AppEnvironment, initialProfileID: UUID? = nil) {
-        _appState = StateObject(wrappedValue: environment.makeWindowState())
-        self.initialProfileID = initialProfileID
+    init(environment: AppEnvironment) {
+        self.environment = environment
+        _appState = StateObject(
+            wrappedValue: environment.makeWindowState(
+                initialProfileID: environment.dequeueInitialProfile()
+            )
+        )
     }
 
     var body: some View {
         MainWindowView(appState: appState)
-            .frame(minWidth: 980, minHeight: 620)
+            .frame(minWidth: 960, minHeight: 600)
             .focusedSceneValue(\.activeAppState, appState)
             .onAppear {
-                appState.onOpenProfileInNewWindow = { profileID in
-                    openWindow(id: "connection-window", value: profileID)
+                appState.onOpenProfileInNewWindow = { [environment] profileID in
+                    environment.enqueueInitialProfile(profileID)
+                    openWindow(id: "main")
                 }
             }
             .task {
                 await appState.bootstrap()
-                if let initialProfileID,
-                   let match = appState.profiles.first(where: { $0.id == initialProfileID }) {
-                    await appState.connect(profile: match, openInNewTab: false)
+                if let profileID = appState.initialProfileIDForWindow {
+                    appState.initialProfileIDForWindow = nil
+                    if let match = appState.profiles.first(where: { $0.id == profileID }) {
+                        await appState.connect(profile: match, openInNewTab: false)
+                    }
                 }
             }
     }
@@ -141,15 +148,9 @@ struct SparkleSFTPApp: App {
                     wireDelegateShutdownHooks()
                 }
         }
+        .defaultSize(width: 1280, height: 820)
         .commands {
             SparkleAppCommands(fallbackState: environment.settingsFallbackState)
-        }
-
-        WindowGroup("SparkleSFTP", id: "connection-window", for: UUID.self) { $profileID in
-            SparkleWindowRootView(environment: environment, initialProfileID: profileID)
-                .onAppear {
-                    wireDelegateShutdownHooks()
-                }
         }
 
         Settings {
