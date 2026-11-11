@@ -14,6 +14,8 @@ public final class SFTPChannelBridge:
     private var inboundBuffer = ByteBufferAllocator().buffer(capacity: 4096)
     private var versionContinuation: CheckedContinuation<UInt32, Error>?
     private var pendingRequests: [UInt32: CheckedContinuation<SFTPPacket, Error>] = [:]
+    private var bufferedEarlyResponses: [UInt32: Result<SFTPPacket, Error>] = [:]
+    private var abandonedRequestIDs: Set<UInt32> = []
     private var isClosed = false
 
     init(eventLoop: EventLoop, requestTimeoutSeconds: Int = 30) {
@@ -83,41 +85,38 @@ public final class SFTPChannelBridge:
     }
 
     public func send(_ packet: SFTPPacket) async throws -> SFTPPacket {
+        let requestID = try submitPacket(packet)
+        return try await awaitPacket(requestID: requestID)
+    }
+
+    public func submitPacket(_ packet: SFTPPacket) throws -> UInt32 {
         guard let requestID = packet.requestID else {
             throw AppError.protocolError(code: -1, message: "Missing SFTP request ID")
         }
         let encoded = SFTPPacketCodec.encode(packet)
-        let timeout = requestTimeoutSeconds
+        lock.lock()
+        guard !isClosed, let activeChannel = channel else {
+            lock.unlock()
+            throw AppError.notConnected
+        }
+        lock.unlock()
 
+        activeChannel.eventLoop.execute {
+            let data = SSHChannelData(type: .channel, data: .byteBuffer(encoded))
+            activeChannel.writeAndFlush(data, promise: nil)
+        }
+        return requestID
+    }
+
+    public func awaitPacket(requestID: UInt32) async throws -> SFTPPacket {
+        let timeout = requestTimeoutSeconds
         return try await withThrowingTaskGroup(of: SFTPPacket.self) { group in
             group.addTask {
-                try await withTaskCancellationHandler {
-                    try await withCheckedThrowingContinuation { continuation in
-                        self.lock.lock()
-                        if self.isClosed {
-                            self.lock.unlock()
-                            continuation.resume(throwing: AppError.notConnected)
-                            return
-                        }
-                        self.pendingRequests[requestID] = continuation
-                        let activeChannel = self.channel
-                        self.lock.unlock()
-
-                        guard let activeChannel else {
-                            self.failPending(id: requestID, error: AppError.notConnected)
-                            return
-                        }
-                        activeChannel.eventLoop.execute {
-                            let data = SSHChannelData(type: .channel, data: .byteBuffer(encoded))
-                            activeChannel.writeAndFlush(data, promise: nil)
-                        }
-                    }
-                } onCancel: {
-                    self.failPending(id: requestID, error: CancellationError())
-                }
+                try await self.waitForPacketResponse(requestID: requestID)
             }
             group.addTask {
                 try await Task.sleep(for: .seconds(timeout))
+                self.failPending(id: requestID, error: AppError.channelStalled(reason: "SFTP request timeout"))
                 throw AppError.channelStalled(reason: "SFTP request timed out after \(timeout)s")
             }
             guard let response = try await group.next() else {
@@ -125,6 +124,28 @@ public final class SFTPChannelBridge:
             }
             group.cancelAll()
             return response
+        }
+    }
+
+    private func waitForPacketResponse(requestID: UInt32) async throws -> SFTPPacket {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.lock.lock()
+                if let early = self.bufferedEarlyResponses.removeValue(forKey: requestID) {
+                    self.lock.unlock()
+                    continuation.resume(with: early)
+                    return
+                }
+                if self.isClosed {
+                    self.lock.unlock()
+                    continuation.resume(throwing: AppError.notConnected)
+                    return
+                }
+                self.pendingRequests[requestID] = continuation
+                self.lock.unlock()
+            }
+        } onCancel: {
+            self.failPending(id: requestID, error: CancellationError())
         }
     }
 
@@ -169,6 +190,8 @@ public final class SFTPChannelBridge:
         versionContinuation = nil
         let requests = pendingRequests
         pendingRequests.removeAll()
+        bufferedEarlyResponses.removeAll()
+        abandonedRequestIDs.removeAll()
         lock.unlock()
 
         vCont?.resume(throwing: error)
@@ -187,6 +210,11 @@ public final class SFTPChannelBridge:
 
     private func failPending(id: UInt32, error: Error) {
         lock.lock()
+        bufferedEarlyResponses.removeValue(forKey: id)
+        if abandonedRequestIDs.count > 1024 {
+            abandonedRequestIDs.removeAll(keepingCapacity: true)
+        }
+        abandonedRequestIDs.insert(id)
         let cont = pendingRequests.removeValue(forKey: id)
         lock.unlock()
         cont?.resume(throwing: error)
@@ -203,9 +231,17 @@ public final class SFTPChannelBridge:
         }
         guard let reqID = packet.requestID else { return }
         lock.lock()
-        let cont = pendingRequests.removeValue(forKey: reqID)
-        lock.unlock()
-        cont?.resume(returning: packet)
+        if abandonedRequestIDs.remove(reqID) != nil {
+            lock.unlock()
+            return
+        }
+        if let cont = pendingRequests.removeValue(forKey: reqID) {
+            lock.unlock()
+            cont.resume(returning: packet)
+        } else {
+            bufferedEarlyResponses[reqID] = .success(packet)
+            lock.unlock()
+        }
     }
 }
 

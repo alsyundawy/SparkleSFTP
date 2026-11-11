@@ -43,7 +43,7 @@ flowchart TD
    - Views never hold plaintext secrets outside transient edit form fields flushed immediately to `KeychainService`.
 3. **Independent Multi-Window & Paired Multi-Tab State**:
    - `AppEnvironment` shares only persistent stores (`ConnectionStore`, `KeychainService`, `HostTrustStore`, `TransferJournal`, `CommandSnippetStore`, `PortForwardingManager`) across windows while minting an isolated per-window `AppState` (`makeWindowState()` + `FocusedValues`) so `New Window (⌘N)` never clones active remote sessions.
-   - `WorkspaceTab` & `WorkspaceTabBar` pair per-tab local directory history with independent `ActiveSessionModel` instances, supporting duplicate same-host tabs, inline FileZilla-style Quick Connect, and instant non-blocking tab switching/closing.
+   - `WorkspaceTab` & `WorkspaceTabBar` pair per-tab local directory history with independent `ActiveSessionModel` instances, bind each workspace tab 1-to-1 with its own dedicated single remote `TerminalTabSession` (`workspaceTabID` + `remoteSessionID`, auto-hiding `QuickConnectBar` & toolbar `Connect` on connected tabs), and support instant non-blocking tab switching/closing.
 4. **Transfer Lifecycle Independence**:
    - Active transfers live inside the actor-isolated `TransferQueue` and `TransferJournal` — completely independent of window, tab, or view lifecycles.
 5. **Protocol Composition (`DUP-001`)**:
@@ -58,18 +58,18 @@ SparkleSFTP/
 ├── sonar-project.properties      # SonarQube configuration (`src` sources + `swiftlint --reporter sonarqube`)
 ├── src/
 │   ├── App/                      # Executable entry (`SparkleSFTPApp` + `WindowGroup`), `AppDelegate`, `AppEnvironment`, `SparkleUpdaterService`
-│   ├── Features/                 # SparkleFeatures: SwiftUI + AppKit (`WorkspaceTabBar`, `QuickConnectBar`, Commander + WinSCP context menus/sheets, Connections hover/select/delete, Notepad2 Editor, Terminal, ConflictResolutionSheet, 7-Tab About, Preferences) & per-window `AppState`
+│   ├── Features/                 # SparkleFeatures: SwiftUI + AppKit (`WorkspaceTabBar`, `QuickConnectBar`, Commander + WinSCP context menus/sheets, Connections hover/select/delete, Notepad2 Editor, 1-Tab=1-Shell Terminal, ConflictResolutionSheet, 7-Tab About, Preferences) & per-window `AppState`
 │   └── Packages/
 │       ├── Clibcurl/             # Non-variadic C11 bridge over macOS SDK libcurl (-lcurl), zlib (-lz) & dynamic libssh2 probe
 │       ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, ToolchainModels, Protocols, FeatureFlags
-│       ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPPipelinedTransfer (64KB), TransferSpeedMeter, SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
-│       ├── TransferEngine/       # SparkleTransferEngine: TransferQueue, TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
+│       ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPPipelinedTransfer (64KB ordered submit), TransferSpeedMeter (stall decay), SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
+│       ├── TransferEngine/       # SparkleTransferEngine: TransferQueue (reentrancy-guarded), TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
 │       ├── FileManager/          # SparkleFileManager: LocalFileService, FileSortDescriptor, POSIXPermissions, DualPaneState
 │       ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator (`CWE-22/59/78`), PrivateKeyParser, UpdateConfigurationValidator
-│       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, ExternalTerminalLauncher, PortForwardingManager
+│       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, 1-Tab=1-Shell SessionManager, ExternalTerminalLauncher, PortForwardingManager
 │       ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
 │       ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla/WinSCP BOM & Nested-Group Importers
-│       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator, sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 361 keys)
+│       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator (WindowObserverBox), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 365 keys)
 ├── Tests/                        # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                        # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
 └── docs/                         # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, Long-Term Review, ADRs 0001–0008

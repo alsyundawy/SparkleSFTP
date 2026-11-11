@@ -67,7 +67,8 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
                     guard let safeChild = try? PathValidator.canonicalizeRemote(entry.filename, relativeTo: path) else {
                         continue
                     }
-                    let perms = entry.attributes.permissions ?? 0o644
+                    let defaultPerms: UInt32 = entry.attributes.isDirectory ? 0o755 : 0o644
+                    let perms = entry.attributes.permissions ?? defaultPerms
                     let mtime = entry.attributes.modificationTime.map { Date(timeIntervalSince1970: TimeInterval($0)) }
                     items.append(
                         RemoteFile(
@@ -98,12 +99,13 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         let resp = try await sftp.send(.lstat(requestID: sftp.allocateRequestID(), path: path.rawValue))
         let attrs = try extractAttrs(from: resp, path: path.rawValue)
         let mtime = attrs.modificationTime.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        let defaultPerms: UInt32 = attrs.isDirectory ? 0o755 : 0o644
         return RemoteFileMetadata(
             path: path,
             size: Int64(attrs.size ?? 0),
             isDirectory: attrs.isDirectory,
             isSymlink: attrs.isSymlink,
-            permissions: (attrs.permissions ?? 0o644) & 0o7777,
+            permissions: (attrs.permissions ?? defaultPerms) & 0o7777,
             modificationTime: mtime
         )
     }

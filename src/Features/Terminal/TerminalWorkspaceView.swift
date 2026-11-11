@@ -14,47 +14,34 @@ public struct TerminalWorkspaceView: View {
         terminalManager = appState.terminalManager
     }
 
+    private var boundShellSession: TerminalTabSession? {
+        guard appState.currentSession != nil else { return nil }
+        return terminalManager.session(forWorkspaceTabID: appState.activeTabID)
+    }
+
     public var body: some View {
+        let palette = appState.activePalette
+        let shellSession = boundShellSession
         VStack(spacing: 0) {
             HStack(spacing: SparkleTheme.Spacing.small) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(terminalManager.sessions) { session in
-                            HStack(spacing: 6) {
-                                Text(session.title)
-                                    .font(SparkleTheme.Typography.caption)
-                                Button {
-                                    terminalManager.closeSession(id: session.id)
-                                } label: {
-                                    Image(systemName: "xmark")
-                                        .font(.caption2)
-                                }
-                                .buttonStyle(.borderless)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                terminalManager.selectedSessionID == session.id
-                                    ? appState.activePalette.accentColor.opacity(0.22)
-                                    : appState.activePalette.canvasColor
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                            .onTapGesture {
-                                terminalManager.selectedSessionID = session.id
-                            }
-                        }
-                    }
-                }
+                Label(
+                    shellSession?
+                        .title ?? (appState.currentSession?.profile.name ?? appState.strings.t("nav.terminal")),
+                    systemImage: SparkleTheme.Symbols.terminal
+                )
+                .font(SparkleTheme.Typography.headline)
+                .foregroundStyle(palette.primaryTextColor)
 
                 Spacer()
 
-                Button {
-                    Task { await appState.openTerminalTab() }
-                } label: {
-                    Label(appState.strings.t("nav.openTerminalTab"), systemImage: SparkleTheme.Symbols.terminal)
+                if appState.currentSession?.sshClient != nil, shellSession == nil || shellSession?.isActive == false {
+                    Button {
+                        Task { await appState.openTerminalTab() }
+                    } label: {
+                        Label(appState.strings.t("nav.openPTYShell"), systemImage: SparkleTheme.Symbols.terminal)
+                    }
+                    .help(appState.strings.t("nav.openTerminalTab"))
                 }
-                .disabled(appState.currentSession?.sshClient == nil)
-                .help(appState.strings.t("nav.openTerminalTab"))
 
                 if let activeProfile = appState.currentSession?.profile ?? appState.primarySelectedProfile,
                    activeProfile.protocolType == .sftp || activeProfile.protocolType == .scp {
@@ -66,21 +53,34 @@ public struct TerminalWorkspaceView: View {
                     .help(appState.strings.t("nav.openInITerm"))
                 }
 
-                Toggle(appState.strings.t("nav.split"), isOn: $appState.splitTerminalMode)
-                    .toggleStyle(.button)
-
                 Button(appState.strings.t("nav.snippets")) { isShowingSnippets = true }
                 Button(appState.strings.t("nav.tunnels")) { isShowingForwarding = true }
+
+                Button {
+                    appState.setActiveTabTerminalVisibility(false)
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .help(appState.strings.t("nav.closeShell"))
             }
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
-            .background(appState.activePalette.windowColor)
+            .background(palette.windowColor)
 
-            if terminalManager.sessions.isEmpty {
+            if let activeShell = shellSession {
+                let termTheme = TerminalThemeColors(
+                    backgroundHex: palette.canvasHex,
+                    foregroundHex: palette.primaryTextHex,
+                    caretHex: palette.accentHex,
+                    selectionHex: palette.accentHex
+                )
+                terminalSessionView(session: activeShell, themeColors: termTheme)
+            } else {
                 VStack(spacing: SparkleTheme.Spacing.tiny) {
                     Text(appState.strings.t("nav.noActivePTY"))
                         .font(SparkleTheme.Typography.body)
-                        .foregroundStyle(appState.activePalette.secondaryTextColor)
+                        .foregroundStyle(palette.secondaryTextColor)
                     if appState.currentSession?.sshClient != nil {
                         Button {
                             Task { await appState.openTerminalTab() }
@@ -93,32 +93,7 @@ public struct TerminalWorkspaceView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(appState.activePalette.canvasColor)
-            } else if appState.splitTerminalMode, terminalManager.sessions.count >= 2 {
-                let palette = appState.activePalette
-                let termTheme = TerminalThemeColors(
-                    backgroundHex: palette.canvasHex,
-                    foregroundHex: palette.primaryTextHex,
-                    caretHex: palette.accentHex,
-                    selectionHex: palette.accentHex
-                )
-                HSplitView {
-                    terminalSessionView(session: terminalManager.sessions[0], themeColors: termTheme)
-                    terminalSessionView(session: terminalManager.sessions[1], themeColors: termTheme)
-                }
-            } else if let selected = terminalManager.sessions.first(where: {
-                $0.id == terminalManager.selectedSessionID
-            }) ?? terminalManager.sessions.last {
-                let palette = appState.activePalette
-                terminalSessionView(
-                    session: selected,
-                    themeColors: TerminalThemeColors(
-                        backgroundHex: palette.canvasHex,
-                        foregroundHex: palette.primaryTextHex,
-                        caretHex: palette.accentHex,
-                        selectionHex: palette.accentHex
-                    )
-                )
+                .background(palette.canvasColor)
             }
         }
         .sheet(isPresented: $isShowingSnippets) {
@@ -127,7 +102,7 @@ public struct TerminalWorkspaceView: View {
         .sheet(isPresented: $isShowingForwarding) {
             PortForwardingSheet(appState: appState)
         }
-        .sparkleWorkspaceSurface(appState.activePalette, useCanvas: true)
+        .sparkleWorkspaceSurface(palette, useCanvas: true)
     }
 
     private func terminalSessionView(session: TerminalTabSession, themeColors: TerminalThemeColors) -> some View {
@@ -174,13 +149,11 @@ public struct SnippetsSheet: View {
                     }
                     Spacer()
                     Button("Run") {
-                        let active = appState.terminalManager.sessions.first {
-                            $0.id == appState.terminalManager.selectedSessionID
-                        }
+                        let active = appState.terminalManager.session(forWorkspaceTabID: appState.activeTabID)
                         active?.sendCommand(snippet.command)
                         dismiss()
                     }
-                    .disabled(appState.terminalManager.sessions.isEmpty)
+                    .disabled(appState.terminalManager.session(forWorkspaceTabID: appState.activeTabID) == nil)
                     Button(role: .destructive) {
                         Task { await appState.deleteSnippet(id: snippet.id) }
                     } label: {

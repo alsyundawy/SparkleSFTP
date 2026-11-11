@@ -57,31 +57,45 @@ final class InteractiveFileTableView: NSTableView {
         onContextActionShortcut?(.delete)
     }
 
+    private func isTableResponderFocused() -> Bool {
+        guard let responder = window?.firstResponder else { return false }
+        if responder is NSText {
+            return false
+        }
+        if responder === self {
+            return true
+        }
+        if let responderView = responder as? NSView {
+            return responderView.isDescendant(of: self)
+        }
+        return false
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard window?.firstResponder === self else {
+        guard isTableResponderFocused() else {
             return super.performKeyEquivalent(with: event)
         }
-        if handleModifierKey(event) || handleFunctionKey(event.keyCode) {
+        if handleModifierKey(event) || handleFunctionKey(event) {
             return true
         }
         return super.performKeyEquivalent(with: event)
     }
 
     override func keyDown(with event: NSEvent) {
-        if handleModifierKey(event) || handleFunctionKey(event.keyCode) {
+        if handleModifierKey(event) || handleFunctionKey(event) {
             return
         }
         let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
         switch event.keyCode {
         case 48 where mods.isEmpty:
             onSwitchPane?()
-        case 36, 76:
+        case 36 where mods.isEmpty, 76 where mods.isEmpty:
             onActivateSelected?()
-        case 49:
+        case 49 where mods.isEmpty:
             onQuickLookSelected?()
         case 51 where mods.isEmpty:
             onGoParent?()
-        case 117:
+        case 117 where mods.isEmpty:
             onContextActionShortcut?(.delete)
         default:
             super.keyDown(with: event)
@@ -89,18 +103,41 @@ final class InteractiveFileTableView: NSTableView {
     }
 
     private func handleModifierKey(_ event: NSEvent) -> Bool {
-        guard event.modifierFlags.contains(.command) else { return false }
-        if event.keyCode == 51 {
+        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if mods == [.command] {
+            return handleCommandOnlyShortcut(event)
+        }
+        if mods == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "c" {
+            onContextActionShortcut?(.copyFileNames)
+            return true
+        }
+        if mods == [.command, .option], event.charactersIgnoringModifiers?.lowercased() == "c" {
+            onContextActionShortcut?(.copyFullPaths)
+            return true
+        }
+        if mods == [.option], event.keyCode == 36 || event.keyCode == 76 {
+            onContextActionShortcut?(.inspect)
+            return true
+        }
+        return false
+    }
+
+    private func handleCommandOnlyShortcut(_ event: NSEvent) -> Bool {
+        switch event.keyCode {
+        case 51:
             onContextActionShortcut?(.delete)
             return true
-        }
-        if event.keyCode == 126 {
+        case 126:
             onGoParent?()
             return true
-        }
-        if event.keyCode == 125 {
+        case 125:
             onActivateSelected?()
             return true
+        case 36, 76:
+            onContextActionShortcut?(.insertCommandLine)
+            return true
+        default:
+            break
         }
         guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
         switch key {
@@ -118,11 +155,14 @@ final class InteractiveFileTableView: NSTableView {
         }
     }
 
-    private func handleFunctionKey(_ keyCode: UInt16) -> Bool {
-        let action: FilePaneContextAction? = switch keyCode {
+    private func handleFunctionKey(_ event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        guard mods.isEmpty else { return false }
+        let action: FilePaneContextAction? = switch event.keyCode {
         case 120: .rename
         case 96: .copyTo
         case 97: .moveTo
+        case 98: .newFolder
         case 100: .delete
         case 101: .inspect
         default: nil

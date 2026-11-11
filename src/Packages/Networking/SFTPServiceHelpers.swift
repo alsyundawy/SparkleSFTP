@@ -275,56 +275,65 @@ private enum SFTPPipelinedTransfer {
         let cursor = UploadChunkCursor(fileHandle: fileHandle, chunkSize: chunkSize, startOffset: startOffset)
         let speedMeter = TransferSpeedMeter(totalBytes: ctx.totalBytes, initialOffset: ctx.initialOffset)
         let windowLimit = max(1, ctx.inFlightWindow)
-        var completedBytes: Int64 = 0
+        var ackedSlices: [UInt64: Int] = [:]
+        var contiguousOffset = startOffset
 
-        try await withThrowingTaskGroup(of: Int.self) { group in
+        try await withThrowingTaskGroup(of: (offset: UInt64, count: Int).self) { group in
             var active = 0
             while active < windowLimit, try scheduleNextWrite(into: &group, ctx: ctx, cursor: cursor) {
                 active += 1
             }
-            while let writtenCount = try await group.next() {
+            while let sliceAck = try await group.next() {
                 try Task.checkCancellation()
                 active -= 1
-                completedBytes += Int64(writtenCount)
-                emitUploadProgress(ctx: ctx, completedBytes: completedBytes, speedMeter: speedMeter)
+                ackedSlices[sliceAck.offset] = sliceAck.count
+                while let contiguousLen = ackedSlices.removeValue(forKey: contiguousOffset) {
+                    contiguousOffset += UInt64(contiguousLen)
+                }
+                emitUploadProgress(ctx: ctx, contiguousBytes: Int64(contiguousOffset), speedMeter: speedMeter)
                 while active < windowLimit, try scheduleNextWrite(into: &group, ctx: ctx, cursor: cursor) {
                     active += 1
                 }
             }
         }
-        emitUploadProgress(ctx: ctx, completedBytes: completedBytes, speedMeter: speedMeter, force: true)
+        emitUploadProgress(
+            ctx: ctx,
+            contiguousBytes: Int64(contiguousOffset),
+            speedMeter: speedMeter,
+            force: true
+        )
     }
 
     private static func scheduleNextWrite(
-        into group: inout ThrowingTaskGroup<Int, Error>,
+        into group: inout ThrowingTaskGroup<(offset: UInt64, count: Int), Error>,
         ctx: SFTPUploadChunkContext,
         cursor: UploadChunkCursor
     ) throws -> Bool {
         guard let slice = try cursor.nextSlice() else { return false }
+        let reqID = try ctx.bridge.submitPacket(
+            .write(
+                requestID: ctx.bridge.allocateRequestID(),
+                handle: ctx.handle,
+                offset: slice.offset,
+                data: slice.data
+            )
+        )
         group.addTask {
             try Task.checkCancellation()
-            let resp = try await ctx.bridge.send(
-                .write(
-                    requestID: ctx.bridge.allocateRequestID(),
-                    handle: ctx.handle,
-                    offset: slice.offset,
-                    data: slice.data
-                )
-            )
+            let resp = try await ctx.bridge.awaitPacket(requestID: reqID)
             try SFTPService.verifyStatusOKPacket(resp, path: ctx.remotePath.rawValue)
-            return slice.data.count
+            return (offset: slice.offset, count: slice.data.count)
         }
         return true
     }
 
     private static func emitUploadProgress(
         ctx: SFTPUploadChunkContext,
-        completedBytes: Int64,
+        contiguousBytes: Int64,
         speedMeter: TransferSpeedMeter,
         force: Bool = false
     ) {
-        let reported = ctx.initialOffset + completedBytes
-        if let progress = speedMeter.record(absoluteBytes: reported, force: force) {
+        if let progress = speedMeter.record(absoluteBytes: contiguousBytes, force: force) {
             ctx.onProgress(progress)
         }
     }

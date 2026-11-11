@@ -73,7 +73,7 @@ public struct WorkspaceTabBar: View {
             .fixedSize()
             .layoutPriority(2)
 
-            if appState.currentSession == nil {
+            if appState.isQuickConnectAvailable {
                 TabBarActionButtonRepresentable(
                     model: TabBarActionButtonModel(
                         title: appState.strings.t("tabs.quickConnectToggle"),

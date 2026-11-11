@@ -179,7 +179,7 @@ final class WorkspaceTabChipView: NSView {
 
         let iconName = item.isConnected
             ? (item.isEncrypted ? SparkleTheme.Symbols.sftp : SparkleTheme.Symbols.ftpInsecure)
-            : "bolt.horizontal"
+            : "macwindow"
         let iconTint = item.isConnected
             ? (item.isEncrypted ? NSColor(hex: palette.accentHex) : NSColor.systemRed)
             : NSColor(hex: palette.secondaryTextHex)

@@ -38,7 +38,7 @@ public enum FTPListingParser {
             path: itemPath,
             size: state.size,
             isDirectory: state.isDirectory,
-            permissions: state.permissions,
+            permissions: state.permissions ?? (state.isDirectory ? 0o755 : 0o644),
             modificationTime: state.modDate
         )
     }
@@ -47,7 +47,7 @@ public enum FTPListingParser {
         var isDirectory = false
         var size: Int64 = 0
         var modDate: Date?
-        var permissions: UInt32 = 0o644
+        var permissions: UInt32?
 
         mutating func apply(key: String, value: String) -> Bool {
             switch key {

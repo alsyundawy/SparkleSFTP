@@ -5,22 +5,30 @@ import SwiftUI
 public struct SparkleWindowConfigurator: NSViewRepresentable {
     public let palette: SparkleThemePalette
     public let allowFullScreen: Bool
+    public let onWindowResolved: (@MainActor (NSWindow) -> Void)?
 
-    public init(palette: SparkleThemePalette, allowFullScreen: Bool = true) {
+    public init(
+        palette: SparkleThemePalette,
+        allowFullScreen: Bool = true,
+        onWindowResolved: (@MainActor (NSWindow) -> Void)? = nil
+    ) {
         self.palette = palette
         self.allowFullScreen = allowFullScreen
+        self.onWindowResolved = onWindowResolved
     }
 
     public func makeNSView(context _: Context) -> SparkleWindowProbeView {
         let view = SparkleWindowProbeView(frame: .zero)
         view.palette = palette
         view.allowFullScreen = allowFullScreen
+        view.onWindowResolved = onWindowResolved
         return view
     }
 
     public func updateNSView(_ nsView: SparkleWindowProbeView, context _: Context) {
         nsView.palette = palette
         nsView.allowFullScreen = allowFullScreen
+        nsView.onWindowResolved = onWindowResolved
         nsView.applyWindowConfiguration()
     }
 
@@ -28,15 +36,70 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
     public final class SparkleWindowProbeView: NSView {
         var palette: SparkleThemePalette = SparkleThemeCatalog.defaultLight
         var allowFullScreen = true
+        var onWindowResolved: (@MainActor (NSWindow) -> Void)?
+        private let observerBox = WindowObserverBox()
+        private var isConfiguring = false
 
         override public func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            installWindowObservers()
             applyWindowConfiguration()
+            DispatchQueue.main.async { [weak self] in
+                self?.applyWindowConfiguration()
+            }
         }
 
         func applyWindowConfiguration() {
-            guard let window else { return }
+            guard !isConfiguring, let window else { return }
+            isConfiguring = true
+            defer { isConfiguring = false }
+            onWindowResolved?(window)
             Self.configure(window: window, palette: palette, allowFullScreen: allowFullScreen)
+        }
+
+        private func installWindowObservers() {
+            guard let window else {
+                observerBox.clear()
+                return
+            }
+
+            let names: [Notification.Name] = [
+                NSWindow.didBecomeKeyNotification,
+                NSWindow.didUpdateNotification
+            ]
+            var nextTokens: [any NSObjectProtocol] = []
+            for name in names {
+                let token = NotificationCenter.default.addObserver(
+                    forName: name,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        guard let self, let currentWindow = self.window,
+                              Self.needsWindowControlsEnforcement(currentWindow)
+                        else { return }
+                        applyWindowConfiguration()
+                    }
+                }
+                nextTokens.append(token)
+            }
+            observerBox.replace(with: nextTokens)
+        }
+
+        private static func needsWindowControlsEnforcement(_ window: NSWindow) -> Bool {
+            let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
+            if !window.styleMask.isSuperset(of: requiredMask) {
+                return true
+            }
+            if window.maxSize.width < 10000 || window.maxSize.height < 10000 {
+                return true
+            }
+            for buttonKind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+                if let button = window.standardWindowButton(buttonKind), button.isHidden || !button.isEnabled {
+                    return true
+                }
+            }
+            return false
         }
 
         public static func configure(
@@ -47,6 +110,12 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
             let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
             if !window.styleMask.isSuperset(of: requiredMask) {
                 window.styleMask.formUnion(requiredMask)
+            }
+            if window.maxSize.width < 10000 || window.maxSize.height < 10000 {
+                window.maxSize = NSSize(
+                    width: CGFloat.greatestFiniteMagnitude,
+                    height: CGFloat.greatestFiniteMagnitude
+                )
             }
             if allowFullScreen {
                 window.collectionBehavior.insert(.fullScreenPrimary)
@@ -60,5 +129,29 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
             window.backgroundColor = NSColor(hex: palette.windowHex)
             window.appearance = NSAppearance(named: palette.isDark ? .darkAqua : .aqua)
         }
+    }
+}
+
+private final class WindowObserverBox: @unchecked Sendable { // JUSTIFICATION: Tokens guarded by NSLock.
+    private let lock = NSLock()
+    private var tokens: [any NSObjectProtocol] = []
+
+    deinit {
+        clear()
+    }
+
+    func replace(with nextTokens: [any NSObjectProtocol]) {
+        let old = lock.withLock {
+            let previous = tokens
+            tokens = nextTokens
+            return previous
+        }
+        for observer in old {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    func clear() {
+        replace(with: [])
     }
 }

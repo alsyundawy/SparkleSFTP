@@ -29,7 +29,72 @@ struct UploadConflictRequest: Sendable {
     let remoteFS: any RemoteFileSystem
 }
 
+struct DownloadPartialPreparation: Sendable {
+    let baseDir: URL
+    let safeDest: URL
+    let partialURL: URL
+    let existingOffset: Int64
+    let remoteMeta: RemoteFileMetadata?
+}
+
 extension TransferQueue {
+    public func resumeAll() async {
+        let resumableIDs = snapshots.values
+            .filter { snapshot in
+                switch snapshot.status {
+                case .paused, .interrupted, .failed:
+                    true
+                default:
+                    false
+                }
+            }
+            .map(\.id)
+        for id in resumableIDs {
+            await retry(id: id)
+        }
+    }
+
+    func prepareDownloadPartial(
+        metadata: TransferTaskMetadata,
+        remotePath: RemotePath,
+        localURL: URL,
+        remoteFS: any RemoteFileSystem
+    ) async throws -> DownloadPartialPreparation {
+        let baseDir = localURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
+        let safeDest = try PathValidator.safeLocalDestination(
+            filename: localURL.lastPathComponent,
+            baseDirectory: baseDir
+        )
+        let partialName = ".\(safeDest.lastPathComponent).sparklesftp.\(metadata.id.uuidString).part"
+        let partialURL = baseDir.appendingPathComponent(partialName)
+
+        let existingOffset = try await resolveDownloadOffset(
+            taskID: metadata.id,
+            remotePath: remotePath,
+            partialURL: partialURL,
+            remoteFS: remoteFS
+        )
+        let remoteMeta = try? await remoteFS.metadata(at: remotePath)
+        if existingOffset == 0 {
+            try? FileManager.default.removeItem(at: partialURL)
+            await resetCheckpointBytes(id: metadata.id)
+        }
+        await recordCheckpointContext(
+            id: metadata.id,
+            remoteSize: remoteMeta?.size ?? metadata.totalBytes,
+            remoteModificationTime: remoteMeta?.modificationTime,
+            partialLocalPath: partialURL.path
+        )
+        return DownloadPartialPreparation(
+            baseDir: baseDir,
+            safeDest: safeDest,
+            partialURL: partialURL,
+            existingOffset: existingOffset,
+            remoteMeta: remoteMeta
+        )
+    }
+
     func resolveConflictDestination(_ req: DownloadConflictRequest) async throws -> DownloadConflictPlan? {
         guard FileManager.default.fileExists(atPath: req.safeDest.path) else {
             return DownloadConflictPlan(destination: req.safeDest, resumeOffset: 0)

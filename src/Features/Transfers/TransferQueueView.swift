@@ -123,7 +123,10 @@ public struct TransferQueueView: View {
                                 .lineLimit(2)
                         }
 
-                        TransferProgressBar(fraction: snapshot.progress.percentage, tint: statusTint(snapshot.status))
+                        TransferProgressBar(
+                            fraction: snapshot.status == .completed ? 1.0 : snapshot.progress.percentage,
+                            tint: statusTint(snapshot.status)
+                        )
 
                         HStack {
                             let done = Self.byteFormatter.string(fromByteCount: snapshot.progress.bytesTransferred)

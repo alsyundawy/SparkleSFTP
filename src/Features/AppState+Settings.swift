@@ -14,7 +14,6 @@ public extension AppState {
         static let maxPerHost = "sparklesftp.maxPerHostTransfers"
         static let pipelineDepth = "sparklesftp.transferPipelineDepth"
         static let useZlib = "sparklesftp.useZlibCompression"
-        static let preferredShell = "sparklesftp.preferredShellPath"
         static let externalTerminal = "sparklesftp.externalTerminalApp"
         static let conflictPolicy = "sparklesftp.conflictPolicy"
         static let openInternalEditor = "sparklesftp.openDoubleClickInInternalEditor"
@@ -67,10 +66,6 @@ public extension AppState {
         if defaults.object(forKey: PreferenceKey.useZlib) != nil {
             useZlibCompression = defaults.bool(forKey: PreferenceKey.useZlib)
         }
-        if let savedShell = defaults.string(forKey: PreferenceKey.preferredShell),
-           FileManager.default.isExecutableFile(atPath: savedShell) {
-            preferredShellPath = savedShell
-        }
         if let rawTerm = defaults.string(forKey: PreferenceKey.externalTerminal),
            let loadedTerm = ExternalTerminalApp(rawValue: rawTerm) {
             externalTerminalApp = loadedTerm
@@ -95,7 +90,6 @@ public extension AppState {
         defaults.set(maxPerHostConcurrentTransfers, forKey: PreferenceKey.maxPerHost)
         defaults.set(transferPipelineDepth, forKey: PreferenceKey.pipelineDepth)
         defaults.set(useZlibCompression, forKey: PreferenceKey.useZlib)
-        defaults.set(preferredShellPath, forKey: PreferenceKey.preferredShell)
         defaults.set(externalTerminalApp.rawValue, forKey: PreferenceKey.externalTerminal)
         defaults.set(defaultConflictPolicy.rawValue, forKey: PreferenceKey.conflictPolicy)
         defaults.set(openDoubleClickInInternalEditor, forKey: PreferenceKey.openInternalEditor)

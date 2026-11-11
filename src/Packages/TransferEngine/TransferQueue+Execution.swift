@@ -2,6 +2,19 @@ import Foundation
 import SparkleCore
 import SparkleSecurity
 
+private final class ProgressSequenceBox: @unchecked Sendable { // JUSTIFICATION: NSLock serializes sequence counter.
+    private let lock = NSLock()
+    private var nextValue: UInt64 = 1
+
+    func next() -> UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        let val = nextValue
+        nextValue &+= 1
+        return val
+    }
+}
+
 struct DownloadFlowRequest: Sendable {
     let metadata: TransferTaskMetadata
     let remoteFS: any RemoteFileSystem
@@ -81,52 +94,33 @@ extension TransferQueue {
         let remoteFS = try await fileSystemResolver(profileID)
         guard isStillActive(id: metadata.id) else { throw CancellationError() }
 
-        let baseDir = localURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
-        let safeDest = try PathValidator.safeLocalDestination(
-            filename: localURL.lastPathComponent,
-            baseDirectory: baseDir
-        )
-        let partialName = ".\(safeDest.lastPathComponent).sparklesftp.\(metadata.id.uuidString).part"
-        let partialURL = baseDir.appendingPathComponent(partialName)
-
-        let existingPartialOffset = try await resolveDownloadOffset(
-            taskID: metadata.id,
+        let prep = try await prepareDownloadPartial(
+            metadata: metadata,
             remotePath: remotePath,
-            partialURL: partialURL,
+            localURL: localURL,
             remoteFS: remoteFS
         )
-        let remoteMeta = try? await remoteFS.metadata(at: remotePath)
-        if existingPartialOffset == 0 {
-            try? FileManager.default.removeItem(at: partialURL)
-            await resetCheckpointBytes(id: metadata.id)
-        }
-        await recordCheckpointContext(
-            id: metadata.id,
-            remoteSize: remoteMeta?.size ?? metadata.totalBytes,
-            remoteModificationTime: remoteMeta?.modificationTime,
-            partialLocalPath: partialURL.path
-        )
-
         guard let plan = try await resolveConflictDestination(
             DownloadConflictRequest(
                 metadata: metadata,
-                safeDest: safeDest,
-                partialURL: partialURL,
-                baseDir: baseDir,
-                remoteMeta: remoteMeta
+                safeDest: prep.safeDest,
+                partialURL: prep.partialURL,
+                baseDir: prep.baseDir,
+                remoteMeta: prep.remoteMeta
             )
         ) else {
+            try? FileManager.default.removeItem(at: prep.partialURL)
+            skippedIDs.insert(metadata.id)
             return
         }
 
-        let effectiveOffset = existingPartialOffset > 0 ? existingPartialOffset : plan.resumeOffset
-        let resolvedPerms = metadata.sourcePermissions ?? remoteMeta?.permissions
+        let effectiveOffset = prep.existingOffset > 0 ? prep.existingOffset : plan.resumeOffset
+        let resolvedPerms = metadata.sourcePermissions ?? prep.remoteMeta?.permissions
         let request = DownloadFlowRequest(
             metadata: metadata,
             remoteFS: remoteFS,
             remotePath: remotePath,
-            partialURL: partialURL,
+            partialURL: prep.partialURL,
             finalDest: plan.destination,
             offset: effectiveOffset,
             resolvedPermissions: resolvedPerms
@@ -134,7 +128,7 @@ extension TransferQueue {
         try await executeDownloadFlow(request)
     }
 
-    private func resolveDownloadOffset(
+    func resolveDownloadOffset(
         taskID: UUID,
         remotePath: RemotePath,
         partialURL: URL,
@@ -177,6 +171,7 @@ extension TransferQueue {
             remoteFS: remoteFS
         )
         guard let plan = try await resolveRemoteUploadDestination(conflictReq) else {
+            skippedIDs.insert(metadata.id)
             return
         }
 
@@ -256,13 +251,15 @@ extension TransferQueue {
             partialLocalPath: req.targetPath.rawValue
         )
 
+        let seqBox = ProgressSequenceBox()
         try await req.remoteFS.upload(
             from: req.localURL,
             to: req.targetPath,
             offset: req.offset
         ) { [weak self] progress in
+            let seq = seqBox.next()
             Task { [weak self] in
-                await self?.handleProgress(id: req.metadata.id, progress: progress)
+                await self?.handleProgress(id: req.metadata.id, sequence: seq, progress: progress)
             }
         }
         guard isStillActive(id: req.metadata.id) else {
@@ -311,7 +308,7 @@ extension TransferQueue {
         }
         guard let remotePartial = try? await remoteFS.metadata(at: tempRemotePath),
               remotePartial.size > 0,
-              remotePartial.size < localSize
+              remotePartial.size <= localSize
         else {
             return 0
         }
@@ -320,13 +317,15 @@ extension TransferQueue {
 
     private func executeDownloadFlow(_ request: DownloadFlowRequest) async throws {
         let taskID = request.metadata.id
+        let seqBox = ProgressSequenceBox()
         try await request.remoteFS.download(
             from: request.remotePath,
             to: request.partialURL,
             offset: request.offset
         ) { [weak self] progress in
+            let seq = seqBox.next()
             Task { [weak self] in
-                await self?.handleProgress(id: taskID, progress: progress)
+                await self?.handleProgress(id: taskID, sequence: seq, progress: progress)
             }
         }
         guard isStillActive(id: taskID) else { throw CancellationError() }

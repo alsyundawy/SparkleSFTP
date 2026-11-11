@@ -52,6 +52,8 @@ private final class PTYResourceBox: @unchecked Sendable { // JUSTIFICATION: NSLo
 @MainActor
 public final class TerminalTabSession: Identifiable, ObservableObject {
     public let id: UUID
+    public let workspaceTabID: UUID?
+    public let remoteSessionID: UUID?
     @Published public var title: String
     @Published public var currentDirectory: String?
     @Published public var isActive: Bool = false
@@ -60,9 +62,16 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     private let resourceBox = PTYResourceBox()
     private var pendingCommandInsertion: String?
 
-    public init(id: UUID = UUID(), title: String) {
+    public init(
+        id: UUID = UUID(),
+        title: String,
+        workspaceTabID: UUID? = nil,
+        remoteSessionID: UUID? = nil
+    ) {
         self.id = id
         self.title = title
+        self.workspaceTabID = workspaceTabID
+        self.remoteSessionID = remoteSessionID
     }
 
     deinit {
@@ -157,6 +166,54 @@ public final class TerminalSessionManager: ObservableObject {
             session.attachPTYChannel(pty)
         }
         return session
+    }
+
+    public func session(forWorkspaceTabID tabID: UUID) -> TerminalTabSession? {
+        sessions.first { $0.workspaceTabID == tabID }
+    }
+
+    @discardableResult
+    public func ensureSingleSession(
+        workspaceTabID: UUID,
+        remoteSessionID: UUID,
+        title: String,
+        sshClient: SSHClientService?
+    ) async throws -> TerminalTabSession {
+        if let existing = sessions.first(where: {
+            $0.workspaceTabID == workspaceTabID && $0.remoteSessionID == remoteSessionID && $0.isActive
+        }) {
+            selectedSessionID = existing.id
+            return existing
+        }
+
+        closeSessions(forWorkspaceTabID: workspaceTabID)
+        let session = TerminalTabSession(
+            title: title,
+            workspaceTabID: workspaceTabID,
+            remoteSessionID: remoteSessionID
+        )
+        sessions.append(session)
+        selectedSessionID = session.id
+
+        if let sshClient {
+            let pty = try await sshClient.openPTYChannel()
+            session.attachPTYChannel(pty)
+        }
+        return session
+    }
+
+    public func closeSessions(forWorkspaceTabID tabID: UUID) {
+        let doomedIDs = sessions.filter { $0.workspaceTabID == tabID }.map(\.id)
+        for id in doomedIDs {
+            closeSession(id: id)
+        }
+    }
+
+    public func closeSessions(forRemoteSessionID remoteID: UUID) {
+        let doomedIDs = sessions.filter { $0.remoteSessionID == remoteID }.map(\.id)
+        for id in doomedIDs {
+            closeSession(id: id)
+        }
     }
 
     public func closeSession(id: UUID) {

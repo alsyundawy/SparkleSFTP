@@ -9,7 +9,7 @@ public extension Notification.Name {
     static let sparklePaneFocusRequested = Notification.Name("sparkleSFTP.paneFocusRequested")
 }
 
-/// Workspace tab pairing an independent local directory view with an optional remote session.
+/// Workspace tab pairing an independent local directory view with an optional remote session and 1:1 shell state.
 public struct WorkspaceTab: Identifiable, Equatable, Sendable {
     public let id: UUID
     public var sessionID: UUID?
@@ -17,6 +17,7 @@ public struct WorkspaceTab: Identifiable, Equatable, Sendable {
     public var localPath: URL
     public var localHistory: PaneNavigationHistory
     public var localSortDescriptor: FileSortDescriptor
+    public var isTerminalVisible: Bool
 
     public init(
         id: UUID = UUID(),
@@ -24,7 +25,8 @@ public struct WorkspaceTab: Identifiable, Equatable, Sendable {
         title: String,
         localPath: URL,
         localHistory: PaneNavigationHistory? = nil,
-        localSortDescriptor: FileSortDescriptor = FileSortDescriptor()
+        localSortDescriptor: FileSortDescriptor = FileSortDescriptor(),
+        isTerminalVisible: Bool = false
     ) {
         self.id = id
         self.sessionID = sessionID
@@ -32,7 +34,20 @@ public struct WorkspaceTab: Identifiable, Equatable, Sendable {
         self.localPath = localPath
         self.localHistory = localHistory ?? PaneNavigationHistory(initialPath: localPath.path)
         self.localSortDescriptor = localSortDescriptor
+        self.isTerminalVisible = isTerminalVisible
     }
+}
+
+struct RemoteDirectoryPermissionTarget {
+    let path: RemotePath
+    let mode: UInt32
+    let profileID: UUID
+}
+
+struct PendingFolderPermissionJob {
+    var remainingTaskIDs: Set<UUID>
+    let remoteDirectories: [RemoteDirectoryPermissionTarget]
+    let localDirectories: [(url: URL, mode: UInt32)]
 }
 
 public struct CopyMoveRequest: Identifiable, Sendable {

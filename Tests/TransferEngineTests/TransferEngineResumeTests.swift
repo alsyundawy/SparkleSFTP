@@ -170,6 +170,74 @@ struct TransferEngineResumeTests {
         #expect(offsets.contains(192))
     }
 
+    @Test("TransferQueue upload resumes from 100%-written remote temp partial")
+    func fullRemotePartialResume() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleFullPart-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let remoteFS = MockRemoteFS()
+        let payload = Data((0 ..< 256).map { UInt8($0 & 0xFF) })
+        let localSrc = dir.appendingPathComponent("payload.bin")
+        try payload.write(to: localSrc)
+        let attrs = try FileManager.default.attributesOfItem(atPath: localSrc.path)
+        let localMtime = attrs[.modificationDate] as? Date
+
+        let uploadQueue = TransferQueue { _ in remoteFS }
+        let uploadTask = TransferTaskMetadata(
+            direction: .upload,
+            source: .local(url: localSrc),
+            destination: .remote(profileID: UUID(), host: "srv", path: "/full-part.bin"),
+            totalBytes: Int64(payload.count)
+        )
+        let tempPath = "/.full-part.bin.sparklesftp.\(uploadTask.id.uuidString).part"
+        await remoteFS.setRemoteFile(path: tempPath, data: payload, mtime: Date(timeIntervalSince1970: 1_700_000_000))
+        let seed = TransferSnapshot(
+            metadata: uploadTask,
+            status: .paused,
+            progress: TransferProgress(bytesTransferred: 128, totalBytes: Int64(payload.count), bytesPerSecond: 0),
+            checkpoint: TransferCheckpoint(
+                bytesTransferred: 128,
+                remoteSize: Int64(payload.count),
+                remoteModificationTime: localMtime,
+                partialLocalPath: tempPath
+            )
+        )
+        await uploadQueue.recordSeedSnapshotForTest(seed)
+        await uploadQueue.retry(id: uploadTask.id)
+        let doneUpload = await waitUntilSnapshot(in: uploadQueue, id: uploadTask.id) { $0.status.isTerminal }
+        #expect(doneUpload?.status == .completed)
+        #expect(await remoteFS.files["/full-part.bin"] == payload)
+        #expect(await remoteFS.recordedUploadOffsets.contains(Int64(payload.count)))
+    }
+
+    @Test("TransferQueue conflict skip removes stale partial and reports zero bytes")
+    func conflictSkipCleansStalePartial() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SparkleSkipClean-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let remoteFS = MockRemoteFS()
+        let baseMtime = Date(timeIntervalSince1970: 1_700_000_000)
+        let payload = Data((0 ..< 256).map { UInt8($0 & 0xFF) })
+        await remoteFS.setRemoteFile(path: "/existing.bin", data: payload, mtime: baseMtime)
+        let existingLocal = dir.appendingPathComponent("existing.bin")
+        try payload.write(to: existingLocal)
+        let skipQueue = TransferQueue(conflictResolver: ConflictResolver(defaultPolicy: .skip)) { _ in remoteFS }
+        let skipTask = TransferTaskMetadata(
+            direction: .download,
+            source: .remote(profileID: UUID(), host: "srv", path: "/existing.bin"),
+            destination: .local(url: existingLocal),
+            totalBytes: Int64(payload.count)
+        )
+        let stalePartial = dir.appendingPathComponent(".existing.bin.sparklesftp.\(skipTask.id.uuidString).part")
+        try Data("stale".utf8).write(to: stalePartial)
+        _ = await skipQueue.enqueue(skipTask)
+        let skippedSnap = await waitUntilSnapshot(in: skipQueue, id: skipTask.id) { $0.status.isTerminal }
+        #expect(skippedSnap?.progress.bytesTransferred == 0)
+        #expect(!FileManager.default.fileExists(atPath: stalePartial.path))
+    }
+
     private func waitUntilSnapshot(
         in queue: TransferQueue,
         id: UUID,

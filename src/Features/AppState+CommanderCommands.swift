@@ -38,7 +38,8 @@ public extension AppState {
         guard !quotedTokens.isEmpty else { return }
         let textToInsert = quotedTokens.joined(separator: " ") + " "
 
-        if terminalManager.selectedSessionID == nil {
+        let targetTabID = activeTabID
+        if terminalManager.session(forWorkspaceTabID: targetTabID) == nil {
             if currentSession?.sshClient != nil {
                 await openTerminalTab()
             } else {
@@ -46,9 +47,9 @@ public extension AppState {
                 return
             }
         }
-        if let activeID = terminalManager.selectedSessionID,
-           let termSession = terminalManager.sessions.first(where: { $0.id == activeID }) {
-            isTerminalVisible = true
+        if let termSession = terminalManager.session(forWorkspaceTabID: targetTabID) {
+            terminalManager.selectedSessionID = termSession.id
+            setActiveTabTerminalVisibility(true)
             termSession.insertCommandText(textToInsert)
             statusBannerMessage = strings.t("pane.insertedCommandLine")
         }

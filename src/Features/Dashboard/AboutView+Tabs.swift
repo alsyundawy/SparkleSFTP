@@ -171,11 +171,13 @@ extension AboutView {
             ("Space", "Quick Look preview (File Pane)"),
             ("⌘T / ⇧⌘T / ⌘W", "New Tab / Duplicate Tab / Close Active Tab or Window"),
             ("⌘⇧[ / ⌘⇧]", "Select Previous / Next Workspace Tab"),
-            ("⌘U / ⇧⌘N", "Upload or Download selected / New Folder"),
-            ("⌘E / ⌘K", "Open Notepad2 Editor / Open Remote SSH Terminal"),
+            ("⌘U / ⇧⌘N / F7", "Upload or Download selected / New Folder"),
+            ("⌘E / ⌘K", "Open Notepad2 Editor / Toggle Active Tab SSH Shell (1 Tab = 1 Shell)"),
             ("⌘⇧S / ⌘R", "Directory Synchronize / Refresh directory"),
+            ("⌘↩ / ⌥↩", "Insert Filenames to Shell / Properties"),
+            ("⌘C / ⌘⇧C / ⌘⌥C", "Copy to Clipboard / Copy Filenames / Copy Full Paths"),
             ("F2 / F5 / F6 / F8 / F9", "Rename / Copy To / Move To / Delete / Properties"),
-            ("⌘A / ⌘C / ⌘⌫", "Select All / Copy to Clipboard / Delete selected items")
+            ("⌘A / ⌘⌫", "Select All / Delete selected items")
         ]
         return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
             Text("Key Productivity Shortcuts")

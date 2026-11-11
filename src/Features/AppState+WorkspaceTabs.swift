@@ -8,6 +8,11 @@ public extension AppState {
         workspaceTabs.first { $0.id == activeTabID }
     }
 
+    var isQuickConnectAvailable: Bool {
+        guard let tab = currentTab else { return currentSession == nil }
+        return tab.sessionID == nil && currentSession == nil
+    }
+
     func broadcastConnectionsDidChange() {
         NotificationCenter.default.post(name: .sparkleConnectionsDidChange, object: windowInstanceID)
     }
@@ -17,6 +22,7 @@ public extension AppState {
         workspaceTabs[idx].localPath = localCurrentURL
         workspaceTabs[idx].localHistory = localHistory
         workspaceTabs[idx].localSortDescriptor = localSortDescriptor
+        workspaceTabs[idx].isTerminalVisible = isTerminalVisible
     }
 
     @discardableResult
@@ -32,6 +38,8 @@ public extension AppState {
         workspaceTabs.append(tab)
         activeTabID = tab.id
         activeSessionID = nil
+        isTerminalVisible = false
+        terminalManager.selectedSessionID = nil
         localHistory = tab.localHistory
         localSortDescriptor = tab.localSortDescriptor
         return tab
@@ -61,8 +69,14 @@ public extension AppState {
         activeSessionID = target.sessionID
         localHistory = target.localHistory
         localSortDescriptor = target.localSortDescriptor
-        if target.sessionID != nil {
+        if let sessionID = target.sessionID {
             activePane = .right
+            let bound = terminalManager.session(forWorkspaceTabID: target.id)
+            terminalManager.selectedSessionID = (bound?.remoteSessionID == sessionID) ? bound?.id : nil
+            isTerminalVisible = target.isTerminalVisible
+        } else {
+            terminalManager.selectedSessionID = nil
+            isTerminalVisible = false
         }
         if target.localPath.standardizedFileURL != localCurrentURL.standardizedFileURL {
             return target.localPath
@@ -81,12 +95,16 @@ public extension AppState {
             return (nil, nil)
         }
         let removedSessionID = workspaceTabs[idx].sessionID
+        terminalManager.closeSessions(forWorkspaceTabID: id)
 
         if workspaceTabs.count == 1 {
             workspaceTabs[0].sessionID = nil
             workspaceTabs[0].title = strings.t("tabs.newTab")
+            workspaceTabs[0].isTerminalVisible = false
             activeTabID = workspaceTabs[0].id
             activeSessionID = nil
+            isTerminalVisible = false
+            terminalManager.selectedSessionID = nil
             return (removedSessionID, nil)
         }
 
@@ -102,6 +120,11 @@ public extension AppState {
             localSortDescriptor = nextTab.localSortDescriptor
             if nextTab.sessionID != nil {
                 activePane = .right
+                terminalManager.selectedSessionID = terminalManager.session(forWorkspaceTabID: nextTab.id)?.id
+                isTerminalVisible = nextTab.isTerminalVisible
+            } else {
+                terminalManager.selectedSessionID = nil
+                isTerminalVisible = false
             }
             if nextTab.localPath.standardizedFileURL != localCurrentURL.standardizedFileURL {
                 pendingLocalRefresh = nextTab.localPath
@@ -191,6 +214,9 @@ public extension AppState {
             workspaceTabs[activeIdx].localPath = localCurrentURL
             workspaceTabs[activeIdx].localHistory = localHistory
             workspaceTabs[activeIdx].localSortDescriptor = localSortDescriptor
+            workspaceTabs[activeIdx].isTerminalVisible = false
+            isTerminalVisible = false
+            terminalManager.selectedSessionID = nil
         } else {
             syncCurrentTabLocalSnapshot()
             let tab = WorkspaceTab(
@@ -203,6 +229,8 @@ public extension AppState {
             )
             workspaceTabs.append(tab)
             activeTabID = tab.id
+            isTerminalVisible = false
+            terminalManager.selectedSessionID = nil
         }
     }
 

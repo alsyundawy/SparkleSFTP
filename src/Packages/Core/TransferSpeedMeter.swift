@@ -9,6 +9,7 @@ public final class TransferSpeedMeter: @unchecked Sendable { // JUSTIFICATION: N
     private let startTime: ContinuousClock.Instant
 
     private var lastSampleTime: ContinuousClock.Instant
+    private var lastAdvanceTime: ContinuousClock.Instant
     private var lastEmitTime: ContinuousClock.Instant?
     private var lastSampleBytes: Int64
     private var smoothedBytesPerSecond: Double = 0
@@ -24,6 +25,7 @@ public final class TransferSpeedMeter: @unchecked Sendable { // JUSTIFICATION: N
         self.minEmitInterval = minEmitInterval
         startTime = now
         lastSampleTime = now
+        lastAdvanceTime = now
         lastSampleBytes = max(0, initialOffset)
     }
 
@@ -64,14 +66,34 @@ public final class TransferSpeedMeter: @unchecked Sendable { // JUSTIFICATION: N
                 ? (0.35 * instantRate) + (0.65 * smoothedBytesPerSecond)
                 : instantRate
             lastSampleTime = now
+            lastAdvanceTime = now
             lastSampleBytes = absoluteBytes
+        } else if deltaBytes == 0 {
+            let idleSeconds = Self.seconds(from: now - lastAdvanceTime)
+            if idleSeconds >= 2.0 {
+                smoothedBytesPerSecond = 0
+                lastSampleTime = now
+            } else if idleSeconds >= 0.4, smoothedBytesPerSecond > 0 {
+                let decayElapsed = Self.seconds(from: now - lastSampleTime)
+                if decayElapsed >= 0.1 {
+                    smoothedBytesPerSecond *= pow(0.35, decayElapsed)
+                    if smoothedBytesPerSecond < 1 {
+                        smoothedBytesPerSecond = 0
+                    }
+                    lastSampleTime = now
+                }
+            }
         }
 
         if smoothedBytesPerSecond > 0 {
             return max(0, Int64(smoothedBytesPerSecond.rounded()))
         }
 
-        let totalElapsed = max(0.001, Self.seconds(from: now - startTime))
+        let idleSinceAdvance = Self.seconds(from: now - lastAdvanceTime)
+        guard idleSinceAdvance < 2.0 else {
+            return 0
+        }
+        let totalElapsed = max(0.01, Self.seconds(from: now - startTime))
         let totalTransferred = max(0, absoluteBytes - initialOffset)
         return totalTransferred > 0 ? Int64((Double(totalTransferred) / totalElapsed).rounded()) : 0
     }

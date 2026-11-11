@@ -5,12 +5,46 @@ import SparkleSynchronization
 
 public extension AppState {
     func openTerminalTab() async {
-        guard let session = currentSession else { return }
-        isTerminalVisible = true
+        guard let session = currentSession,
+              let sshClient = session.sshClient,
+              let tabID = currentTab?.id
+        else { return }
         do {
-            _ = try await terminalManager.openSession(title: session.profile.name, sshClient: session.sshClient)
+            _ = try await terminalManager.ensureSingleSession(
+                workspaceTabID: tabID,
+                remoteSessionID: session.id,
+                title: session.profile.name,
+                sshClient: sshClient
+            )
+            setActiveTabTerminalVisibility(true)
         } catch {
             lastError = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)
+        }
+    }
+
+    func toggleTerminalDrawerForActiveTab() async {
+        if isTerminalVisible {
+            setActiveTabTerminalVisibility(false)
+            return
+        }
+        guard let tab = currentTab,
+              let session = currentSession,
+              session.sshClient != nil
+        else { return }
+        if let existing = terminalManager.session(forWorkspaceTabID: tab.id),
+           existing.remoteSessionID == session.id,
+           existing.isActive {
+            terminalManager.selectedSessionID = existing.id
+            setActiveTabTerminalVisibility(true)
+        } else {
+            await openTerminalTab()
+        }
+    }
+
+    func setActiveTabTerminalVisibility(_ visible: Bool) {
+        isTerminalVisible = visible
+        if let idx = workspaceTabs.firstIndex(where: { $0.id == activeTabID }) {
+            workspaceTabs[idx].isTerminalVisible = visible
         }
     }
 

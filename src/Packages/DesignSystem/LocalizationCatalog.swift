@@ -169,7 +169,7 @@ public enum LocalizationCatalog {
             "nav.newFolder": isID ? "Folder Baru (F7)" : "New Folder (F7)",
             "common.delete": isID ? "Hapus" : "Delete",
             "nav.deleteShortcut": isID ? "Hapus (F8)" : "Delete (F8)",
-            "nav.terminal": isID ? "Terminal SSH" : "SSH Terminal",
+            "nav.terminal": isID ? "Shell SSH" : "SSH Shell",
             "nav.transfers": isID ? "Antrean Transfer" : "Transfer Queue",
             "nav.synchronize": isID ? "Sinkronisasi" : "Synchronize",
             "conn.plaintextFTPWarning": isID

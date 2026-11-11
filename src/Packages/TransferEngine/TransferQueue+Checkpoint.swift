@@ -71,7 +71,13 @@ extension TransferQueue {
     }
 
     func updateSnapshot(id: UUID, status: TransferStatus, progress: TransferProgress) async {
-        guard isCurrentWorkerValid(id: id), let existing = snapshots[id] else { return }
+        guard isCurrentWorkerValid(id: id),
+              let existing = snapshots[id],
+              !existing.status.isTerminal
+        else { return }
+        if existing.status == .paused, status != .paused, status != .cancelled, status != .interrupted {
+            return
+        }
         let monotonicProgress: TransferProgress = if status == .completed {
             TransferProgress(
                 bytesTransferred: max(existing.progress.bytesTransferred, progress.bytesTransferred),
@@ -156,30 +162,43 @@ extension TransferQueue {
         await persistSnapshot(updated)
     }
 
-    func handleProgress(id: UUID, progress: TransferProgress) async {
+    func handleProgress(id: UUID, sequence: UInt64, progress: TransferProgress) async {
         guard isStillActive(id: id),
-              let existing = snapshots[id]
+              let existing = snapshots[id],
+              Self.isProgressWritableStatus(existing.status),
+              sequence >= (lastProgressSequence[id] ?? 0)
         else { return }
-        switch existing.status {
-        case .connecting, .transferring:
-            break
-        default:
-            return
-        }
-        let safeTransferred = max(existing.progress.bytesTransferred, progress.bytesTransferred)
-        let safeTotal = max(existing.progress.totalBytes, max(progress.totalBytes, safeTransferred))
+        lastProgressSequence[id] = sequence
+        let preliminaryTotal = max(existing.progress.totalBytes, max(progress.totalBytes, progress.bytesTransferred))
+        let isComplete = preliminaryTotal > 0 && progress.bytesTransferred >= preliminaryTotal
+        guard await throttler.shouldEmit(for: id, force: isComplete) else { return }
+        // Re-verify state after suspension so stale progress never overwrites .finalizing/.completed/.paused
+        guard isStillActive(id: id),
+              let latest = snapshots[id],
+              Self.isProgressWritableStatus(latest.status),
+              sequence >= (lastProgressSequence[id] ?? 0)
+        else { return }
+        let safeTransferred = max(latest.progress.bytesTransferred, progress.bytesTransferred)
+        let safeTotal = max(latest.progress.totalBytes, max(progress.totalBytes, safeTransferred))
         let monotonic = TransferProgress(
             bytesTransferred: safeTransferred,
             totalBytes: safeTotal,
             bytesPerSecond: progress.bytesPerSecond
         )
-        let isComplete = monotonic.totalBytes > 0 && monotonic.bytesTransferred >= monotonic.totalBytes
-        guard await throttler.shouldEmit(for: id, force: isComplete) else { return }
         await updateSnapshot(
             id: id,
             status: .transferring(bytesPerSecond: monotonic.bytesPerSecond),
             progress: monotonic
         )
+    }
+
+    private static func isProgressWritableStatus(_ status: TransferStatus) -> Bool {
+        switch status {
+        case .connecting, .transferring:
+            true
+        default:
+            false
+        }
     }
 
     func isCurrentWorkerValid(id: UUID) -> Bool {
@@ -195,9 +214,37 @@ extension TransferQueue {
         if activeWorkerTokens[taskID] == workerToken {
             activeWorkerTokens.removeValue(forKey: taskID)
             activeTasks.removeValue(forKey: taskID)
+            lastProgressSequence.removeValue(forKey: taskID)
             await throttler.clear(taskID: taskID)
+        }
+        if let paused = snapshots[taskID], paused.status == .paused {
+            await reconcilePausedCheckpoint(paused)
         }
         await scheduler.releaseSlot(forHost: host)
         await scheduleNextIfAvailable()
+    }
+
+    private func reconcilePausedCheckpoint(_ paused: TransferSnapshot) async {
+        guard paused.metadata.direction == .download else { return }
+        let flushedBytes = Self.measureLocalPartialBytes(checkpoint: paused.checkpoint)
+        guard flushedBytes > 0, flushedBytes != paused.checkpoint?.bytesTransferred else { return }
+        let updated = TransferSnapshot(
+            metadata: paused.metadata,
+            status: .paused,
+            progress: TransferProgress(
+                bytesTransferred: max(flushedBytes, paused.progress.bytesTransferred),
+                totalBytes: paused.progress.totalBytes,
+                bytesPerSecond: 0
+            ),
+            checkpoint: TransferCheckpoint(
+                bytesTransferred: flushedBytes,
+                remoteSize: paused.checkpoint?.remoteSize ?? paused.metadata.totalBytes,
+                remoteModificationTime: paused.checkpoint?.remoteModificationTime,
+                partialLocalPath: paused.checkpoint?.partialLocalPath
+            )
+        )
+        snapshots[paused.id] = updated
+        await persistSnapshot(updated)
+        broadcastSnapshots()
     }
 }

@@ -108,6 +108,7 @@ public final class AppState: ObservableObject {
     @Published public var pendingImportReport: ExternalImportReport?
     @Published public var isShowingImportSheet: Bool = false
     @Published public var syncPlan: SyncPlan?
+    @Published public var isShowingSyncSheet: Bool = false
     @Published public var statusBannerMessage: String?
     @Published public var lastError: AppError?
 
@@ -165,7 +166,6 @@ public final class AppState: ObservableObject {
 
     @Published public var isTerminalVisible: Bool = false
     @Published public var isTransferDrawerVisible: Bool = true
-    @Published public var splitTerminalMode: Bool = false
     @Published public var maxGlobalConcurrentTransfers: Int = 4 {
         didSet { savePreferencesIfLoaded() }
     }
@@ -179,11 +179,6 @@ public final class AppState: ObservableObject {
     }
 
     @Published public var useZlibCompression: Bool = true {
-        didSet { savePreferencesIfLoaded() }
-    }
-
-    @Published public var preferredShellPath: String = ToolchainInspector.detectAvailableShells().first
-        ?? "/usr/local/bin/bash" {
         didSet { savePreferencesIfLoaded() }
     }
 
@@ -227,6 +222,8 @@ public final class AppState: ObservableObject {
     var credentialPromptContinuation: CheckedContinuation<String?, Never>?
     var pendingConflictQueue: [ConflictPromptEntry] = []
     var activeQueueConflictRules: [TransferConflictScope: TransferConflictPolicy] = [:]
+    var pendingFolderPermissionJobs: [PendingFolderPermissionJob] = []
+    public weak var hostWindow: NSWindow?
     var remoteEditWatches: [URL: LocalDirectoryWatcher] = [:]
     var notifiedTerminalTransferIDs: Set<UUID> = []
     var connectingProfileIDs: Set<UUID> = []
@@ -366,6 +363,12 @@ public extension AppState {
         return session.service.fileSystem
     }
 
+    internal func ensureTransferObserverStarted() {
+        if snapshotStreamTask == nil {
+            startTransferObserver()
+        }
+    }
+
     internal func startTransferObserver() {
         snapshotStreamTask?.cancel()
         snapshotStreamTask = Task { [weak self] in
@@ -377,6 +380,7 @@ public extension AppState {
                 }
                 transferSnapshots = snapshots
                 notifyTerminalTransfersIfNeeded(snapshots)
+                await finalizePendingFolderPermissions(from: snapshots)
             }
         }
     }

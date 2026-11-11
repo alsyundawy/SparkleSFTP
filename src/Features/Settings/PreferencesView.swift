@@ -45,7 +45,7 @@ public struct PreferencesView: View {
             maxHeight: .infinity
         )
         .sparkleWorkspaceSurface(appState.activePalette)
-        .background(SparkleWindowConfigurator(palette: appState.activePalette, allowFullScreen: false))
+        .background(SparkleWindowConfigurator(palette: appState.activePalette, allowFullScreen: true))
         .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
             if (notification.object as? UUID) != appState.windowInstanceID {
                 appState.reloadPreferencesFromNotification()

@@ -70,7 +70,7 @@ public struct RemoteFile: Identifiable, Sendable, Hashable {
         isDirectory: Bool,
         isSymlink: Bool = false,
         symlinkTarget: String? = nil,
-        permissions: UInt32 = 0o644,
+        permissions: UInt32? = nil,
         modificationTime: Date? = nil,
         ownerID: UInt32? = nil,
         groupID: UInt32? = nil
@@ -81,7 +81,7 @@ public struct RemoteFile: Identifiable, Sendable, Hashable {
         self.isDirectory = isDirectory
         self.isSymlink = isSymlink
         self.symlinkTarget = symlinkTarget
-        self.permissions = permissions
+        self.permissions = permissions ?? (isDirectory ? 0o755 : 0o644)
         self.modificationTime = modificationTime
         self.ownerID = ownerID
         self.groupID = groupID

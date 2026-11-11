@@ -7,7 +7,6 @@ public struct MainWindowView: View {
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var editorMode: ConnectionEditorMode?
     @State private var isShowingSecurityDiagnostics = false
-    @State private var isShowingSyncSheet = false
 
     public init(appState: AppState) {
         self.appState = appState
@@ -25,7 +24,7 @@ public struct MainWindowView: View {
             VStack(spacing: 0) {
                 WorkspaceTabBar(appState: appState)
 
-                if appState.currentSession == nil, appState.isQuickConnectBarVisible {
+                if appState.isQuickConnectAvailable, appState.isQuickConnectBarVisible {
                     QuickConnectBar(appState: appState)
                         .accessibilityIdentifier("quickConnectBar")
                 }
@@ -66,7 +65,11 @@ public struct MainWindowView: View {
             appState.appearanceMode == .auto ? nil : (appState.appearanceMode == .dark ? .dark : .light)
         )
         .environment(\.sparklePalette, palette)
-        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: true))
+        .background(
+            SparkleWindowConfigurator(palette: palette, allowFullScreen: true) { [weak appState] window in
+                appState?.hostWindow = window
+            }
+        )
         .onChange(of: systemColorScheme) { _ in
             appState.refreshActivePalette(emitChange: true)
             appState.applyAppearanceToApplication()
@@ -89,16 +92,16 @@ public struct MainWindowView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    if let profile = appState.primarySelectedProfile {
-                        Task { await appState.connect(profile: profile) }
+                if appState.isQuickConnectAvailable {
+                    Button {
+                        if let profile = appState.primarySelectedProfile {
+                            Task { await appState.connect(profile: profile) }
+                        }
+                    } label: {
+                        Label(appState.strings.connect, systemImage: SparkleTheme.Symbols.connect)
                     }
-                } label: {
-                    Label(appState.strings.connect, systemImage: SparkleTheme.Symbols.connect)
-                }
-                .disabled(appState.primarySelectedProfile == nil)
-
-                if let current = appState.currentSession {
+                    .disabled(appState.primarySelectedProfile == nil)
+                } else if let current = appState.currentSession {
                     Button {
                         Task { await appState.disconnect(sessionID: current.id) }
                     } label: {
@@ -114,19 +117,18 @@ public struct MainWindowView: View {
                 .help(appState.strings.t("nav.editor"))
 
                 Button {
-                    Task { await appState.openTerminalTab() }
+                    Task { await appState.toggleTerminalDrawerForActiveTab() }
                 } label: {
                     Label(appState.strings.terminal, systemImage: SparkleTheme.Symbols.terminal)
                 }
-                .disabled(appState.currentSession?.sshClient == nil)
+                .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
 
                 Button {
-                    isShowingSyncSheet = true
+                    appState.isShowingSyncSheet = true
                 } label: {
                     Label(appState.strings.synchronize, systemImage: SparkleTheme.Symbols.sync)
                 }
                 .disabled(appState.currentSession == nil || !appState.featureFlags.isSyncEnabled)
-                .keyboardShortcut("s", modifiers: [.command, .shift])
                 .accessibilityLabel(appState.strings.synchronize)
 
                 Button {
@@ -187,7 +189,7 @@ public struct MainWindowView: View {
         .sheet(isPresented: $isShowingSecurityDiagnostics) {
             SecurityDiagnosticsView(appState: appState)
         }
-        .sheet(isPresented: $isShowingSyncSheet) {
+        .sheet(isPresented: $appState.isShowingSyncSheet) {
             SyncPreviewSheet(appState: appState)
         }
         .sheet(item: $appState.pendingHostChallenge) { challenge in
@@ -272,10 +274,16 @@ private extension MainWindowView {
                 .foregroundStyle(palette.secondaryTextColor)
                 .lineLimit(1)
 
-            Toggle(appState.strings.t("nav.terminal"), isOn: $appState.isTerminalVisible)
-                .toggleStyle(.button)
-                .controlSize(.small)
-                .fixedSize()
+            Button {
+                Task { await appState.toggleTerminalDrawerForActiveTab() }
+            } label: {
+                Label(appState.strings.t("nav.terminal"), systemImage: SparkleTheme.Symbols.terminal)
+            }
+            .buttonStyle(.bordered)
+            .tint(appState.isTerminalVisible ? palette.accentColor : palette.secondaryTextColor)
+            .controlSize(.small)
+            .fixedSize()
+            .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
 
             Toggle(appState.strings.t("nav.transfers"), isOn: $appState.isTransferDrawerVisible)
                 .toggleStyle(.button)

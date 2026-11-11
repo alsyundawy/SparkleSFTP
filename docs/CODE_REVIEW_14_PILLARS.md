@@ -1403,20 +1403,20 @@ jobs:
 
 ## ✅ Updated Acceptance Criteria Additions
 
-**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 81 tests in 22 suites, 155 Swift files):**
+**Status MVP Gate (berdasarkan verifikasi implementasi & automated tests — 91 tests in 24 suites, 157 Swift files):**
 
 - [x] `swift-nio-ssh` version ≥ 0.14.1 (`0.15.1`, patch CVE-2026-43798 — lihat [ADR-004](ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md))
 - [x] `Clibcurl` locked to `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`, memblokir permukaan `libssh` — mitigasi CVE-2025-15224), menautkan `-lcurl -lz` (`zlib`/`gzip` bounded `CWE-409`) dengan buffer `256 KB` + `TCP_NODELAY`/`TCP_KEEPALIVE` + worker GCD & probing dinamis `dlopen` `libssh2` ([ADR-007](ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md))
 - [x] `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` pada semua Keychain entries (`SecurityTests` + `no_icloud_keychain_sync` — lihat [ADR-005](ADR/0005-macos13-sqlite3-journal-and-observable-object.md))
 - [x] Path traversal test: download dengan `../` path → rejected (`SecurityTests`)
 - [x] Symlink attack test: recursive download/scan & pre-existing local symlink destination → rejected (`SecurityTests`, `SynchronizationTests`)
-- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, 8x pipelined SFTP SHA-256 parity, FileZilla conflict policy & FIFO queue drain, multi-window isolation & paired multi-tab sessions, WinSCP `.gz` upload / SHA-256 / compare / `CWE-78` quoting → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`, `ToolchainAndConflictTests`, `WindowTabsAndCommanderCommandsTests`)
+- [x] Actor reentrancy & checkpoint pause/resume test: cancel mid-transfer, post-await `handleProgress` guard, real loopback 512 KB upload/download pause + retry, `100%` remote partial resume, Conflict `.skip` zero-byte cleanup, 8x pipelined SFTP SHA-256 parity, FileZilla conflict policy & FIFO queue drain, multi-window isolation & paired multi-tab sessions (`1 Tab = 1 Shell`), bottom-up `0o555`/`0o755` POSIX folder permissions, WinSCP `.gz` upload / SHA-256 / compare / `CWE-78` quoting → deterministik (`TransferEngineTests`, `TransferEngineResumeTests`, `LoopbackTransferResumeTests`, `FolderPermissionsTransferTests`, `ToolchainAndConflictTests`, `WindowTabsAndCommanderCommandsTests`)
 - [x] Proxy tunnel strict HTTP `200` status token enforcement & bounded stall timeouts (`NetworkingTests`, `LoopbackAdvancedIntegrationTests`)
 - [x] PTY leak test: open/close 100 terminal tabs + `CWE-78` sanitasi `ExternalTerminalLauncher` & `PathValidator.escapePOSIXSingleQuoted` → aman & tidak leak (`IntegrationTests`, `ToolchainAndConflictTests`, `WindowTabsAndCommanderCommandsTests`)
 - [x] SHA-256 verification: tidak blocking main thread untuk file > 100MB (`TransferEngineTests`)
 - [x] Sparkle: unsigned/non-HTTPS update check dan placeholder `SUPublicEDKey` ditolak (`UpdateConfigurationValidator`, `SecurityTests`, `SparkleUpdaterService`); Ed25519 appcast signing dilakukan pada host rilis
 - [x] OSLog: tidak ada secret dalam log (`DiagnosticsLogger` + SwiftLint `no_password_in_logs`)
-- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/155 files), `swiftformat --lint .` (0/155 files), `trunk check`, `sonar-project.properties` + `swiftlint --reporter sonarqube`, `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, `clang-format --dry-run --Werror`, `cppcheck`
+- [x] CI/CD & Linters: `.github/workflows/ci.yml` + `release.yml`, `swiftlint --strict` (0/157 files), `swiftformat --lint .` (0/157 files), `trunk check`, `sonar-project.properties` + `swiftlint --reporter sonarqube`, `markdownlint-cli2`, `yamllint`, `actionlint`, `shellcheck`, `clang-format --dry-run --Werror`, `cppcheck`
 
 ---
 

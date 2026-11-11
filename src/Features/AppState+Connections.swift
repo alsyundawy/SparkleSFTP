@@ -358,14 +358,23 @@ public extension AppState {
     func disconnect(sessionID: UUID) async {
         guard let idx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let removed = activeSessions.remove(at: idx)
+        terminalManager.closeSessions(forRemoteSessionID: sessionID)
         try? await removed.service.connection.disconnect(policy: .cancelAllTransfers)
 
         for tabIdx in workspaceTabs.indices where workspaceTabs[tabIdx].sessionID == sessionID {
             workspaceTabs[tabIdx].sessionID = nil
             workspaceTabs[tabIdx].title = strings.t("tabs.newTab")
+            workspaceTabs[tabIdx].isTerminalVisible = false
         }
         if activeSessionID == sessionID {
             activeSessionID = currentTab?.sessionID ?? activeSessions.last?.id
+            if currentTab?.sessionID == nil {
+                isTerminalVisible = false
+                terminalManager.selectedSessionID = nil
+            } else if let tab = currentTab {
+                isTerminalVisible = tab.isTerminalVisible
+                terminalManager.selectedSessionID = terminalManager.session(forWorkspaceTabID: tab.id)?.id
+            }
         }
         if activeSessions.isEmpty {
             for (dirURL, watcher) in remoteEditWatches {

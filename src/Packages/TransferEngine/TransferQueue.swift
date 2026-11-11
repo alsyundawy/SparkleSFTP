@@ -23,6 +23,8 @@ public actor TransferQueue {
     var lastJournalPersistAt: [UUID: Date] = [:]
     var activeTasks: [UUID: Task<Void, Never>] = [:]
     var activeWorkerTokens: [UUID: UUID] = [:]
+    var lastProgressSequence: [UUID: UInt64] = [:]
+    var skippedIDs: Set<UUID> = []
     var cancelledIDs: Set<UUID> = []
     var streamContinuations: [UUID: AsyncStream<[TransferSnapshot]>.Continuation] = [:]
 
@@ -123,6 +125,7 @@ public actor TransferQueue {
         )
         snapshots[metadata.id] = initial
         cancelledIDs.remove(metadata.id)
+        skippedIDs.remove(metadata.id)
         await scheduler.enqueue(metadata)
         await persistSnapshot(initial)
         broadcastSnapshots()
@@ -199,6 +202,8 @@ public actor TransferQueue {
         activeWorkerTokens.removeValue(forKey: id)
         activeTasks.removeValue(forKey: id)?.cancel()
         cancelledIDs.remove(id)
+        skippedIDs.remove(id)
+        lastProgressSequence.removeValue(forKey: id)
         let queued = TransferSnapshot(
             metadata: existing.metadata,
             status: .queued,
@@ -214,22 +219,6 @@ public actor TransferQueue {
         await persistSnapshot(queued)
         broadcastSnapshots()
         await scheduleNextIfAvailable()
-    }
-
-    public func resumeAll() async {
-        let resumableIDs = snapshots.values
-            .filter { snapshot in
-                switch snapshot.status {
-                case .paused, .interrupted, .failed:
-                    return true
-                default:
-                    return false
-                }
-            }
-            .map(\.id)
-        for id in resumableIDs {
-            await retry(id: id)
-        }
     }
 
     func scheduleNextIfAvailable() async {
@@ -271,9 +260,16 @@ public actor TransferQueue {
             try await runWithRetry(metadata: metadata)
             // Re-verify after transfer await before marking completed (RUN-003)
             guard isStillActive(id: metadata.id) else { return }
+            let wasSkipped = skippedIDs.remove(metadata.id) != nil
+            let existingProgress = snapshots[metadata.id]?.progress
+            let finalTransferred = wasSkipped ? 0 : max(metadata.totalBytes, existingProgress?.bytesTransferred ?? 0)
+            let finalTotal = wasSkipped ? metadata.totalBytes : max(
+                metadata.totalBytes,
+                existingProgress?.totalBytes ?? 0
+            )
             let finalProgress = TransferProgress(
-                bytesTransferred: max(metadata.totalBytes, snapshots[metadata.id]?.progress.bytesTransferred ?? 0),
-                totalBytes: max(metadata.totalBytes, snapshots[metadata.id]?.progress.totalBytes ?? 0),
+                bytesTransferred: finalTransferred,
+                totalBytes: finalTotal,
                 bytesPerSecond: 0
             )
             await updateSnapshot(id: metadata.id, status: .completed, progress: finalProgress)

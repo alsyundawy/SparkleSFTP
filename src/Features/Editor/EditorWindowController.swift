@@ -1,4 +1,5 @@
 import AppKit
+import SparkleDesignSystem
 import SwiftUI
 
 /// Manages a standalone resizable macOS window hosting `InternalEditorView`.
@@ -9,6 +10,11 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
     func present(appState: AppState) {
         if let existing = window {
             existing.title = appState.strings.t("editor.windowTitle")
+            SparkleWindowConfigurator.SparkleWindowProbeView.configure(
+                window: existing,
+                palette: appState.activePalette,
+                allowFullScreen: true
+            )
             existing.makeKeyAndOrderFront(nil)
             return
         }
@@ -22,7 +28,14 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
         newWindow.title = appState.strings.t("editor.windowTitle")
+        newWindow.identifier = NSUserInterfaceItemIdentifier("sparkle.editor")
         newWindow.minSize = NSSize(width: 680, height: 420)
+        newWindow.collectionBehavior = [.fullScreenPrimary]
+        SparkleWindowConfigurator.SparkleWindowProbeView.configure(
+            window: newWindow,
+            palette: appState.activePalette,
+            allowFullScreen: true
+        )
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.contentViewController = hostingController

@@ -92,11 +92,13 @@ private struct SparkleAppCommands: Commands {
                 activeState.selectAdjacentWorkspaceTab(delta: -1)
             }
             .keyboardShortcut("[", modifiers: [.command, .shift])
+            .disabled(activeState.workspaceTabs.count < 2)
 
             Button(activeState.strings.t("tabs.nextTab")) {
                 activeState.selectAdjacentWorkspaceTab(delta: 1)
             }
             .keyboardShortcut("]", modifiers: [.command, .shift])
+            .disabled(activeState.workspaceTabs.count < 2)
 
             Divider()
 
@@ -104,6 +106,7 @@ private struct SparkleAppCommands: Commands {
                 Task { await activeState.enqueueSelectedTransfer() }
             }
             .keyboardShortcut("u", modifiers: [.command])
+            .disabled(activeState.currentSession == nil)
 
             Button(activeState.strings.newFolder) {
                 activeState.promptCreateFolderShortcut()
@@ -116,10 +119,16 @@ private struct SparkleAppCommands: Commands {
             .keyboardShortcut("e", modifiers: [.command])
 
             Button(activeState.strings.t("nav.terminal")) {
-                Task { await activeState.openTerminalTab() }
+                Task { await activeState.toggleTerminalDrawerForActiveTab() }
             }
             .keyboardShortcut("k", modifiers: [.command])
-            .disabled(activeState.currentSession?.sshClient == nil)
+            .disabled(activeState.currentSession?.sshClient == nil && !activeState.isTerminalVisible)
+
+            Button(activeState.strings.synchronize) {
+                activeState.isShowingSyncSheet = true
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            .disabled(activeState.currentSession == nil || !activeState.featureFlags.isSyncEnabled)
 
             Button(activeState.strings.t("common.refresh")) {
                 Task {
@@ -155,26 +164,48 @@ private struct SparkleAppCommands: Commands {
 
     @MainActor
     private func handleCloseActiveTabOrWindow() {
-        let keyWindow = NSApp.keyWindow
-        if let focused = focusedAppState,
-           keyWindow?.attachedSheet == nil,
-           focused.workspaceTabs.count > 1,
-           let firstWindow = NSApp.windows.first(where: { $0.isKeyWindow }),
-           firstWindow.title.hasPrefix("SparkleSFTP") || firstWindow.identifier?.rawValue.contains("main") == true {
-            let outcome = focused.closeWorkspaceTabSync(id: focused.activeTabID)
-            if outcome.removedSessionID != nil || outcome.pendingLocalRefresh != nil {
-                Task {
-                    if let removedID = outcome.removedSessionID {
-                        await focused.disconnect(sessionID: removedID)
-                    }
-                    if let localURL = outcome.pendingLocalRefresh {
-                        await focused.refreshLocalDirectory(localURL, recordHistory: false)
-                    }
-                }
+        guard let keyWindow = NSApp.keyWindow else { return }
+        if keyWindow.identifier?.rawValue == "sparkle.editor" {
+            let state = focusedAppState ?? fallbackState
+            if state.editorManager.documents.count > 1,
+               let activeDocID = state.editorManager.activeDocumentID {
+                state.editorManager.closeDocument(id: activeDocID)
+                return
             }
+            keyWindow.performClose(nil)
             return
         }
-        keyWindow?.performClose(nil)
+        if let focused = focusedAppState,
+           keyWindow.attachedSheet == nil,
+           focused.workspaceTabs.count > 1,
+           isMainWorkspaceWindow(keyWindow, appState: focused) {
+            closeActiveWorkspaceTab(in: focused)
+            return
+        }
+        keyWindow.performClose(nil)
+    }
+
+    @MainActor
+    private func isMainWorkspaceWindow(_ keyWindow: NSWindow, appState: AppState) -> Bool {
+        if let hostWindow = appState.hostWindow {
+            return keyWindow === hostWindow
+        }
+        return keyWindow.title.hasPrefix("SparkleSFTP")
+            || keyWindow.identifier?.rawValue.contains("main") == true
+    }
+
+    @MainActor
+    private func closeActiveWorkspaceTab(in focused: AppState) {
+        let outcome = focused.closeWorkspaceTabSync(id: focused.activeTabID)
+        guard outcome.removedSessionID != nil || outcome.pendingLocalRefresh != nil else { return }
+        Task {
+            if let removedID = outcome.removedSessionID {
+                await focused.disconnect(sessionID: removedID)
+            }
+            if let localURL = outcome.pendingLocalRefresh {
+                await focused.refreshLocalDirectory(localURL, recordHistory: false)
+            }
+        }
     }
 }
 
