@@ -30,8 +30,11 @@ public enum LocalizationCatalog {
     }
 
     public static func loadBundledStrings(code: String) -> [String: String] {
-        let candidateURL = Bundle.module.url(forResource: code, withExtension: "json", subdirectory: "Locales")
-            ?? Bundle.module.url(forResource: code, withExtension: "json")
+        guard let bundle = resolveResourceBundle() else {
+            return fallbackStrings(code: code)
+        }
+        let candidateURL = bundle.url(forResource: code, withExtension: "json", subdirectory: "Locales")
+            ?? bundle.url(forResource: code, withExtension: "json")
         guard let url = candidateURL,
               let data = try? Data(contentsOf: url),
               let doc = decodeLocaleData(data, fallbackCode: code)
@@ -39,6 +42,23 @@ public enum LocalizationCatalog {
             return fallbackStrings(code: code)
         }
         return fallbackStrings(code: code).merging(doc.strings) { _, bundled in bundled }
+    }
+
+    static func resolveResourceBundle() -> Bundle? {
+        let bundleFilename = "SparkleSFTP_SparkleDesignSystem.bundle"
+        let candidates: [URL?] = [
+            Bundle.main.resourceURL?.appendingPathComponent(bundleFilename),
+            Bundle.main.bundleURL.appendingPathComponent(bundleFilename)
+        ]
+        for candidate in candidates.compactMap(\.self) where FileManager.default.fileExists(atPath: candidate.path) {
+            if let loaded = Bundle(url: candidate) {
+                return loaded
+            }
+        }
+        guard Bundle.main.bundleURL.pathExtension != "app" else {
+            return nil
+        }
+        return Bundle.module
     }
 
     public static func loadAvailableLocales(

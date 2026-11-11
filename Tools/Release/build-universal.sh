@@ -44,6 +44,12 @@ if [[ -f "${REPO_ROOT}/App/Resources/AppIcon.png" ]]; then
   cp "${REPO_ROOT}/App/Resources/AppIcon.png" "${RESOURCES_DIR}/AppIcon.png"
 fi
 
+for bundle_path in "${REPO_ROOT}/.build/arm64-apple-macosx/release/"SparkleSFTP_*.bundle; do
+  if [[ -d "${bundle_path}" ]]; then
+    cp -R "${bundle_path}" "${RESOURCES_DIR}/"
+  fi
+done
+
 SPARKLE_FW="$(find "${REPO_ROOT}/.build/artifacts" -path "*/macos-*/*.framework" -type d -name "Sparkle.framework" | head -n 1 || true)"
 if [[ -n "${SPARKLE_FW}" && -d "${SPARKLE_FW}" ]]; then
   cp -R "${SPARKLE_FW}" "${FRAMEWORKS_DIR}/"

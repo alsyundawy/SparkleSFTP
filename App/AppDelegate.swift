@@ -15,9 +15,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureApplicationIcon() {
-        let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns")
-            ?? Bundle.module.url(forResource: "AppIcon", withExtension: "png")
-            ?? Bundle.module.url(forResource: "AppIcon", withExtension: "icns")
+        var iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns")
+            ?? Bundle.main.url(forResource: "AppIcon", withExtension: "png")
+        if iconURL == nil, Bundle.main.bundleURL.pathExtension != "app" {
+            iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "png")
+                ?? Bundle.module.url(forResource: "AppIcon", withExtension: "icns")
+        }
         if let iconURL, let iconImage = NSImage(contentsOf: iconURL) {
             NSApplication.shared.applicationIconImage = iconImage
         }

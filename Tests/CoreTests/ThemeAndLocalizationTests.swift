@@ -62,9 +62,10 @@ struct ThemeAndLocalizationTests {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
+        #expect(LocalizationCatalog.resolveResourceBundle() != nil)
         let englishStrings = LocalizationCatalog.loadBundledStrings(code: "en")
         let indonesianStrings = LocalizationCatalog.loadBundledStrings(code: "id")
-        #expect(englishStrings.count >= 170)
+        #expect(englishStrings.count >= 260)
 
         let idDoc = LocaleDocument(code: "id", displayName: "Bahasa Indonesia", strings: indonesianStrings)
         let missing = LocalizationCatalog.missingKeys(for: idDoc, referenceKeys: Set(englishStrings.keys))
