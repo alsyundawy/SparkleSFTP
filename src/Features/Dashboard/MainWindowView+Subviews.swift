@@ -2,8 +2,10 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-extension MainWindowView {
-    var minimizedTransferBar: some View {
+struct MainWindowMinimizedTransferBar: View {
+    @ObservedObject var appState: AppState
+
+    var body: some View {
         HStack {
             Spacer()
             Button {
@@ -35,6 +37,111 @@ extension MainWindowView {
         }
         .padding(.vertical, 2)
         .background(appState.activePalette.windowColor.opacity(0.85))
+    }
+}
+
+struct MainWindowStatusBar: View {
+    @ObservedObject var appState: AppState
+
+    var body: some View {
+        let palette = appState.activePalette
+        return HStack(spacing: SparkleTheme.Spacing.medium) {
+            if let session = appState.currentSession {
+                StatusPill(
+                    title: session.profile.protocolType.displayName,
+                    systemImage: session.profile.protocolType.isEncryptedByDefault
+                        ? SparkleTheme.Symbols.sftp
+                        : SparkleTheme.Symbols.ftpInsecure,
+                    tint: session.profile.protocolType.isEncryptedByDefault
+                        ? SparkleTheme.Colors.encryptedBadge
+                        : SparkleTheme.Colors.danger
+                )
+                Text("\(session.profile.username)@\(session.profile.host):\(session.profile.port)")
+                    .font(SparkleTheme.Typography.monoSmall)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else {
+                Text(appState.strings.t("nav.disconnected"))
+                    .font(SparkleTheme.Typography.caption)
+                    .foregroundStyle(palette.secondaryTextColor)
+                    .lineLimit(1)
+            }
+
+            if let message = appState.statusBannerMessage {
+                Text("· \(message)")
+                    .font(SparkleTheme.Typography.caption)
+                    .foregroundStyle(palette.secondaryTextColor)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(palette.displayName)
+                .font(SparkleTheme.Typography.caption)
+                .foregroundStyle(palette.secondaryTextColor)
+                .lineLimit(1)
+
+            Button {
+                Task { await appState.toggleTerminalDrawerForActiveTab() }
+            } label: {
+                Label(appState.strings.t("nav.terminal"), systemImage: SparkleTheme.Symbols.terminal)
+            }
+            .buttonStyle(.bordered)
+            .tint(appState.isTerminalVisible ? palette.accentColor : palette.secondaryTextColor)
+            .controlSize(.small)
+            .fixedSize()
+            .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
+
+            Toggle(appState.strings.t("activityLog.title"), isOn: $appState.isActivityLogVisible)
+                .toggleStyle(.button)
+                .controlSize(.small)
+                .fixedSize()
+                .help(appState.strings.t("activityLog.toggleTooltip"))
+
+            Toggle(appState.strings.t("nav.transfers"), isOn: $appState.isTransferDrawerVisible)
+                .toggleStyle(.button)
+                .controlSize(.small)
+                .fixedSize()
+                .help(appState.strings.t("transfers.showQueueTooltip"))
+
+            languageMenuSelector
+                .controlSize(.small)
+                .fixedSize()
+        }
+        .padding(.horizontal, SparkleTheme.Spacing.medium)
+        .padding(.vertical, SparkleTheme.Spacing.tiny)
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .frame(height: 28)
+        .background(palette.windowColor)
+    }
+
+    private var languageMenuSelector: some View {
+        Menu {
+            ForEach(appState.availableLocales) { doc in
+                Button {
+                    appState.selectLocale(code: doc.code)
+                } label: {
+                    if appState.activeLocaleCode == doc.code {
+                        Label("\(doc.displayName) (\(doc.code.uppercased()))", systemImage: "checkmark")
+                    } else {
+                        Text("\(doc.displayName) (\(doc.code.uppercased()))")
+                    }
+                }
+            }
+        } label: {
+            Label(appState.activeLocaleCode.uppercased(), systemImage: "globe")
+        }
+    }
+}
+
+extension MainWindowView {
+    var minimizedTransferBar: some View {
+        MainWindowMinimizedTransferBar(appState: appState)
+    }
+
+    var statusBar: some View {
+        MainWindowStatusBar(appState: appState)
     }
 
     var groupedThemeFamilies: [String] {

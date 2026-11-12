@@ -137,6 +137,14 @@ public enum AppError: Error, Sendable, LocalizedError, Equatable {
         }
     }
 
+    /// Indicates whether the error represents an OS/POSIX permission denied code.
+    public var isPermissionDenied: Bool {
+        if case .permissionDenied = self {
+            return true
+        }
+        return false
+    }
+
     /// Errors that should not be blindly retried with exponential backoff.
     public var isNonRetryableSecurityOrAuthError: Bool {
         switch self {

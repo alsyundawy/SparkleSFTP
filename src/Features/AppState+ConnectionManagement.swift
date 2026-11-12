@@ -14,7 +14,7 @@ public extension AppState {
 
     var transferSnapshots: [TransferSnapshot] {
         get { transferMonitor.snapshots }
-        set { transferMonitor.snapshots = newValue }
+        set { transferMonitor.updateSnapshots(newValue) }
     }
 
     var hasActiveAsyncCleanup: Bool {
@@ -50,6 +50,7 @@ public extension AppState {
     }
 
     func openPreferencesWindow() {
+        ensureAllThemesLoaded()
         preferencesWindowController.present(appState: self)
     }
 

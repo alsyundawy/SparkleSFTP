@@ -78,7 +78,8 @@ public extension AppState {
 
     internal static func makeInitialWorkspaceBootstrap() -> InitialWorkspaceBootstrap {
         let initialLocales = LocalizationCatalog.loadAvailableLocales()
-        let initialThemes = SparkleThemeStore.loadAllPalettes()
+        let activeThemeID = UserDefaults.standard.string(forKey: "sparklesftp.selectedThemeID")
+        let initialThemes = SparkleThemeStore.loadBootstrapPalettes(activeThemeID: activeThemeID)
         let initialStrings = AppStrings(language: .english, localeCode: "en", availableLocales: initialLocales)
         let firstTab = WorkspaceTab(
             id: UUID(),
@@ -86,9 +87,12 @@ public extension AppState {
             title: initialStrings.t("tabs.newTab"),
             localPath: FileManager.default.homeDirectoryForCurrentUser
         )
+        let targetThemeID = activeThemeID ?? SparkleThemeCatalog.defaultLight.id
+        let rawMode = UserDefaults.standard.string(forKey: "sparklesftp.appearanceMode")
+        let mode = rawMode.flatMap { ThemeAppearanceMode(rawValue: $0) } ?? .auto
         let palette = SparkleThemeCatalog.palette(
-            id: SparkleThemeCatalog.defaultLight.id,
-            appearanceMode: .auto,
+            id: targetThemeID,
+            appearanceMode: mode,
             systemIsDark: NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
             available: initialThemes
         )
@@ -99,6 +103,14 @@ public extension AppState {
             firstTab: firstTab,
             palette: palette
         )
+    }
+
+    func ensureAllThemesLoaded() {
+        guard availableThemes.count < SparkleThemeCatalog.builtInPalettes.count else { return }
+        let all = SparkleThemeStore.loadAllPalettes()
+        if all.count > availableThemes.count {
+            availableThemes = all
+        }
     }
 
     var terminalThemeColors: TerminalThemeColors {

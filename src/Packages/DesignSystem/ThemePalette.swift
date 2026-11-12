@@ -172,6 +172,28 @@ public enum SparkleThemeStore {
             .appendingPathComponent("Themes", isDirectory: true)
     }
 
+    public static func loadBootstrapPalettes(
+        activeThemeID: String? = nil,
+        customDirectory: URL = customThemesDirectoryURL
+    ) -> [SparkleThemePalette] {
+        var result: [SparkleThemePalette] = [
+            SparkleThemeCatalog.defaultLight,
+            SparkleThemeCatalog.defaultDark
+        ]
+        var seenIDs = Set(result.map(\.id))
+
+        if let activeID = activeThemeID, !activeID.isEmpty, !seenIDs.contains(activeID) {
+            if let builtIn = SparkleThemeCatalog.findBuiltInPalette(id: activeID) {
+                result.append(builtIn)
+                seenIDs.insert(activeID)
+            } else if let custom = loadCustomPalettes(from: customDirectory).first(where: { $0.id == activeID }) {
+                result.append(custom)
+                seenIDs.insert(activeID)
+            }
+        }
+        return result
+    }
+
     public static func loadAllPalettes(customDirectory: URL = customThemesDirectoryURL) -> [SparkleThemePalette] {
         var result = SparkleThemeCatalog.builtInPalettes
         var seenIDs = Set(result.map(\.id))

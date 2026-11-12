@@ -289,10 +289,12 @@ public final class AppState: ObservableObject {
         isSignedUpdatesReady: Bool = false,
         performUpdateCheckAction: @escaping @MainActor (AutoUpdateSettings, Bool) async
             -> AutoUpdateCheckStatus = { _, _ in
-                .upToDate(version: "0.3.0")
+                .upToDate(version: "0.4.0")
             },
         applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
+        let themeSignpostID = SparkleSignposts.launch.makeSignpostID()
+        let themeState = SparkleSignposts.launch.beginInterval("ThemeInitialization", id: themeSignpostID)
         let bootstrap = Self.makeInitialWorkspaceBootstrap()
         _workspaceTabs = Published(initialValue: [bootstrap.firstTab])
         _activeTabID = Published(initialValue: bootstrap.firstTab.id)
@@ -300,6 +302,7 @@ public final class AppState: ObservableObject {
         _availableThemes = Published(initialValue: bootstrap.themes)
         strings = bootstrap.strings
         activePalette = bootstrap.palette
+        SparkleSignposts.launch.endInterval("ThemeInitialization", themeState)
         self.credentialStore = credentialStore
         self.hostTrustStore = hostTrustStore
         self.connectionStore = connectionStore
@@ -310,7 +313,7 @@ public final class AppState: ObservableObject {
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
         let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.3.0"
+        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.4.0"
         self.isSignedUpdatesReady = isSignedUpdatesReady
         self.performUpdateCheckAction = performUpdateCheckAction
         self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction
@@ -357,6 +360,7 @@ extension AppState {
                     break
                 }
                 transferSnapshots = snapshots
+                handleTransferSnapshotsChanged(snapshots)
                 notifyTerminalTransfersIfNeeded(snapshots)
                 if !pendingFolderPermissionJobs.isEmpty {
                     await finalizePendingFolderPermissions(from: snapshots)

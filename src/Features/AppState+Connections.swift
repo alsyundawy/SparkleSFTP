@@ -53,7 +53,10 @@ public extension AppState {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
         await refreshProfilesAndGroups()
+        let dirSignpostID = SparkleSignposts.launch.makeSignpostID()
+        let dirState = SparkleSignposts.launch.beginInterval("InitialDirectoryListing", id: dirSignpostID)
         await refreshLocalDirectory(localCurrentURL, recordHistory: false)
+        SparkleSignposts.launch.endInterval("InitialDirectoryListing", dirState)
         trustedHosts = await hostTrustStore.allTrustedHosts()
         if let loadedSnippets = try? await snippetStore.loadSnippets() {
             snippets = loadedSnippets

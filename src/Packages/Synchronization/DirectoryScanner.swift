@@ -210,6 +210,9 @@ public enum DirectoryScanner {
     }
 
     public static func isExcluded(name: String, patterns: [String]) -> Bool {
+        if name == ".DS_Store" || name.hasPrefix("._") {
+            return true
+        }
         for pattern in patterns {
             if pattern == name {
                 return true

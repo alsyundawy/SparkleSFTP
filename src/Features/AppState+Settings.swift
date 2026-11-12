@@ -296,6 +296,9 @@ public extension AppState {
                 }
             }
         } else {
+            if NSApp == nil || (NSApp?.mainWindow == nil && (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || ProcessInfo.processInfo.arguments.contains(where: { $0.contains("swiftpm-testing-helper") || $0.contains("xctest") }))) {
+                return
+            }
             let response = alert.runModal()
             if case let .updateAvailable(_, url, _) = status, response == .alertFirstButtonReturn {
                 NSWorkspace.shared.open(url)

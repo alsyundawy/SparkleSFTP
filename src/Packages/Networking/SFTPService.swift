@@ -259,4 +259,30 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         )
         try verifyStatusOK(resp, path: path.rawValue)
     }
+
+    public func setModificationTime(_ time: Date, at path: RemotePath) async throws {
+        let sftp = try requireBridge()
+        let timestamp = UInt32(max(0, time.timeIntervalSince1970))
+        let resp = try await sftp.send(
+            .setstat(
+                requestID: sftp.allocateRequestID(),
+                path: path.rawValue,
+                attributes: SFTPAttributes(
+                    accessTime: timestamp,
+                    modificationTime: timestamp
+                )
+            )
+        )
+        do {
+            try verifyStatusOK(resp, path: path.rawValue)
+        } catch let appError as AppError {
+            if case .permissionDenied = appError {
+                #if DEBUG
+                print("[SFTP] Warning: SSH_FXP_SETSTAT mtime permission denied for \(path.rawValue) (non-fatal)")
+                #endif
+                return
+            }
+            throw appError
+        }
+    }
 }

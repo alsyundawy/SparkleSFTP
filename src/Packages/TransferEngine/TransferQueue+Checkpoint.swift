@@ -30,7 +30,7 @@ extension TransferQueue {
         guard !streamContinuations.isEmpty else { return }
         let isQueueIdle = activeTasks.isEmpty
             && !snapshots.values.contains { $0.status.isActive || $0.status == .queued }
-        if immediate || snapshots.count <= 20 || isQueueIdle {
+        if immediate || isQueueIdle {
             snapshotFlushTask?.cancel()
             snapshotFlushTask = nil
             flushSnapshotsNow()
@@ -38,7 +38,7 @@ extension TransferQueue {
         }
         guard snapshotFlushTask == nil else { return }
         snapshotFlushTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(60))
+            try? await Task.sleep(for: .milliseconds(80))
             await self?.flushCoalescedSnapshots()
         }
     }
@@ -140,7 +140,7 @@ extension TransferQueue {
                 lastJournalPersistAt[id] = now
             }
         }
-        broadcastSnapshots()
+        broadcastSnapshots(immediate: status.isTerminal)
     }
 
     func resetCheckpointBytes(id: UUID) async {
@@ -270,6 +270,6 @@ extension TransferQueue {
         )
         snapshots[paused.id] = updated
         await persistSnapshot(updated)
-        broadcastSnapshots()
+        broadcastSnapshots(immediate: true)
     }
 }

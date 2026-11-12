@@ -3,11 +3,11 @@ import Foundation
 /// Curated SparkNotePad & NotepadNext theme catalog (76 built-in themes across 26 families with WCAG AA contrast).
 public enum SparkleThemeCatalog {
     public static var defaultLight: SparkleThemePalette {
-        builtInPalettes[0]
+        corePalettes[0]
     }
 
     public static var defaultDark: SparkleThemePalette {
-        builtInPalettes.first { $0.id == "dracula" } ?? builtInPalettes[1]
+        corePalettes.first { $0.id == "dracula" } ?? corePalettes[1]
     }
 
     public static var builtInFamilies: [String] {
@@ -18,8 +18,22 @@ public enum SparkleThemeCatalog {
         return seen
     }
 
-    public static let builtInPalettes: [SparkleThemePalette] =
+    public static var builtInPalettes: [SparkleThemePalette] {
         corePalettes + extendedPalettes + spectrumPalettes + studioPalettes
+    }
+
+    public static func findBuiltInPalette(id: String) -> SparkleThemePalette? {
+        if let match = corePalettes.first(where: { $0.id == id }) {
+            return match
+        }
+        if let match = extendedPalettes.first(where: { $0.id == id }) {
+            return match
+        }
+        if let match = spectrumPalettes.first(where: { $0.id == id }) {
+            return match
+        }
+        return studioPalettes.first(where: { $0.id == id })
+    }
 
     public static func palette(
         id: String,

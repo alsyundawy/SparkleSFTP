@@ -96,9 +96,6 @@ public struct MainWindowView: View {
                 appState.reloadPreferencesFromNotification()
             }
         }
-        .onReceive(appState.transferMonitor.$snapshots) { snapshots in
-            appState.handleTransferSnapshotsChanged(snapshots)
-        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 if appState.isQuickConnectAvailable {
@@ -268,80 +265,5 @@ public struct MainWindowView: View {
         } message: {
             Text(appState.lastError?.errorDescription ?? "")
         }
-    }
-}
-
-private extension MainWindowView {
-    var statusBar: some View {
-        let palette = appState.activePalette
-        return HStack(spacing: SparkleTheme.Spacing.medium) {
-            if let session = appState.currentSession {
-                StatusPill(
-                    title: session.profile.protocolType.displayName,
-                    systemImage: session.profile.protocolType.isEncryptedByDefault
-                        ? SparkleTheme.Symbols.sftp
-                        : SparkleTheme.Symbols.ftpInsecure,
-                    tint: session.profile.protocolType.isEncryptedByDefault
-                        ? SparkleTheme.Colors.encryptedBadge
-                        : SparkleTheme.Colors.danger
-                )
-                Text("\(session.profile.username)@\(session.profile.host):\(session.profile.port)")
-                    .font(SparkleTheme.Typography.monoSmall)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            } else {
-                Text(appState.strings.t("nav.disconnected"))
-                    .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(palette.secondaryTextColor)
-                    .lineLimit(1)
-            }
-
-            if let message = appState.statusBannerMessage {
-                Text("· \(message)")
-                    .font(SparkleTheme.Typography.caption)
-                    .foregroundStyle(palette.secondaryTextColor)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-
-            Spacer(minLength: 8)
-
-            Text(palette.displayName)
-                .font(SparkleTheme.Typography.caption)
-                .foregroundStyle(palette.secondaryTextColor)
-                .lineLimit(1)
-
-            Button {
-                Task { await appState.toggleTerminalDrawerForActiveTab() }
-            } label: {
-                Label(appState.strings.t("nav.terminal"), systemImage: SparkleTheme.Symbols.terminal)
-            }
-            .buttonStyle(.bordered)
-            .tint(appState.isTerminalVisible ? palette.accentColor : palette.secondaryTextColor)
-            .controlSize(.small)
-            .fixedSize()
-            .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
-
-            Toggle(appState.strings.t("activityLog.title"), isOn: $appState.isActivityLogVisible)
-                .toggleStyle(.button)
-                .controlSize(.small)
-                .fixedSize()
-                .help(appState.strings.t("activityLog.toggleTooltip"))
-
-            Toggle(appState.strings.t("nav.transfers"), isOn: $appState.isTransferDrawerVisible)
-                .toggleStyle(.button)
-                .controlSize(.small)
-                .fixedSize()
-                .help(appState.strings.t("transfers.showQueueTooltip"))
-
-            languageMenuSelector
-                .controlSize(.small)
-                .fixedSize()
-        }
-        .padding(.horizontal, SparkleTheme.Spacing.medium)
-        .padding(.vertical, SparkleTheme.Spacing.tiny)
-        .frame(minWidth: 0, maxWidth: .infinity)
-        .frame(height: 28)
-        .background(palette.windowColor)
     }
 }

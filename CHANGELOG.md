@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-12
+
+### Added, Fixed & Optimized (`T-054`–`T-065`)
+
+- **Cold-Launch Theme Catalog Lazy-Loading (`ThemeCatalog`, `ThemePalette`, `AppState+NavigationAndShortcuts`, `PreferencesThemeTab`, `AppState+ConnectionManagement`)**:
+  - Replaced eager startup instantiation of all 76 theme palettes with lightweight bootstrap initialization (`SparkleThemeStore.loadBootstrapPalettes`), instantiating only `defaultLight`, `defaultDark`, and the user's currently active palette at cold start.
+  - Converted `SparkleThemeCatalog.builtInPalettes` to a computed property and added `findBuiltInPalette(id:)` with short-circuit lookup across Core, Extended, Spectrum, and Studio palettes.
+  - Deferred instantiation of the remaining 74 palettes and scanning of custom theme JSON files via `FileManager` until `PreferencesThemeTab` is explicitly opened by the user.
+- **Elimination of SwiftUI View Invalidation Thrashing (`MainWindowView`, `MainWindowView+Subviews`, `AppState`)**:
+  - Decoupled `MainWindowView` root body evaluations from high-frequency transfer progress notifications by removing `.onReceive(appState.transferMonitor.$snapshots)` from the root window.
+  - Extracted `MainWindowStatusBar` and `MainWindowMinimizedTransferBar` as dedicated, isolated `View` structs, preventing frequent transfer percentage and status message updates from invalidating the root `NavigationSplitView` and dual-pane commander views.
+  - Routed transfer snapshot changes directly to `@MainActor` in `AppState.startTransferObserver` and bound updates to `TransferMonitor.updateSnapshots`.
+- **Transfer Queue Update Coalescing & Throttling (`TransferMonitor`, `TransferQueue+Checkpoint`, `TransferQueueView`)**:
+  - Implemented an 80ms throttle window (~12.5 Hz, within the ideal 10–15 Hz band) in `TransferMonitor.updateSnapshots` to prevent high-frequency micro-file transfers from saturating the SwiftUI render loop.
+  - Removed the `snapshots.count <= 20` unthrottled bypass in `TransferQueue.broadcastSnapshots` so update coalescing applies consistently across all transfer queue volumes, reserving immediate flushes strictly for terminal status changes (`.completed`, `.failed`, `.cancelled`, `.paused`) and queue count transitions.
+  - Maintained windowed rendering with `visibleLimit = 150` in `TransferQueueView` to ensure scroll performance remains fluid with zero jitter.
+- **Cross-Platform Transfer Resilience & macOS Metadata Filtering (`SFTPService`, `Protocols`, `AppError`, `TransferQueue+Execution`, `AppState+TransferHelpers`, `DirectoryScanner`)**:
+  - Added graceful POSIX `SETSTAT` tolerance: when remote `SSH_FXP_SETSTAT` fails with `SSH_FX_PERMISSION_DENIED` (common on Linux/BSD servers where non-root accounts cannot mutate `mtime` or `chmod`), logged a non-fatal warning instead of aborting the transfer.
+  - Added automatic filtering of macOS `.DS_Store` and AppleDouble `._*` metadata files during local directory upload walks (`AppState+TransferHelpers.swift`) and directory synchronization scans (`DirectoryScanner.swift`), keeping remote Linux/BSD environments clean.
+  - Upgraded in-progress upload temporary naming to `.destination.sparklesftp.<uuid>.filepart` with atomic rename upon verified completion, protecting against partial file corruption during sudden network dropouts while retaining backwards-compatible checkpoint resumption.
+- **Startup Profiling Signposts (`SparkleSignposts`, `SparkleSFTPApp`, `AppState+Connections`, `AppState`)**:
+  - Created `SparkleSignposts` using Apple's unified logging framework (`os.signpost` / `OSSignposter`) with subsystem `"com.sparklesftp.app"` and category `"LaunchPerformance"`.
+  - Added interval signposts around `ThemeInitialization`, `InitialDirectoryListing`, and `WindowConfiguration` to enable accurate cold-launch latency and memory profiling in Xcode Instruments (Time Profiler & Points of Interest).
+- **Test Suite Determinism & Headless Alert Guard (`AppState+Settings`)**:
+  - Guarded `NSAlert.runModal()` during update checks in headless test environments to prevent test runner hangs.
+  - Verified 100% test pass rate across all 121 tests in 33 test suites under Swift 6 strict concurrency with zero compiler warnings.
+
 ## [0.3.0] - 2026-11-12
 
 ### Added, Fixed & Optimized (`T-042`–`T-053`)

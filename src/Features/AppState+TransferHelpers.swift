@@ -25,11 +25,18 @@ private struct RemoteDownloadWalkContext: Sendable {
 }
 
 extension AppState {
+    public nonisolated static func isMacOSMetadataFile(_ filename: String) -> Bool {
+        filename == ".DS_Store" || filename.hasPrefix("._")
+    }
+
     func enqueueLocalItemUpload(url: URL, isDirectory: Bool, into session: ActiveSessionModel) async {
         ensureTransferObserverStarted()
         let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
         let posixMode = (attrs?[.posixPermissions] as? NSNumber)?.uint32Value
         if !isDirectory {
+            if Self.isMacOSMetadataFile(url.lastPathComponent) {
+                return
+            }
             let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
             guard let remoteDest = try? session.currentRemotePath.appending(url.lastPathComponent) else { return }
             let meta = TransferTaskMetadata(
@@ -161,6 +168,9 @@ extension AppState {
         let children = try await context.localFileService.listDirectory(at: localDir, showHidden: true)
         for child in children {
             try Task.checkCancellation()
+            if Self.isMacOSMetadataFile(child.name) {
+                continue
+            }
             let childURL = URL(fileURLWithPath: child.path.rawValue)
             guard let targetRemote = try? remoteDir.appending(child.name) else { continue }
             if child.isSymlink {

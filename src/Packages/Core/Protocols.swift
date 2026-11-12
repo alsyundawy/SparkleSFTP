@@ -39,9 +39,14 @@ public protocol RemoteFileSystem: Sendable {
     func rename(from source: RemotePath, to destination: RemotePath) async throws
     func createDirectory(at path: RemotePath) async throws
     func setPermissions(_ permissions: UInt32, at path: RemotePath) async throws
+    func setModificationTime(_ time: Date, at path: RemotePath) async throws
 }
 
 public extension RemoteFileSystem {
+    func setModificationTime(_ time: Date, at path: RemotePath) async throws {
+        // Default no-op for remote filesystems that do not implement timestamp mutation
+    }
+
     func download(
         from remotePath: RemotePath,
         to localURL: URL,

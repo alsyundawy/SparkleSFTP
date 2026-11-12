@@ -1,3 +1,4 @@
+import SparkleCore
 import SparkleFeatures
 import SwiftUI
 
@@ -31,10 +32,13 @@ private struct SparkleWindowRootView: View {
             .frame(minWidth: 960, minHeight: 600)
             .focusedSceneValue(\.activeAppState, appState)
             .onAppear {
+                let windowSignpostID = SparkleSignposts.launch.makeSignpostID()
+                let windowState = SparkleSignposts.launch.beginInterval("WindowConfiguration", id: windowSignpostID)
                 appState.onOpenProfileInNewWindow = { [environment] profileID in
                     environment.enqueueInitialProfile(profileID)
                     openWindow(id: "main")
                 }
+                SparkleSignposts.launch.endInterval("WindowConfiguration", windowState)
             }
             .task {
                 await appState.bootstrap()

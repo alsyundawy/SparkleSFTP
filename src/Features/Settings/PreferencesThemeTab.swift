@@ -87,6 +87,9 @@ struct PreferencesThemeTab: View {
             actionButtonsBar
         }
         .padding(SparkleTheme.Spacing.small)
+        .onAppear {
+            appState.ensureAllThemesLoaded()
+        }
         .fileImporter(
             isPresented: $isImportingTheme,
             allowedContentTypes: [.json],

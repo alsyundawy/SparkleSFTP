@@ -209,8 +209,14 @@ extension TransferQueue {
                 resolvedPermissions: resolvedPermissions
             )
         }
-        let tempName = ".\(plan.destination.filename).sparklesftp.\(conflictRequest.metadata.id.uuidString).part"
-        let tempPath = (try? plan.destination.parent.appending(tempName)) ?? plan.destination
+        let checkpointPartial = snapshots[conflictRequest.metadata.id]?.checkpoint?.partialLocalPath
+        let tempPath: RemotePath
+        if let recorded = checkpointPartial, !recorded.isEmpty {
+            tempPath = RemotePath(rawValue: recorded)
+        } else {
+            let tempName = ".\(plan.destination.filename).sparklesftp.\(conflictRequest.metadata.id.uuidString).filepart"
+            tempPath = (try? plan.destination.parent.appending(tempName)) ?? plan.destination
+        }
         return UploadTransferAttemptRequest(
             metadata: conflictRequest.metadata,
             remoteFS: conflictRequest.remoteFS,
@@ -288,7 +294,20 @@ extension TransferQueue {
         }
         let completedTarget = req.renameFinalTarget ?? req.targetPath
         if let perms = req.resolvedPermissions, perms > 0 {
-            try? await req.remoteFS.setPermissions(perms & 0o777, at: completedTarget)
+            do {
+                try await req.remoteFS.setPermissions(perms & 0o777, at: completedTarget)
+            } catch let error as AppError where error.isPermissionDenied {
+                #if DEBUG
+                print("[TransferQueue] Non-fatal SETSTAT chmod permission denied on \(completedTarget.rawValue)")
+                #endif
+            } catch {
+                #if DEBUG
+                print("[TransferQueue] Non-fatal attribute preservation failure on \(completedTarget.rawValue): \(error)")
+                #endif
+            }
+        }
+        if let mtime = req.localModified {
+            try? await req.remoteFS.setModificationTime(mtime, at: completedTarget)
         }
     }
 

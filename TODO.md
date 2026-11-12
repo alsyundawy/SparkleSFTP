@@ -81,6 +81,21 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Add native `NSAlert` modal feedback for manual "Check for Updates Now" requests
 - [x] Modernize application branding with user-specified 1:1 transparent squircle icon asset generation (`AppIcon.png`, `AppIcon.icns` with solid black background removed)
 
+## Phase I: Cold-Launch Performance, Invalidation Decoupling, Transfer Throttling & Cross-Platform Resilience (`v0.4.0`, `T-054` – `T-065`)
+
+- [x] Lazy-load theme catalogs: load only default light, default dark, and active user palette on startup (`SparkleThemeStore.loadBootstrapPalettes`), deferring 74 palettes & JSON scanning until `PreferencesThemeTab` opens (`T-054`)
+- [x] Eliminate SwiftUI view invalidation thrashing: extract `MainWindowStatusBar` and `MainWindowMinimizedTransferBar` as isolated views, decouple root `MainWindowView` from transfer snapshots (`T-055`)
+- [x] Transfer queue coalescing & throttling: implement 80ms throttle window (~12.5 Hz) in `TransferMonitor.updateSnapshots` and remove `snapshots.count <= 20` bypass in `TransferQueue.broadcastSnapshots` (`T-056`)
+- [x] Maintain `visibleLimit = 150` in `TransferQueueView` to prevent table scrolling jitter (`T-057`)
+- [x] Graceful Linux/BSD SETSTAT handling: catch `SSH_FXP_SETSTAT` `SSH_FX_PERMISSION_DENIED` on `mtime`/`chmod` mutations and log non-fatal warnings without aborting transfers (`T-058`)
+- [x] Automatic macOS metadata filtering: skip `.DS_Store` and AppleDouble `._*` files during directory uploads and synchronization scans (`T-059`)
+- [x] Resilient temporary upload naming: use `.destination.sparklesftp.<uuid>.filepart` with atomic rename upon full completion (`T-060`)
+- [x] Cold-launch profiling signposts: add `OSSignposter` markers (`ThemeInitialization`, `InitialDirectoryListing`, `WindowConfiguration`) under `com.sparklesftp.app` / `LaunchPerformance` (`T-061`)
+- [x] Guard update check modal alerts in headless test environments to prevent test runner hangs (`T-062`)
+- [x] Run full test suite (`121 tests / 33 suites`, 100% green), static code review, and linter check (`T-063`)
+- [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.0-universal.dmg` + `.sha256`) (`T-064`)
+- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.0.md`, `docs/*.md`) (`T-065`)
+
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 
 - [ ] Run live Docker multi-server interop smoke suite (`Tools/TestServers/run-integration-tests.sh` against SFTP/FTP/FTPS containers; requires Docker Engine)
