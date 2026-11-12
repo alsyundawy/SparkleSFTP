@@ -78,20 +78,24 @@ jobs:
           SHA_PATH: ${{ steps.meta.outputs.sha_path }}
         run: |
           set -euo pipefail
-          SHA_VALUE="$(cat "${SHA_PATH}")"
-          {
-            echo "## SparkleSFTP ${RELEASE_TAG} (macOS Universal 2)"
-            echo ""
-            echo "Native macOS dual-pane SFTP / SCP / FTP / FTPS client with integrated SwiftTerm terminal, built for Apple Silicon (\`arm64\`) and Intel (\`x86_64\`)."
-            echo ""
-            echo "### Verification"
-            echo ""
-            echo "\`\`\`text"
-            echo "${SHA_VALUE}"
-            echo "\`\`\`"
-            echo ""
-            echo "> Note: Community CI builds are ad-hoc signed without a Developer ID certificate. After mounting the DMG and dragging \`SparkleSFTP.app\` to \`/Applications\`, clear quarantine if prompted by Gatekeeper: \`xattr -dr com.apple.quarantine /Applications/SparkleSFTP.app\`."
-          } > dist/release-notes.md
+          if [[ -f "docs/releases/${RELEASE_TAG}.md" ]]; then
+            cp "docs/releases/${RELEASE_TAG}.md" dist/release-notes.md
+          else
+            SHA_VALUE="$(cat "${SHA_PATH}")"
+            {
+              echo "## SparkleSFTP ${RELEASE_TAG} (macOS Universal 2)"
+              echo ""
+              echo "Native macOS dual-pane SFTP / SCP / FTP / FTPS client with integrated SwiftTerm terminal, built for Apple Silicon (\`arm64\`) and Intel (\`x86_64\`)."
+              echo ""
+              echo "### Verification"
+              echo ""
+              echo "\`\`\`text"
+              echo "${SHA_VALUE}"
+              echo "\`\`\`"
+              echo ""
+              echo "> Note: Community CI builds are ad-hoc signed without a Developer ID certificate. After mounting the DMG and dragging \`SparkleSFTP.app\` to \`/Applications\`, clear quarantine if prompted by Gatekeeper: \`xattr -dr com.apple.quarantine /Applications/SparkleSFTP.app\`."
+            } > dist/release-notes.md
+          fi
 
       - name: Upload Universal DMG workflow artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
