@@ -76,7 +76,7 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-049** Build Standalone iTerm2-style macOS Terminal (`StandaloneTerminalWindowController`, `StandaloneTerminalWindowView`, `StandaloneTerminalSplitView`, `StandaloneTerminalBars`, `StandaloneTerminalManager`, `StandaloneTerminalModels`, `LocalTerminalProcessRepresentable` over `SwiftTerm.LocalProcessTerminalView`, Hardened Runtime `SparkleSFTP.entitlements`).
 - [x] **T-050** Add regression tests (`SecurityHardeningTests`, `TransferBatchAndPolicyTests`, `TransferAndTerminalRegressionTests`) — `121 tests across 33 suites` passing.
 - [x] **T-051** Execute full 14-pillar audit, all linters (`0` issues), full `swift test`, and Universal 2 `0.3.0` `.app`/`.dmg`/`.sha256` packaging.
-- [x] **T-052** Sync EN/ID i18n (`406` keys), docs, changelog, commit, push, and verify live GitHub Actions workflows.
+- [x] **T-052** Sync EN/ID i18n (`456` keys), docs, changelog, commit, push, and verify live GitHub Actions workflows.
 
 ## Milestone 9: Runaway CPU Elimination, FileZilla Activity Logger & Modern UX (`WG-1`–`WG-9`)
 
@@ -89,7 +89,7 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-059** Implement centered minimize/hide transfer drawer and expander bar.
 - [x] **T-060** Enrich localized tooltips with shortcut indicators across Quick Connect and Action bars.
 - [x] **T-061** Add native `NSAlert` modal feedback for manual "Check for Updates Now" requests.
-- [x] **T-062** Modernize application branding with user-specified 1:1 icon asset generation (`AppIcon.png`, `AppIcon.icns`).
+- [x] **T-062** Modernize application branding with user-specified 1:1 transparent squircle icon asset generation (`AppIcon.png`, `AppIcon.icns` with solid black background removed).
 
 ## Post-MVP / External Infrastructure Gates (Deferred)
 

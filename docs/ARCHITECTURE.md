@@ -58,18 +58,18 @@ SparkleSFTP/
 ├── sonar-project.properties      # SonarQube configuration (`src` sources + `swiftlint --reporter sonarqube`)
 ├── src/
 │   ├── App/                      # Executable entry (`SparkleSFTPApp` + `WindowGroup`), `AppDelegate`, `AppEnvironment`, `SparkleUpdaterService`
-│   ├── Features/                 # SparkleFeatures: SwiftUI + AppKit (`WorkspaceTabBar`, `QuickConnectBar`, Commander + Commander context menus/sheets, Connections hover/select/delete, Notepad2 Editor, 1-Tab=1-Shell Terminal, ConflictResolutionSheet, 7-Tab About, Preferences) & per-window `AppState`
+│   ├── Features/                 # SparkleFeatures: SwiftUI + AppKit (`WorkspaceTabBar` with Disconnect & Connect on New Tab, `QuickConnectBar`, Commander + context menus/sheets, Connections hover/select/delete, Notepad2 Editor, 1-Tab=1-Shell Terminal, Standalone Terminal, FileZilla ActivityLogView, Collapsible TransferQueueView, ConflictResolutionSheet, 7-Tab About, Preferences) & per-window `AppState`
 │   └── Packages/
 │       ├── Clibcurl/             # Non-variadic C11 bridge over macOS SDK libcurl (-lcurl), zlib (-lz) & dynamic libssh2 probe
 │       ├── Core/                 # SparkleCore: RemotePath, AppError, TransferModels, ToolchainModels, Protocols, FeatureFlags
 │       ├── Networking/           # SparkleNetworking: SFTPPacketCodec, SFTPPipelinedTransfer (64KB ordered submit), TransferSpeedMeter (stall decay), SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
 │       ├── TransferEngine/       # SparkleTransferEngine: TransferQueue (reentrancy-guarded), TransferScheduler (4/3), FileZilla ConflictResolver, ResumeValidator, SHA256Verifier
-│       ├── FileManager/          # SparkleFileManager: LocalFileService, FileSortDescriptor, POSIXPermissions, DualPaneState
+│       ├── FileManager/          # SparkleFileManager: LocalFileService (250ms watcher debounce), FileSortDescriptor, POSIXPermissions, DualPaneState
 │       ├── Security/             # SparkleSecurity: KeychainService, HostTrustStore, TLSCertificateValidator, PathValidator (`CWE-22/59/78`), PrivateKeyParser, UpdateConfigurationValidator
-│       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, 1-Tab=1-Shell SessionManager, ExternalTerminalLauncher, PortForwardingManager
+│       ├── Terminal/             # SparkleTerminal: SwiftTerm TerminalViewRepresentable, 1-Tab=1-Shell SessionManager, StandaloneTerminalManager, ExternalTerminalLauncher, PortForwardingManager
 │       ├── Synchronization/      # SparkleSynchronization: DirectoryScanner, SyncPlanner (One-Way & Bidirectional), SyncExecutor
 │       ├── Persistence/          # SparklePersistence: ConnectionStore (JSON), TransferJournal (SQLite3 WAL), SSH/FileZilla XML & Commander INI BOM & Nested-Group Importers
-│       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator (WindowObserverBox), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 365 keys)
+│       └── DesignSystem/         # SparkleDesignSystem: 76 SparkNotePad/NotepadNext theme palettes (26 families), SparkleWindowConfigurator (didResizeNotification, zero runaway loop), sparkleWorkspaceSurface, JSON i18n Locales (en.json / id.json, 456 keys)
 ├── Tests/                        # CoreTests, SecurityTests, PersistenceTests, NetworkingTests, TransferEngineTests, FileManagerTests, SynchronizationTests, IntegrationTests
 ├── Tools/                        # Docker Compose test servers (OpenSSH, vsftpd, ProFTPD) & Universal 2 DMG / notarization scripts
 └── docs/                         # Technical Specification, Security Model, Workground, Task List, 14-Pillar Review, Long-Term Review, ADRs 0001–0008
@@ -81,6 +81,6 @@ SparkleSFTP/
 - **Actor Reentrancy Guards (`RUN-003`)**: `TransferQueue` re-verifies cancellation and task membership after every `await` suspension point.
 - **No `Task.detached` Retain Cycles (`MEM-001`)**: Workers capture `[weak self]` and store `Task` handles cancelled in `deinit`.
 - **Bounded Backpressure (`MEM-003`, `PERF-004`)**: `ProgressThrottler` (100 ms / 10 Hz) + `AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(10))`.
-- **Zero Main-Thread Blocking (`PERF-001`, `PERF-002`, `PERF-003`)**: Paginated directory windows (`NSTableView` cell dequeue reuse + cached symbol `NSImage`s), single-`lstat` local enumeration, cached `AppStrings`/`SparkleThemePalette`, `TransferMonitor` 10Hz progress isolation, 2-second throttled SQLite progress checkpoints, off-`MainActor` sorting, and background streaming `SHA256Verifier`.
+- **Zero Main-Thread Blocking & Runaway Loop Elimination (`PERF-001`, `PERF-002`, `PERF-003`)**: Zero runaway layout loop in `SparkleWindowConfigurator` (switched from `didUpdateNotification` to `didResizeNotification`), high-volume `ThemedFileRowView` AppKit cell and row reuse (`makeView(withIdentifier:owner:)`), 250ms debouncer in `LocalDirectoryWatcher`, paginated directory windows (`NSTableView` cell dequeue reuse + cached symbol `NSImage`s), single-`lstat` local enumeration, cached `AppStrings`/`SparkleThemePalette`, `TransferMonitor` 10Hz progress isolation, 2-second throttled SQLite progress checkpoints, off-`MainActor` sorting, and background streaming `SHA256Verifier`.
 - **Non-Deadlocking Application Exit**: `AppDelegate.applicationShouldTerminate` synchronously invokes `prepareFastShutdown()` and returns `.terminateNow` when idle (`<= 350ms` bounded `.terminateLater` parallel session/tunnel teardown otherwise), preserving child-to-bastion `ProxyJump` teardown order.
 - **PTY Resource Hygiene (`MEM-002`)**: Explicit `PTYResourceBox` teardown closes `SSHPTYChannel`, cancels reader tasks, and clears `TerminalView.terminalDelegate`.

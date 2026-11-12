@@ -673,7 +673,7 @@ services:
 - [x] Interrupted transfer dapat direkonsiliasi setelah restart (`TransferJournal` SQLite3 WAL di `PersistenceTests`)
 - [x] Tidak ada secret dalam log (`DiagnosticsLogger` + rule `no_password_in_logs` 0 pelanggaran)
 - [x] Streaming SHA-256 & chunked I/O tanpa alokasi buffer penuh (`100MB` off-MainActor verified di `TransferEngineTests`)
-- [x] Build Universal `arm64` + `x86_64` terverifikasi (`lipo -archs` `x86_64 arm64` + DMG `SparkleSFTP-0.2.0-universal.dmg` + `.github/workflows/release.yml`); [ ] notarization Apple Developer ID (`xcrun notarytool`) menunggu sertifikat produksi
+- [x] Build Universal `arm64` + `x86_64` terverifikasi (`lipo -archs` `x86_64 arm64` + DMG `SparkleSFTP-0.3.0-universal.dmg` + `.github/workflows/release.yml`); [ ] notarization Apple Developer ID (`xcrun notarytool`) menunggu sertifikat produksi
 - [x] `apple/swift-nio-ssh` `0.15.1` >= `0.14.1` terverifikasi (**CVE-2026-43798** mitigated)
 - [x] `Clibcurl` mengunci `CURLOPT_PROTOCOLS_STR = "ftp,ftps"` (macOS `libcurl` memakai `libssh2/1.11.1`, permukaan SSH libcurl dimatikan — mitigasi **CVE-2025-15224**)
 - [x] Semua Keychain items pakai `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (`SecurityTests` + `no_icloud_keychain_sync`)

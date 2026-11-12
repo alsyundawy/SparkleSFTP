@@ -79,7 +79,7 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Implement centered minimize/hide transfer drawer and expander bar
 - [x] Add localized tooltips with shortcut indicators across Quick Connect and Action bars
 - [x] Add native `NSAlert` modal feedback for manual "Check for Updates Now" requests
-- [x] Modernize application branding with user-specified 1:1 icon asset generation (`AppIcon.png`, `AppIcon.icns`)
+- [x] Modernize application branding with user-specified 1:1 transparent squircle icon asset generation (`AppIcon.png`, `AppIcon.icns` with solid black background removed)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 

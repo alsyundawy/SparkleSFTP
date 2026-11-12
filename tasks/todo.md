@@ -88,7 +88,7 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 - [x] `T-059` Implement centered minimize/hide transfer drawer and expander bar
 - [x] `T-060` Enrich localized tooltips with shortcut indicators across Quick Connect and Action bars
 - [x] `T-061` Add native `NSAlert` modal feedback for manual "Check for Updates Now" requests
-- [x] `T-062` Modernize application branding with user-specified 1:1 icon asset generation (`AppIcon.png`, `AppIcon.icns`)
+- [x] `T-062` Modernize application branding with user-specified 1:1 transparent squircle icon asset generation (`AppIcon.png`, `AppIcon.icns` with solid black background removed)
 
 ## External Operational & Release Gates (Deferred to Release Environment)
 

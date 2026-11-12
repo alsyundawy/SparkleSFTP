@@ -70,7 +70,7 @@ SparkleSFTP handles high-privilege remote infrastructure access. Primary protect
 ## 4. App Sandbox & Distribution Hardening
 
 - Entitlements (`src/App/SparkleSFTP.entitlements`):
-  - `com.apple.security.app-sandbox`: `true`
+  - `com.apple.security.app-sandbox`: `false` (Direct distribution with Hardened Runtime, allowing `SwiftTerm` local process PTY login shells and Sparkle auto-updates)
   - `com.apple.security.network.client`: `true`
   - `com.apple.security.files.user-selected.read-write`: `true`
   - `com.apple.security.files.bookmarks.app-scope`: `true` (for security-scoped folder bookmarks)
