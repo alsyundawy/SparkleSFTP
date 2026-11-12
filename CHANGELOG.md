@@ -11,8 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2026-11-12
 
-### Added, Fixed & Optimized (`T-042`–`T-052`)
+### Added, Fixed & Optimized (`T-042`–`T-053`)
 
+- **Zero Runaway CPU Loop Elimination & High-Performance Table Reuse (`SparkleWindowConfigurator`, `FilePaneTableView`, `LocalFileService`)**:
+  - Eliminated the runaway 100% CPU infinite feedback loop in `SparkleWindowConfigurator` by replacing `NSWindow.didUpdateNotification` with `NSWindow.didResizeNotification`, preventing continuous layout triggers on every runloop pass.
+  - Implemented AppKit cell and row reuse via `tableView.makeView(withIdentifier:owner:)` in `FilePaneTableView` for `ThemedFileRowView`, eliminating unbounded memory allocations of tracking areas and subviews during rapid dual-pane scrolling.
+  - Added a 250ms debouncer in `LocalDirectoryWatcher` (`LocalFileService.swift`) to coalesce bursts of filesystem notification events and prevent repeated concurrent directory re-reads.
+- **FileZilla-Inspired Activity Logging Console (`ActivityLogger`, `ActivityLogView`, `MainWindowView`, `SparkleSFTPApp`)**:
+  - Added real-time timestamped `[HH:mm:ss]` activity logging engine (`ActivityLogger`) with semantic message categorization (Status, Command, Response, Error, Transfer) and active theme palette integration.
+  - Created collapsible `ActivityLogView` console dock with level filters, auto-scroll toggle, quick copy (`⌘C` / Copy row / Copy message), clear, centered minimize/hide control, and global menu/toolbar toggle (`⌥⌘L`).
+- **Workspace Tab Disconnect & Connect on New Tab (`AppState+WorkspaceTabs`, `WorkspaceTabStripRepresentable`, `WorkspaceTabBar`)**:
+  - Added `tabs.disconnect` context menu option to drop the remote SSH/SFTP connection without closing the workspace tab, returning it safely to the local browser state.
+  - Added `tabs.connectOnNewTab` context menu option to duplicate the profile connection directly into a fresh workspace tab.
+- **Orthodox Commander Keyboard Shortcut Resolution (`InteractiveFileTableSupport`, `AboutView+Tabs`, `LocalizationCatalog`)**:
+  - Resolved `F5` shortcut ambiguity: aligned `F5` strictly to cross-pane direct transfer (Upload in local pane, Download in remote pane), mapped custom target path prompt to `Copy To... (⇧F5)`, and preserved standard clipboard copy as `⌘C`.
+- **Collapsible Transfer Drawer with Centered Minimize/Hide Toggle (`TransferQueueView`, `MainWindowView`)**:
+  - Added a centered `[ ⌵ Hide / Minimize Transfers ]` button in `TransferQueueView` and a centered `[ ⌃ Transfers (N) ]` restore button in `MainWindowView` when collapsed.
+- **Tooltips Perfection & Complete Bilingual Localization (`QuickConnectBar`, `DualPaneCommanderView+Actions`, `en.json`, `id.json`)**:
+  - Audited and enriched interactive tooltips across all Quick Connect controls, action bar buttons, and status bar toggles with shortcut indicators, fully localized in English and Bahasa Indonesia.
+- **Manual Update Check Modal User Feedback (`AppState+Settings`)**:
+  - Implemented explicit AppKit `NSAlert` modal dialog for manual "Check for Updates Now" requests, displaying up-to-date status, update details with release URL button, or error reason.
+- **Application Branding & Icon Update (`AppIcon.png`, `AppIcon.icns`)**:
+  - Replaced application branding with the new 1:1 cloud-folder-lightning logo, compiled across full 16x16 through 1024x1024 multi-resolution asset pipelines.
 - **Standalone iTerm2-Style macOS Terminal (`T-049`: `StandaloneTerminalWindowController`, `StandaloneTerminalWindowView`, `StandaloneTerminalSplitView`, `StandaloneTerminalBars`, `StandaloneTerminalManager`, `StandaloneTerminalModels`, `LocalTerminalProcessRepresentable`)**:
   - Built a separate, full-screen-capable macOS terminal window (`⌘⌥T` and always-enabled toolbar button in `MainWindowView`) powered by `SwiftTerm.LocalProcessTerminalView`.
   - Added multi-tab local login shells (default `$SHELL`, `/usr/local/bin/bash -l`, `/bin/zsh -l`), sanitized SSH connection tabs (`ExternalTerminalLauncher.buildOpenSSHCommandParts`), arbitrary recursive vertical (`⌘D`) and horizontal (`⌘⇧D`) split panes (`TerminalSplitNode`), live `SwiftTerm` scrollback find bar (`⌘F` case/regex/whole-word + match counter), font zoom (`⌘+`/`⌘-`/`⌘0`), live 76-palette ANSI color synchronization, and Hardened Runtime direct-distribution entitlements (`com.apple.security.app-sandbox = false` in `SparkleSFTP.entitlements`).

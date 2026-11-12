@@ -83,6 +83,7 @@ extension DualPaneCommanderView {
             }
             .disabled(appState.currentSession == nil)
             .accessibilityLabel(isLocal ? appState.strings.upload : appState.strings.download)
+            .help(isLocal ? appState.strings.t("nav.uploadTooltip") : appState.strings.t("nav.downloadTooltip"))
 
             Button(appState.strings.newFolder) {
                 appState.activePane = isLocal ? .left : .right
@@ -90,6 +91,7 @@ extension DualPaneCommanderView {
             }
             .disabled(!isLocal && appState.currentSession == nil)
             .accessibilityLabel(appState.strings.newFolder)
+            .help(appState.strings.t("nav.newFolderTooltip"))
 
             commanderSelectionActionButtons(isLocal: isLocal)
 
@@ -100,12 +102,14 @@ extension DualPaneCommanderView {
                     appState.selectAllRemoteFiles()
                 }
             }
+            .help(appState.strings.t("conn.selectAllTooltip"))
 
             Button(appState.strings.delete, role: .destructive) {
                 appState.activePane = isLocal ? .left : .right
                 Task { await appState.deleteSelectedItems() }
             }
             .disabled(!isLocal && appState.currentSession == nil)
+            .help(appState.strings.t("common.deleteTooltip"))
 
             Spacer()
         }
@@ -124,9 +128,11 @@ extension DualPaneCommanderView {
     private func commanderSelectionActionButtons(isLocal: Bool) -> some View {
         if let target = selectedFile(isLocal: isLocal) {
             Button(appState.strings.t("common.rename")) { renamingContext = (target, isLocal) }
+                .help(appState.strings.t("common.renameTooltip"))
             Button(appState.strings.t("pane.info")) {
                 inspectorContext = FileInspectorContext(item: target, isLocal: isLocal)
             }
+            .help(appState.strings.t("pane.infoTooltip"))
             if !target.isDirectory {
                 Button(appState.strings.t("common.edit")) {
                     if isLocal {
@@ -135,9 +141,11 @@ extension DualPaneCommanderView {
                         Task { await appState.openRemoteFileInInternalEditor(target) }
                     }
                 }
+                .help(appState.strings.t("common.editTooltip"))
             }
             if !isLocal {
                 Button("chmod") { editingPermissionsFile = target }
+                    .help(appState.strings.t("pane.chmodTooltip"))
             }
         }
     }

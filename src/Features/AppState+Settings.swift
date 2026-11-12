@@ -260,6 +260,47 @@ public extension AppState {
         var updated = autoUpdateSettings
         updated.lastCheckedAt = Date()
         autoUpdateSettings = updated
+        if manual {
+            presentUpdateCheckAlert(result)
+        }
+    }
+
+    func presentUpdateCheckAlert(_ status: AutoUpdateCheckStatus) {
+        let alert = NSAlert()
+        switch status {
+        case let .upToDate(version):
+            alert.messageText = strings.t("updates.upToDateTitle")
+            alert.informativeText = String(format: strings.t("updates.upToDateMessage"), version)
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: strings.t("common.ok"))
+        case let .updateAvailable(version, _, notes):
+            alert.messageText = strings.t("updates.updateAvailableTitle")
+            let summary = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            let snippet = summary.isEmpty ? "" : "\n\n" + String(summary.prefix(280))
+            alert.informativeText = String(format: strings.t("updates.updateAvailableMessage"), version) + snippet
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: strings.t("updates.viewRelease"))
+            alert.addButton(withTitle: strings.t("common.cancel"))
+        case let .failed(reason):
+            alert.messageText = strings.t("updates.checkFailedTitle")
+            alert.informativeText = reason
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: strings.t("common.ok"))
+        case .sparkleNativeTriggered, .checking, .idle:
+            return
+        }
+        if let window = hostWindow ?? NSApp?.keyWindow {
+            alert.beginSheetModal(for: window) { response in
+                if case let .updateAvailable(_, url, _) = status, response == .alertFirstButtonReturn {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        } else {
+            let response = alert.runModal()
+            if case let .updateAvailable(_, url, _) = status, response == .alertFirstButtonReturn {
+                NSWorkspace.shared.open(url)
+            }
+        }
     }
 
     func applyAutoUpdateConfiguration() {

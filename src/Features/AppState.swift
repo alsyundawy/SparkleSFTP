@@ -166,6 +166,7 @@ public final class AppState: ObservableObject {
 
     @Published public var isTerminalVisible: Bool = false
     @Published public var isTransferDrawerVisible: Bool = true
+    @Published public var isActivityLogVisible: Bool = true
     @Published public var maxGlobalConcurrentTransfers: Int = 4 {
         didSet { savePreferencesIfLoaded() }
     }

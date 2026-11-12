@@ -136,6 +136,11 @@ private struct SparkleAppCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: [.command, .option])
 
+            Button(activeState.strings.t("activityLog.title")) {
+                activeState.isActivityLogVisible.toggle()
+            }
+            .keyboardShortcut("l", modifiers: [.command, .option])
+
             Button(activeState.strings.synchronize) {
                 activeState.isShowingSyncSheet = true
             }

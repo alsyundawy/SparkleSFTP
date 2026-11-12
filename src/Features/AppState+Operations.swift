@@ -107,6 +107,7 @@ public extension AppState {
         let fileSystem = activeSessions[initialIdx].service.fileSystem
         let targetPath = path ?? activeSessions[initialIdx].currentRemotePath
         let sort = activeSessions[initialIdx].sortDescriptor
+        ActivityLogger.shared.logCommand("LIST \(targetPath.rawValue)")
         do {
             let items = try await fileSystem.listDirectory(at: targetPath)
             let sorted = await FileSortDescriptor.sortRemoteFiles(items, by: sort)
@@ -116,7 +117,13 @@ public extension AppState {
                 activeSessions[refreshedIdx].history.navigate(to: targetPath.rawValue)
             }
             activeSessions[refreshedIdx].remoteFiles = PaginatedFileWindow(allFiles: sorted)
+            ActivityLogger.shared.logResponse(
+                "Directory listing of \"\(targetPath.rawValue)\" successful (\(items.count) items)"
+            )
         } catch {
+            ActivityLogger.shared.logError(
+                "Failed to list \"\(targetPath.rawValue)\": \(error.localizedDescription)"
+            )
             reportNonCancellationError(error)
         }
     }

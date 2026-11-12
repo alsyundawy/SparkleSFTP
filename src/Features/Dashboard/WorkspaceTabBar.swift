@@ -43,6 +43,12 @@ public struct WorkspaceTabBar: View {
                 onReconnectTab: { tabID in
                     Task { await appState.reconnectWorkspaceTab(id: tabID) }
                 },
+                onDisconnectTab: { tabID in
+                    Task { await appState.disconnectWorkspaceTab(id: tabID) }
+                },
+                onConnectInNewTab: { tabID in
+                    Task { await appState.connectInNewTab(fromTabID: tabID) }
+                },
                 onOpenNewWindow: { tabID in
                     if let tab = appState.workspaceTabs.first(where: { $0.id == tabID }),
                        let sessionID = tab.sessionID,

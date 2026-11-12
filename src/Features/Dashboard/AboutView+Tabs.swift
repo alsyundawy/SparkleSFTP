@@ -177,7 +177,7 @@ extension AboutView {
             ("⌘⇧S / ⌘R", "Directory Synchronize / Refresh directory"),
             ("⌘↩ / ⌥↩", "Insert Filenames to Shell / Properties"),
             ("⌘C / ⌘⇧C / ⌘⌥C", "Copy to Clipboard / Copy Filenames / Copy Full Paths"),
-            ("F2 / F5 / F6 / F8 / F9", "Rename / Copy To / Move To / Delete / Properties"),
+            ("F2 / F5 / ⇧F5 / F6 / F8 / F9", "Rename / Transfer / Copy To / Move To / Delete / Properties"),
             ("⌘A / ⌘⌫", "Select All / Delete selected items")
         ]
         return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {

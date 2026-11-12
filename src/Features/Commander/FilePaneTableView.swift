@@ -4,32 +4,6 @@ import SparkleDesignSystem
 import SparkleFileManager
 import SwiftUI
 
-public enum FilePaneContextAction: Int, Sendable {
-    case open = 1
-    case transfer = 2
-    case quickLook = 3
-    case edit = 4
-    case rename = 5
-    case permissions = 6
-    case inspect = 7
-    case newFolder = 8
-    case delete = 9
-    case openExternalApp = 10
-    case configureEditor = 11
-    case copyTo = 12
-    case moveTo = 13
-    case copyClipboard = 14
-    case compareFiles = 15
-    case compressAndUpload = 16
-    case verifyChecksum = 17
-    case customSSHCommand = 18
-    case insertCommandLine = 19
-    case copyFileNames = 20
-    case copyFullPaths = 21
-    case selectAll = 22
-    case showInFinder = 23
-}
-
 /// High-performance AppKit NSTableView wrapped for SwiftUI with strict cell dequeue reuse (MEM-004).
 public struct FilePaneTableView: NSViewRepresentable {
     public let files: [RemoteFile]
@@ -277,8 +251,16 @@ public extension FilePaneTableView {
             cachedFiles.count
         }
 
-        public func tableView(_: NSTableView, rowViewForRow _: Int) -> NSTableRowView? {
-            let rowView = ThemedFileRowView()
+        public func tableView(_ tableView: NSTableView, rowViewForRow _: Int) -> NSTableRowView? {
+            let rowID = NSUserInterfaceItemIdentifier("ThemedFileRowView")
+            let rowView: ThemedFileRowView
+            if let reused = tableView.makeView(withIdentifier: rowID, owner: nil) as? ThemedFileRowView {
+                rowView = reused
+            } else {
+                let newRow = ThemedFileRowView()
+                newRow.identifier = rowID
+                rowView = newRow
+            }
             let accent = NSColor(hex: parent.palette.accentHex)
             rowView.highlightColor = accent.withAlphaComponent(parent.palette.isDark ? 0.34 : 0.22)
             rowView.hoverColor = accent.withAlphaComponent(parent.palette.isDark ? 0.14 : 0.08)

@@ -30,6 +30,11 @@ public struct MainWindowView: View {
                 }
 
                 VSplitView {
+                    if appState.isActivityLogVisible {
+                        ActivityLogView(appState: appState)
+                            .frame(minHeight: 70, idealHeight: 130)
+                    }
+
                     DualPaneCommanderView(appState: appState)
                         .frame(minHeight: 180, idealHeight: 420)
 
@@ -44,6 +49,10 @@ public struct MainWindowView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if !appState.isTransferDrawerVisible {
+                    minimizedTransferBar
+                }
 
                 statusBar
             }
@@ -129,6 +138,15 @@ public struct MainWindowView: View {
                     Label(appState.strings.t("nav.standaloneTerminal"), systemImage: "macwindow.on.rectangle")
                 }
                 .help(appState.strings.t("nav.standaloneTerminal"))
+
+                Button {
+                    withAnimation {
+                        appState.isActivityLogVisible.toggle()
+                    }
+                } label: {
+                    Label(appState.strings.t("activityLog.title"), systemImage: "list.bullet.rectangle")
+                }
+                .help(appState.strings.t("activityLog.toggleTooltip"))
 
                 Button {
                     appState.isShowingSyncSheet = true
@@ -304,10 +322,17 @@ private extension MainWindowView {
             .fixedSize()
             .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
 
+            Toggle(appState.strings.t("activityLog.title"), isOn: $appState.isActivityLogVisible)
+                .toggleStyle(.button)
+                .controlSize(.small)
+                .fixedSize()
+                .help(appState.strings.t("activityLog.toggleTooltip"))
+
             Toggle(appState.strings.t("nav.transfers"), isOn: $appState.isTransferDrawerVisible)
                 .toggleStyle(.button)
                 .controlSize(.small)
                 .fixedSize()
+                .help(appState.strings.t("transfers.showQueueTooltip"))
 
             languageMenuSelector
                 .controlSize(.small)
@@ -318,31 +343,5 @@ private extension MainWindowView {
         .frame(minWidth: 0, maxWidth: .infinity)
         .frame(height: 28)
         .background(palette.windowColor)
-    }
-
-    private var groupedThemeFamilies: [String] {
-        var families: [String] = []
-        for theme in appState.availableThemes where !families.contains(theme.family) {
-            families.append(theme.family)
-        }
-        return families
-    }
-
-    private var languageMenuSelector: some View {
-        Menu {
-            ForEach(appState.availableLocales) { doc in
-                Button {
-                    appState.selectLocale(code: doc.code)
-                } label: {
-                    if appState.activeLocaleCode == doc.code {
-                        Label("\(doc.displayName) (\(doc.code.uppercased()))", systemImage: "checkmark")
-                    } else {
-                        Text("\(doc.displayName) (\(doc.code.uppercased()))")
-                    }
-                }
-            }
-        } label: {
-            Label(appState.activeLocaleCode.uppercased(), systemImage: "globe")
-        }
     }
 }

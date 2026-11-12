@@ -68,6 +68,19 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Add regression tests covering FileHostTrustStore, Keychain `hasSecret`, 8-policy Upload/Download resolver, queue batch lifecycle, `CancellationError` suppression, `NSMenuDelegate` guards, and Standalone Terminal (`T-050`)
 - [x] Run full 14-pillar audit, all linters (`0` violations), full `121 tests / 33 suites`, Universal 2 `0.3.0` `.app`/`.dmg` build, docs/CI verification & push (`T-051`, `T-052`)
 
+## Phase H: Runaway CPU Elimination, FileZilla Activity Logger, Tab Disconnect & Icon Modernization (`v0.3.0`, `T-053`)
+
+- [x] Fix 100% CPU infinite layout loop in `SparkleWindowConfigurator` via `NSWindow.didResizeNotification`
+- [x] Implement `ThemedFileRowView` AppKit row reuse in `FilePaneTableView` eliminating unbounded allocations
+- [x] Add 250ms debouncer to `LocalDirectoryWatcher` in `LocalFileService`
+- [x] Integrate FileZilla-style real-time Activity Logging Console (`ActivityLogger`, `ActivityLogView`, `⌥⌘L`)
+- [x] Add `tabs.disconnect` and `tabs.connectOnNewTab` options to workspace tab context menus
+- [x] Disambiguate `F5` (Cross-Pane Transfer) vs `⇧F5` (Copy To...) vs `⌘C` (Clipboard Copy)
+- [x] Implement centered minimize/hide transfer drawer and expander bar
+- [x] Add localized tooltips with shortcut indicators across Quick Connect and Action bars
+- [x] Add native `NSAlert` modal feedback for manual "Check for Updates Now" requests
+- [x] Modernize application branding with user-specified 1:1 icon asset generation (`AppIcon.png`, `AppIcon.icns`)
+
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 
 - [ ] Run live Docker multi-server interop smoke suite (`Tools/TestServers/run-integration-tests.sh` against SFTP/FTP/FTPS containers; requires Docker Engine)

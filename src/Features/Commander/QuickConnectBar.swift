@@ -22,34 +22,40 @@ public struct QuickConnectBar: View {
                 .labelsHidden()
                 .frame(width: 96)
                 .controlSize(.small)
+                .help(strings.t("quickConnect.protocolTooltip"))
 
                 TextField(strings.t("conn.host"), text: $appState.quickConnectHost)
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.small)
                     .frame(minWidth: 110, idealWidth: 160, maxWidth: 220)
+                    .help(strings.t("quickConnect.hostTooltip"))
                     .onSubmit { triggerQuickConnect() }
 
                 TextField(strings.t("conn.port"), text: $appState.quickConnectPort)
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.small)
                     .frame(width: 52)
+                    .help(strings.t("quickConnect.portTooltip"))
                     .onSubmit { triggerQuickConnect() }
 
                 TextField(strings.t("conn.username"), text: $appState.quickConnectUsername)
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.small)
                     .frame(width: 84)
+                    .help(strings.t("quickConnect.usernameTooltip"))
                     .onSubmit { triggerQuickConnect() }
 
                 SecureField(strings.t("conn.password"), text: $appState.quickConnectPassword)
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.small)
                     .frame(width: 96)
+                    .help(strings.t("quickConnect.passwordTooltip"))
                     .onSubmit { triggerQuickConnect() }
 
                 Toggle(strings.t("tabs.saveQuickSite"), isOn: $appState.quickConnectSaveProfile)
                     .controlSize(.small)
                     .fixedSize()
+                    .help(strings.t("quickConnect.saveTooltip"))
 
                 Button(strings.t("tabs.quickConnectButton")) {
                     triggerQuickConnect()
@@ -57,6 +63,7 @@ public struct QuickConnectBar: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
                 .fixedSize()
+                .help(strings.t("quickConnect.connectTooltip"))
                 .disabled(appState.quickConnectHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding(.horizontal, SparkleTheme.Spacing.small)

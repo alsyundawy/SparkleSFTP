@@ -200,7 +200,13 @@ public enum LocalizationCatalog {
             "sync.dryRunPreview": isID ? "Pratinjau Dry-Run" : "Dry-Run Preview",
             "sync.executeSync": isID ? "Jalankan Sinkronisasi" : "Execute Sync",
             "nav.settings": isID ? "Pengaturan" : "Settings",
-            "tabs.newTab": isID ? "Tab Baru" : "New Tab"
+            "tabs.newTab": isID ? "Tab Baru" : "New Tab",
+            "tabs.disconnect": isID ? "Putuskan Koneksi" : "Disconnect",
+            "tabs.connectOnNewTab": isID ? "Sambungkan di Tab Baru" : "Connect on New Tab",
+            "activityLog.title": isID ? "Log Aktivitas" : "Activity Log",
+            "transfers.hideMinimize": isID ? "Sembunyikan / Perkecil Transfer" : "Hide / Minimize Transfers",
+            "transfers.showQueue": isID ? "Transfer" : "Transfers",
+            "pane.copyTo": isID ? "Salin Ke... (⇧F5)" : "Copy To... (⇧F5)"
         ]
     }
 }

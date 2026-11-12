@@ -7,6 +7,7 @@ public final class LocalDirectoryWatcher: @unchecked Sendable { // JUSTIFICATION
     private let lock = NSLock()
     private var source: DispatchSourceFileSystemObject?
     private var fileDescriptor: Int32 = -1
+    private var pendingWorkItem: DispatchWorkItem?
     private let queue = DispatchQueue(label: "com.alsyundawy.SparkleSFTP.localwatcher")
 
     public init() {}
@@ -25,10 +26,22 @@ public final class LocalDirectoryWatcher: @unchecked Sendable { // JUSTIFICATION
             eventMask: [.write, .delete, .rename, .attrib],
             queue: queue
         )
-        dispatchSource.setEventHandler {
-            onChange()
+        dispatchSource.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.lock.lock()
+            self.pendingWorkItem?.cancel()
+            let workItem = DispatchWorkItem {
+                onChange()
+            }
+            self.pendingWorkItem = workItem
+            self.lock.unlock()
+            self.queue.asyncAfter(deadline: .now() + .milliseconds(250), execute: workItem)
         }
-        dispatchSource.setCancelHandler {
+        dispatchSource.setCancelHandler { [weak self] in
+            self?.lock.lock()
+            self?.pendingWorkItem?.cancel()
+            self?.pendingWorkItem = nil
+            self?.lock.unlock()
             close(fileDesc)
         }
 
@@ -42,6 +55,8 @@ public final class LocalDirectoryWatcher: @unchecked Sendable { // JUSTIFICATION
 
     public func stopWatching() {
         lock.lock()
+        pendingWorkItem?.cancel()
+        pendingWorkItem = nil
         let activeSource = source
         source = nil
         fileDescriptor = -1

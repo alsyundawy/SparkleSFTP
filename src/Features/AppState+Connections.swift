@@ -173,6 +173,9 @@ public extension AppState {
 
         guard await authenticateBiometricsIfNeeded(for: profile) else { return }
         let created = buildRemoteService(for: profile)
+        ActivityLogger.shared.logStatus(
+            "Connecting to \(profile.host):\(profile.port) via \(profile.protocolType.rawValue.uppercased())..."
+        )
 
         var didConnectTransport = false
         var committedSession = false
@@ -185,6 +188,9 @@ public extension AppState {
                 openInNewTab: openInNewTab
             )
             committedSession = true
+            ActivityLogger.shared.logStatus(
+                "Connected to \(profile.name) (\(profile.host):\(profile.port))."
+            )
         } catch let appError as AppError {
             if didConnectTransport, !committedSession {
                 try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
@@ -193,15 +199,18 @@ public extension AppState {
                 hostMismatchAlert = appError
             }
             lastError = appError
+            ActivityLogger.shared.logError("Connection failed: \(appError.localizedDescription)")
         } catch is CancellationError {
             if didConnectTransport, !committedSession {
                 try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
             }
+            ActivityLogger.shared.logStatus("Connection cancelled.")
             return
         } catch {
             if didConnectTransport, !committedSession {
                 try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
             }
+            ActivityLogger.shared.logError("Connection error: \(error.localizedDescription)")
             reportNonCancellationError(error)
         }
     }
@@ -303,6 +312,7 @@ public extension AppState {
     func disconnect(sessionID: UUID) async {
         guard let idx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let removed = activeSessions.remove(at: idx)
+        ActivityLogger.shared.logStatus("Disconnected from \(removed.profile.name) (\(removed.profile.host)).")
         terminalManager.closeSessions(forRemoteSessionID: sessionID)
         try? await removed.service.connection.disconnect(policy: .cancelAllTransfers)
 

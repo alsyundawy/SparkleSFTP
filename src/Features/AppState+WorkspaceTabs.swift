@@ -175,6 +175,32 @@ public extension AppState {
         await connect(profile: profile, openInNewTab: false)
     }
 
+    func disconnectWorkspaceTab(id: UUID) async {
+        guard let tabIndex = workspaceTabs.firstIndex(where: { $0.id == id }),
+              let sessionID = workspaceTabs[tabIndex].sessionID
+        else { return }
+        workspaceTabs[tabIndex].sessionID = nil
+        workspaceTabs[tabIndex].title = strings.t("tabs.newTab")
+        workspaceTabs[tabIndex].isTerminalVisible = false
+        if activeTabID == id {
+            activeSessionID = nil
+        }
+        await disconnect(sessionID: sessionID)
+    }
+
+    func connectInNewTab(fromTabID: UUID) async {
+        if let tab = workspaceTabs.first(where: { $0.id == fromTabID }),
+           let sessionID = tab.sessionID,
+           let session = activeSessions.first(where: { $0.id == sessionID }) {
+            await connect(profile: session.profile, openInNewTab: true)
+        } else if let profile = primarySelectedProfile {
+            await connect(profile: profile, openInNewTab: true)
+        } else {
+            _ = openNewWorkspaceTab()
+            isQuickConnectBarVisible = true
+        }
+    }
+
     func openProfileInNewWindow(_ profileID: UUID) {
         onOpenProfileInNewWindow?(profileID)
     }

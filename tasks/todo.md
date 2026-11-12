@@ -77,6 +77,19 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 - [x] `T-051` Execute full 14-pillar audit checklist across every file (`/*`, `/*/*`), pass ALL linters (`SwiftLint --strict`, `SwiftFormat`, `SonarQube JSON`, `Trunk`, `MarkdownLint`, `YAMLlint`, `Actionlint`, `ShellCheck`, `Shfmt`, `Clang -Werror`, `Cppcheck --check-level=exhaustive`, `lint-check.sh`), pass `swift test`, and build Universal 2 `SparkleSFTP.app` + `.dmg` + `.sha256` (`0.3.0`)
 - [x] `T-052` Update EN/ID i18n, `README.md`, `README-id.md`, `docs/*.md`, `DOCNOTE.md`, `CHANGELOG.md`, `TODO.md`, commit & push, and verify all 4 GitHub Actions workflows (`CI`, `MegaLinter`, `CodeQL Advanced`, `Deploy Jekyll`) pass cleanly
 
+## Milestone 9: Runaway CPU Elimination, FileZilla Activity Logger & Modern UX (`T-053` – `T-062`)
+
+- [x] `T-053` Fix runaway 100% CPU infinite layout loop in `SparkleWindowConfigurator` via `NSWindow.didResizeNotification`
+- [x] `T-054` Implement AppKit cell & row reuse (`makeView(withIdentifier:owner:)`) in `FilePaneTableView` for `ThemedFileRowView`
+- [x] `T-055` Add 250ms debouncer to `LocalDirectoryWatcher` in `LocalFileService`
+- [x] `T-056` Implement FileZilla-style real-time Activity Logging Console (`ActivityLogger`, `ActivityLogView`, `⌥⌘L`)
+- [x] `T-057` Add `tabs.disconnect` and `tabs.connectOnNewTab` options to workspace tab context menus
+- [x] `T-058` Disambiguate `F5` (Cross-Pane Transfer) vs `⇧F5` (Copy To...) vs `⌘C` (Clipboard Copy)
+- [x] `T-059` Implement centered minimize/hide transfer drawer and expander bar
+- [x] `T-060` Enrich localized tooltips with shortcut indicators across Quick Connect and Action bars
+- [x] `T-061` Add native `NSAlert` modal feedback for manual "Check for Updates Now" requests
+- [x] `T-062` Modernize application branding with user-specified 1:1 icon asset generation (`AppIcon.png`, `AppIcon.icns`)
+
 ## External Operational & Release Gates (Deferred to Release Environment)
 
 - [ ] Execute live Docker integration test suite (`Tools/TestServers/run-integration-tests.sh`; Docker not installed locally)

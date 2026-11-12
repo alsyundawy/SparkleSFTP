@@ -74,7 +74,7 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
 
             let names: [Notification.Name] = [
                 NSWindow.didBecomeKeyNotification,
-                NSWindow.didUpdateNotification
+                NSWindow.didResizeNotification
             ]
             var nextTokens: [any NSObjectProtocol] = []
             for name in names {

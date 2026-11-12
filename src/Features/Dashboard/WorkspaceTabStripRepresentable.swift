@@ -25,6 +25,8 @@ struct WorkspaceTabStripRepresentable: NSViewRepresentable {
     let onNewTab: () -> Void
     let onDuplicateTab: (UUID) -> Void
     let onReconnectTab: (UUID) -> Void
+    let onDisconnectTab: (UUID) -> Void
+    let onConnectInNewTab: (UUID) -> Void
     let onOpenNewWindow: (UUID) -> Void
     let onCloseOtherTabs: (UUID) -> Void
 
@@ -123,8 +125,10 @@ final class WorkspaceTabStripCoordinator: NSObject {
         let menu = NSMenu()
         menu.addItem(makeMenuItem(title: strings.t("tabs.newTab"), action: #selector(handleNewTab)))
         menu.addItem(makeMenuItem(title: strings.t("tabs.duplicateTab"), action: #selector(handleDuplicateTab)))
+        menu.addItem(makeMenuItem(title: strings.t("tabs.connectOnNewTab"), action: #selector(handleConnectInNewTab)))
         if item.isConnected {
             menu.addItem(makeMenuItem(title: strings.t("tabs.reconnect"), action: #selector(handleReconnectTab)))
+            menu.addItem(makeMenuItem(title: strings.t("tabs.disconnect"), action: #selector(handleDisconnectTab)))
             menu.addItem(
                 makeMenuItem(title: strings.t("conn.connectNewWindow"), action: #selector(handleOpenNewWindow))
             )
@@ -161,6 +165,18 @@ final class WorkspaceTabStripCoordinator: NSObject {
     @objc private func handleReconnectTab() {
         if let id = contextMenuTargetID {
             parent.onReconnectTab(id)
+        }
+    }
+
+    @objc private func handleDisconnectTab() {
+        if let id = contextMenuTargetID {
+            parent.onDisconnectTab(id)
+        }
+    }
+
+    @objc private func handleConnectInNewTab() {
+        if let id = contextMenuTargetID {
+            parent.onConnectInNewTab(id)
         }
     }
 

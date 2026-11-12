@@ -157,10 +157,14 @@ final class InteractiveFileTableView: NSTableView {
 
     private func handleFunctionKey(_ event: NSEvent) -> Bool {
         let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if mods == [.shift], event.keyCode == 96 {
+            onContextActionShortcut?(.copyTo)
+            return true
+        }
         guard mods.isEmpty else { return false }
         let action: FilePaneContextAction? = switch event.keyCode {
         case 120: .rename
-        case 96: .copyTo
+        case 96: .transfer
         case 97: .moveTo
         case 98: .newFolder
         case 100: .delete
