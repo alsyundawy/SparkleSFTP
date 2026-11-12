@@ -43,7 +43,7 @@ public protocol RemoteFileSystem: Sendable {
 }
 
 public extension RemoteFileSystem {
-    func setModificationTime(_ time: Date, at path: RemotePath) async throws {
+    func setModificationTime(_: Date, at _: RemotePath) async throws {
         // Default no-op for remote filesystems that do not implement timestamp mutation
     }
 

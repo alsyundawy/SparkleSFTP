@@ -218,8 +218,12 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
             throw error
         }
     }
+}
 
-    public func delete(at path: RemotePath, isDirectory: Bool) async throws {
+// MARK: - RemoteFileSystem Operations & Attributes
+
+public extension SFTPService {
+    func delete(at path: RemotePath, isDirectory: Bool) async throws {
         let sftp = try requireBridge()
         let packet: SFTPPacket = isDirectory
             ? .rmdir(requestID: sftp.allocateRequestID(), path: path.rawValue)
@@ -228,7 +232,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         try verifyStatusOK(resp, path: path.rawValue)
     }
 
-    public func rename(from source: RemotePath, to destination: RemotePath) async throws {
+    func rename(from source: RemotePath, to destination: RemotePath) async throws {
         let sftp = try requireBridge()
         let resp = try await sftp.send(
             .rename(requestID: sftp.allocateRequestID(), oldPath: source.rawValue, newPath: destination.rawValue)
@@ -236,7 +240,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         try verifyStatusOK(resp, path: destination.rawValue)
     }
 
-    public func createDirectory(at path: RemotePath) async throws {
+    func createDirectory(at path: RemotePath) async throws {
         let sftp = try requireBridge()
         let resp = try await sftp.send(
             .mkdir(
@@ -248,7 +252,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         try verifyStatusOK(resp, path: path.rawValue)
     }
 
-    public func setPermissions(_ permissions: UInt32, at path: RemotePath) async throws {
+    func setPermissions(_ permissions: UInt32, at path: RemotePath) async throws {
         let sftp = try requireBridge()
         let resp = try await sftp.send(
             .setstat(
@@ -260,7 +264,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         try verifyStatusOK(resp, path: path.rawValue)
     }
 
-    public func setModificationTime(_ time: Date, at path: RemotePath) async throws {
+    func setModificationTime(_ time: Date, at path: RemotePath) async throws {
         let sftp = try requireBridge()
         let timestamp = UInt32(max(0, time.timeIntervalSince1970))
         let resp = try await sftp.send(
@@ -278,7 +282,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         } catch let appError as AppError {
             if case .permissionDenied = appError {
                 #if DEBUG
-                print("[SFTP] Warning: SSH_FXP_SETSTAT mtime permission denied for \(path.rawValue) (non-fatal)")
+                    print("[SFTP] Warning: SSH_FXP_SETSTAT mtime permission denied for \(path.rawValue) (non-fatal)")
                 #endif
                 return
             }

@@ -37,11 +37,11 @@ public final class TransferMonitor: ObservableObject {
         throttleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(80))
             guard let self, !Task.isCancelled else { return }
-            self.throttleTask = nil
-            if let pending = self.pendingSnapshots {
-                self.pendingSnapshots = nil
-                self.lastPublishedTime = Date()
-                self.snapshots = pending
+            throttleTask = nil
+            if let pending = pendingSnapshots {
+                pendingSnapshots = nil
+                lastPublishedTime = Date()
+                snapshots = pending
             }
         }
     }

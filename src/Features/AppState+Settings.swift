@@ -296,13 +296,25 @@ public extension AppState {
                 }
             }
         } else {
-            if NSApp == nil || (NSApp?.mainWindow == nil && (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || ProcessInfo.processInfo.arguments.contains(where: { $0.contains("swiftpm-testing-helper") || $0.contains("xctest") }))) {
-                return
-            }
+            guard !isHeadlessOrTestingEnvironment else { return }
             let response = alert.runModal()
             if case let .updateAvailable(_, url, _) = status, response == .alertFirstButtonReturn {
                 NSWorkspace.shared.open(url)
             }
+        }
+    }
+
+    private var isHeadlessOrTestingEnvironment: Bool {
+        if NSApp == nil {
+            return true
+        }
+        guard NSApp?.mainWindow == nil else { return false }
+        let env = ProcessInfo.processInfo.environment
+        if env["XCTestConfigurationFilePath"] != nil {
+            return true
+        }
+        return ProcessInfo.processInfo.arguments.contains {
+            $0.contains("swiftpm-testing-helper") || $0.contains("xctest")
         }
     }
 

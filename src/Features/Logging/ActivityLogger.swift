@@ -10,7 +10,9 @@ public enum ActivityLogType: String, CaseIterable, Identifiable, Sendable {
     case error
     case transfer
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var prefix: String {
         switch self {
@@ -59,7 +61,9 @@ public enum ActivityLogFilter: String, CaseIterable, Identifiable, Sendable {
     case error
     case transfer
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public func matches(_ type: ActivityLogType) -> Bool {
         switch self {

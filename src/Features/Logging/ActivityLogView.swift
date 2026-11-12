@@ -5,7 +5,7 @@ import SwiftUI
 
 public struct ActivityLogView: View {
     @ObservedObject var appState: AppState
-    @ObservedObject var logger: ActivityLogger = ActivityLogger.shared
+    @ObservedObject var logger = ActivityLogger.shared
 
     public init(appState: AppState) {
         self.appState = appState

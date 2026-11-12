@@ -214,7 +214,8 @@ extension TransferQueue {
         if let recorded = checkpointPartial, !recorded.isEmpty {
             tempPath = RemotePath(rawValue: recorded)
         } else {
-            let tempName = ".\(plan.destination.filename).sparklesftp.\(conflictRequest.metadata.id.uuidString).filepart"
+            let taskIDStr = conflictRequest.metadata.id.uuidString
+            let tempName = ".\(plan.destination.filename).sparklesftp.\(taskIDStr).filepart"
             tempPath = (try? plan.destination.parent.appending(tempName)) ?? plan.destination
         }
         return UploadTransferAttemptRequest(
@@ -275,6 +276,10 @@ extension TransferQueue {
             throw CancellationError()
         }
 
+        try await finalizeUploadedFile(req)
+    }
+
+    private func finalizeUploadedFile(_ req: UploadTransferAttemptRequest) async throws {
         await updateStatus(id: req.metadata.id, status: .verifying)
         let uploadedMeta = try await req.remoteFS.metadata(at: req.targetPath)
         guard uploadedMeta.size == req.localSize else {
@@ -293,21 +298,28 @@ extension TransferQueue {
             )
         }
         let completedTarget = req.renameFinalTarget ?? req.targetPath
-        if let perms = req.resolvedPermissions, perms > 0 {
+        await preserveUploadAttributes(for: completedTarget, request: req)
+    }
+
+    private func preserveUploadAttributes(
+        for target: RemotePath,
+        request: UploadTransferAttemptRequest
+    ) async {
+        if let perms = request.resolvedPermissions, perms > 0 {
             do {
-                try await req.remoteFS.setPermissions(perms & 0o777, at: completedTarget)
+                try await request.remoteFS.setPermissions(perms & 0o777, at: target)
             } catch let error as AppError where error.isPermissionDenied {
                 #if DEBUG
-                print("[TransferQueue] Non-fatal SETSTAT chmod permission denied on \(completedTarget.rawValue)")
+                    print("[TransferQueue] Non-fatal SETSTAT chmod permission denied on \(target.rawValue)")
                 #endif
             } catch {
                 #if DEBUG
-                print("[TransferQueue] Non-fatal attribute preservation failure on \(completedTarget.rawValue): \(error)")
+                    print("[TransferQueue] Non-fatal attribute preservation failure on \(target.rawValue): \(error)")
                 #endif
             }
         }
-        if let mtime = req.localModified {
-            try? await req.remoteFS.setModificationTime(mtime, at: completedTarget)
+        if let mtime = request.localModified {
+            try? await request.remoteFS.setModificationTime(mtime, at: target)
         }
     }
 
