@@ -34,6 +34,7 @@ public enum AppError: Error, Sendable, LocalizedError, Equatable {
     case pathTraversal(attempted: String)
     case symlinkTraversal(destination: String)
     case maliciousSymlink(target: String)
+    case maliciousCommandInjection(command: String)
 
     // MARK: - Authentication & Keychain
 
@@ -89,6 +90,8 @@ public enum AppError: Error, Sendable, LocalizedError, Equatable {
             return "Blocked destination escaping base directory: \(destination)"
         case let .maliciousSymlink(target):
             return "Blocked unsafe symlink target: \(target)"
+        case let .maliciousCommandInjection(command):
+            return "Blocked unsafe shell command injection: \(command)"
         case let .authenticationFailed(method):
             return "Authentication failed using \(method.rawValue)."
         case let .credentialNotFound(service):
@@ -157,6 +160,7 @@ public enum AppError: Error, Sendable, LocalizedError, Equatable {
              .pathTraversal,
              .symlinkTraversal,
              .maliciousSymlink,
+             .maliciousCommandInjection,
              .biometricAuthenticationFailed,
              .invalidPrivateKey,
              .permissionDenied,

@@ -96,6 +96,8 @@ public final class AppState: ObservableObject {
     @Published public var pendingCustomCommandRequest: CustomCommandRequest?
 
     public let transferMonitor = TransferMonitor()
+    @MainActor static var isSynchronizingBrowsing: Bool = false
+    public let bookmarkManager = BookmarkManager.shared
     @Published public var trustedHosts: [String: HostTrustStore.Entry] = [:]
     @Published public var snippets: [CommandSnippet] = CommandSnippetStore.builtInDefaults
     @Published public var activeTunnels: [PortForwardingManager.ActiveTunnel] = []
@@ -289,7 +291,7 @@ public final class AppState: ObservableObject {
         isSignedUpdatesReady: Bool = false,
         performUpdateCheckAction: @escaping @MainActor (AutoUpdateSettings, Bool) async
             -> AutoUpdateCheckStatus = { _, _ in
-                .upToDate(version: "0.4.0")
+                .upToDate(version: "0.5.0")
             },
         applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
@@ -313,7 +315,7 @@ public final class AppState: ObservableObject {
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
         let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.4.0"
+        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.5.0"
         self.isSignedUpdatesReady = isSignedUpdatesReady
         self.performUpdateCheckAction = performUpdateCheckAction
         self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction

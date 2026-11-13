@@ -15,56 +15,23 @@ public struct MainWindowView: View {
     public var body: some View {
         let palette = appState.activePalette
         NavigationSplitView {
-            ConnectionManagerView(
-                appState: appState,
-                editorMode: $editorMode
-            )
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
-        } detail: {
             VStack(spacing: 0) {
-                WorkspaceTabBar(appState: appState)
-
-                if appState.isQuickConnectAvailable, appState.isQuickConnectBarVisible {
-                    QuickConnectBar(appState: appState)
-                        .accessibilityIdentifier("quickConnectBar")
-                }
-
-                if !appState.isActivityLogVisible {
+                if appState.isActivityLogVisible {
+                    ActivityLogView(appState: appState)
+                        .frame(minHeight: 110, idealHeight: 160, maxHeight: 280)
+                    Divider().overlay(palette.borderColor)
+                } else {
                     minimizedActivityLogBar
                 }
 
-                VSplitView {
-                    if appState.isActivityLogVisible {
-                        ActivityLogView(appState: appState)
-                            .frame(minHeight: 70, idealHeight: 130)
-                    }
-
-                    DualPaneCommanderView(appState: appState)
-                        .frame(minHeight: 180, idealHeight: 420)
-
-                    if appState.isTerminalVisible {
-                        TerminalWorkspaceView(appState: appState)
-                            .frame(minHeight: 120, idealHeight: 180)
-                    }
-
-                    if appState.isTransferDrawerVisible {
-                        TransferQueueView(appState: appState)
-                            .frame(minHeight: 90, idealHeight: 150)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if !appState.isTransferDrawerVisible {
-                    minimizedTransferBar
-                }
-
-                statusBar
+                ConnectionManagerView(
+                    appState: appState,
+                    editorMode: $editorMode
+                )
             }
-            .navigationSplitViewColumnWidth(min: 520, ideal: 920)
-            .clipped()
-            .background(palette.windowColor, ignoresSafeAreaEdges: [])
-            .foregroundStyle(palette.primaryTextColor)
-            .tint(palette.accentColor)
+            .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 420)
+        } detail: {
+            detailContentView(palette: palette)
         }
         .frame(
             minWidth: 820,
@@ -98,6 +65,16 @@ public struct MainWindowView: View {
         .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
             if (notification.object as? UUID) != appState.windowInstanceID {
                 appState.reloadPreferencesFromNotification()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sparkleTerminalDirectoryDidChange)) { notification in
+            guard let tabID = notification.object as? UUID,
+                  tabID == appState.activeTabID,
+                  let dir = notification.userInfo?["directory"] as? String,
+                  !dir.isEmpty
+            else { return }
+            Task { @MainActor in
+                await appState.syncRemotePaneToTerminalDirectory(dir)
             }
         }
         .toolbar {
@@ -164,26 +141,7 @@ public struct MainWindowView: View {
                 }
                 .accessibilityLabel(appState.strings.securityDiagnostics)
 
-                Menu {
-                    ForEach(groupedThemeFamilies, id: \.self) { family in
-                        Menu(family) {
-                            ForEach(appState.availableThemes.filter { $0.family == family }) { theme in
-                                Button {
-                                    appState.selectTheme(theme)
-                                } label: {
-                                    if appState.activePalette.id == theme.id {
-                                        Label(theme.displayName, systemImage: "checkmark")
-                                    } else {
-                                        Text(theme.displayName)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    Label(appState.strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme)
-                }
-                .help(appState.activePalette.displayName)
+                themeSelectionMenu
 
                 languageMenuSelector
                     .help(appState.strings.t("nav.switchLanguage"))

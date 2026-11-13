@@ -166,7 +166,31 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     }
 
     public func updateRemoteWorkingDirectory(_ directory: String?) {
-        currentDirectory = directory
+        guard let directory else {
+            currentDirectory = nil
+            return
+        }
+        let parsed = Self.parseOSC7DirectoryURI(directory)
+        currentDirectory = parsed
+        NotificationCenter.default.post(
+            name: .sparkleTerminalDirectoryDidChange,
+            object: workspaceTabID,
+            userInfo: ["directory": parsed]
+        )
+    }
+
+    public static func parseOSC7DirectoryURI(_ uri: String) -> String {
+        if let url = URL(string: uri), url.scheme?.lowercased() == "file" {
+            return url.path
+        }
+        var cleaned = uri
+        if cleaned.hasPrefix("file://") {
+            cleaned = String(cleaned.dropFirst(7))
+            if let slashIdx = cleaned.firstIndex(of: "/") {
+                return String(cleaned[slashIdx...])
+            }
+        }
+        return cleaned
     }
 
     public func close() {

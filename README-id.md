@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Rilis-v0.4.1-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.4.1"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Rilis-v0.5.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.5.0"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Ventura_%7C_Sonoma_%7C_Sequoia)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+"></a>
   <a href="https://github.com/alsyundawy/SparkleSFTP"><img src="https://img.shields.io/badge/Arsitektur-Universal_2_(arm64_%2B_x86__64)-purple?style=for-the-badge&logo=apple&logoColor=white" alt="Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Bahasa-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Bahasa: Swift 6"></a>
@@ -39,7 +39,7 @@
 
 <p align="center">
   <a href="#-panduan-unduh--instalasi-cepat">
-    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.4.1-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
+    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.5.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
   </a>
   <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest">
     <img src="https://img.shields.io/badge/🪞_Rilis_&_Catatan_Perubahan-GitHub-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Rilis & Catatan Perubahan">
@@ -68,12 +68,16 @@
 
 ---
 
-## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.4.1
+## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.5.0
 
+- 📌 **Manajer Markah & Riwayat Jalur**: Menyimpan markah jalur direktori lokal dan remote dengan ikon kustom dan isolasi per sesi host. Dilengkapi 20 riwayat jalur putar (*ring buffer*) per panel dengan menu lompat cepat (*quick jump*) dan opsi **Penelusuran Tersinkronisasi (*Synchronized Browsing*)**.
+- 🌲 **Bilah Sisi Pohon Direktori (*Directory Tree Sidebar*)**: Penjelajah pohon folder berhierarki untuk panel lokal dan remote dengan pemuatan subdirektori malas (*lazy evaluation*) dan pencegahan siklus rekursif symlink agar antarmuka tidak macet.
+- ⚡ **Peluncur Perintah Remote Cepat (*Quick Remote Commands Runner*)**: Bilah eksekusi perintah di bawah panel remote dengan prasetel perintah bawaan (Linux, BSD, macOS), penggantian placeholder cerdas (`!`, `!/`, `!?prompt?!`), serta penyaringan metakarakter shell berbahaya (CWE-78).
+- 🐚 **Integrasi Direktori OSC 7 SwiftTerm**: Integrasi terminal dua arah yang membaca kode pelarian OSC 7 (`\033]7;file://...`) dari shell aktif (zsh, bash, fish) dan secara otomatis memperbarui jalur panel remote commander saat Anda berpindah direktori (`cd`).
 - ⚡ **Super Adem & Hemat Daya (Zero Runaway CPU)**: Dirancang dengan penanganan notifikasi jendela AppKit yang presisi (`NSWindow.didResizeNotification`), menghentikan perulangan render sehingga Mac tetap dingin dan konsumsi daya turun ke 0.0% saat santai (idle).
 - 🎨 **Seluruh 76 Tema Dipulihkan & Dimuat Lengkap**: Koleksi lengkap 76 tema bawaan dalam 26 rumpun yang memenuhi standar kontras WCAG 2.1 AA/AAA. Pratinjau langsung, impor/ekspor tema JSON, dan peralihan mulus antara mode Gelap dan Terang.
 - 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan teknologi daur ulang baris (*Cell Reuse*) AppKit (`ThemedFileRowView`), membuka direktori berisi 10.000+ berkas secara instan tanpa tersendat.
-- 📜 **Konsol Log Aktivitas Real-Time ala FileZilla (`⌥⌘L`)**: Pantau komunikasi server secara langsung dengan pewarnaan yang jelas. Dilengkapi **tombol indikator panah Minimize / Restore** (`chevron.up` untuk menyembunyikan, `chevron.down` untuk memulihkan kembali).
+- 📜 **Log Aktivitas di Bilah Sisi Kiri (`⌥⌘L`)**: Log aktivitas server kini diletakkan rapi di atas Manajer Koneksi pada bilah sisi kiri dengan bilah pulihkan minimalis (*restore pill*) berpanah `chevron.down` saat disembunyikan dan `chevron.up` untuk mengecilkan.
 - 🚀 **Antrean Transfer Tangguh di Latar Belakang**: Pengiriman berkas berkecepatan tinggi dengan 8 kebijakan konflik, penggabungan progres 80ms, penamaan sementara `.filepart` yang aman, dan **tombol indikator panah Minimize / Restore** (`chevron.down` untuk mengecilkan, `chevron.up` untuk memulihkan).
 - 🖥️ **Galeri Pratinjau Desain Sparkle Commander (`--showcase-gallery`)**: Eksplorasi interaktif 8 layar peremajaan antarmuka visual native macOS masa depan.
 - 💻 **Terminal Mandiri Bergaya iTerm2 (`⌘⌥T`)**: Ruang kerja terminal multi-tab dengan pembagian jendela vertikal (`⌘D`) dan horizontal (`⌘⇧D`), koneksi SSH server, serta sinkronisasi tema warna aktif.
@@ -85,11 +89,11 @@
 
 ### Langkah 1: Unduh Berkas DMG
 
-Unduh berkas instalasi resmi **`SparkleSFTP-0.4.1-universal.dmg`** dari GitHub Releases.
+Unduh berkas instalasi resmi **`SparkleSFTP-0.5.0-universal.dmg`** dari GitHub Releases.
 
 ### Langkah 2: Pasang ke Folder Applications
 
-1. Klik dua kali berkas `SparkleSFTP-0.4.1-universal.dmg` untuk membukanya.
+1. Klik dua kali berkas `SparkleSFTP-0.5.0-universal.dmg` untuk membukanya.
 2. Seret ikon **SparkleSFTP** ke dalam folder **Applications**.
 3. Buka SparkleSFTP melalui Launchpad, Finder, atau Spotlight (`⌘Spasi`).
 
@@ -137,13 +141,13 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 - **Verifikasi Integritas SHA-256**:
 
 ```text
-4e67d6ea53cc3702376e87e56ec5c16275cc4be2e1fbe46ba1537680702102e6  SparkleSFTP-0.4.1-universal.dmg
+a70c83d39c3901d0fa9541811bc695b167bad374fa0a89ccd83962e736d446eb  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verifikasi di Terminal Mac:
 
 ```bash
-shasum -a 256 SparkleSFTP-0.4.1-universal.dmg
+shasum -a 256 SparkleSFTP-0.5.0-universal.dmg
 ```
 
 ---
@@ -155,7 +159,7 @@ Kompilasi dan bangun paket menggunakan Swift 6 di macOS 13+:
 ```bash
 swift build -j 2
 Tools/Release/build-universal.sh
-Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.4.1
+Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.5.0
 ```
 
 ---

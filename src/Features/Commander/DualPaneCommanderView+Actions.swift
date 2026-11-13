@@ -4,32 +4,44 @@ import SparkleDesignSystem
 import SwiftUI
 
 extension DualPaneCommanderView {
-    func remoteToolbar(session: ActiveSessionModel) -> some View {
+    private func remoteNavGroup(session: ActiveSessionModel) -> some View {
         HStack(spacing: SparkleTheme.Spacing.tiny) {
             Button {
                 appState.activePane = .right
                 Task { await appState.goBackInActivePane() }
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(!session.history.canGoBack)
-            .help(appState.strings.t("common.back"))
+            } label: { Image(systemName: "chevron.left") }
+                .disabled(!session.history.canGoBack)
+                .help(appState.strings.t("common.back"))
 
             Button {
                 appState.activePane = .right
                 Task { await appState.goForwardInActivePane() }
-            } label: {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(!session.history.canGoForward)
-            .help(appState.strings.t("common.forward"))
+            } label: { Image(systemName: "chevron.right") }
+                .disabled(!session.history.canGoForward)
+                .help(appState.strings.t("common.forward"))
 
             Button {
                 Task { await appState.refreshRemoteDirectory(at: session.currentRemotePath.parent) }
+            } label: { Image(systemName: "arrow.up") }
+                .help(appState.strings.t("nav.parentDirectory"))
+        }
+    }
+
+    func remoteToolbar(session: ActiveSessionModel) -> some View {
+        HStack(spacing: SparkleTheme.Spacing.tiny) {
+            Button {
+                withAnimation { isShowingRemoteTree.toggle() }
             } label: {
-                Image(systemName: "arrow.up")
+                Image(systemName: "sidebar.left")
+                    .foregroundStyle(
+                        isShowingRemoteTree
+                            ? appState.activePalette.accentColor
+                            : appState.activePalette.secondaryTextColor
+                    )
             }
-            .help(appState.strings.t("nav.parentDirectory"))
+            .help(appState.strings.t("tree.toggleTooltip"))
+
+            remoteNavGroup(session: session)
 
             TextField(appState.strings.t("nav.remotePath"), text: $remotePathText)
                 .textFieldStyle(.roundedBorder)
@@ -38,19 +50,17 @@ extension DualPaneCommanderView {
                     Task { await appState.refreshRemoteDirectory(at: RemotePath(rawValue: remotePathText)) }
                 }
 
+            BookmarkQuickJumpMenu(appState: appState, isLocal: false)
+
             Button {
                 previewQuickLook(selectedFile(isLocal: false), isLocal: false)
-            } label: {
-                Image(systemName: "eye")
-            }
-            .help(appState.strings.t("nav.quickLookRemote"))
+            } label: { Image(systemName: "eye") }
+                .help(appState.strings.t("nav.quickLookRemote"))
 
             Button {
                 Task { await appState.refreshRemoteDirectory(recordHistory: false) }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .help(appState.strings.refresh)
+            } label: { Image(systemName: "arrow.clockwise") }
+                .help(appState.strings.refresh)
         }
         .padding(SparkleTheme.Spacing.tiny)
         .background(appState.activePalette.windowColor)

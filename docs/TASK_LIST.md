@@ -122,6 +122,22 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-086** Restore eager loading of all 76 themes in `AppState` and showcase components, and implement symmetrical minimize/restore arrow indicators (`chevron.down` / `chevron.up`) for both Activity Log and Transfer Queue docks.
 - [x] **T-087** Generate desktop suite flyer banner (`assets/sparklesftp-desktop-banner.jpg`), overhaul `README.md` and `README-id.md` matching SparkNotePad user-friendly format, execute 14-Pillar code audit, build Universal 2 binary `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`), and update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.1.md`, `docs/*.md`).
 
+## Milestone 12: WinSCP Productivity Features & Terminal Integration (`v0.5.0`) (`WG-1`–`WG-9`)
+
+- [x] **T-088** Implement Sendable/Codable `BookmarkItem` and `PathHistoryItem` models (`src/Features/Bookmarks/`).
+- [x] **T-089** Implement `BookmarkManager` handling UserDefaults persistence with a 20-item ring buffer history per scope (`local` / `remote`).
+- [x] **T-090** Implement `BookmarkQuickJumpMenu` and `BookmarkManagementSheet` with Synchronized Browsing toggle (`isSynchronizedBrowsingEnabled`).
+- [x] **T-091** Implement `DirectoryTreeNode` with cycle-safe symlink resolution and lazy evaluation of subdirectories on node expansion (`src/Features/DirectoryTree/`).
+- [x] **T-092** Implement `DirectoryTreeView` with search filtering and bidirectional selection synchronization with commander panes.
+- [x] **T-093** Implement `RemoteCommandModels` with built-in presets for Linux, BSD, and macOS (`src/Features/RemoteCommands/`).
+- [x] **T-094** Implement `RemoteCommandSanitizer` supporting WinSCP placeholders (`!`, `!/`, `!?prompt?!`) and CWE-78 shell injection blocking.
+- [x] **T-095** Implement `RemoteCommandBar` docked at remote pane delivering commands directly to active SwiftTerm SSH session.
+- [x] **T-096** Implement SwiftTerm OSC 7 escape sequence detection (`sparkleTerminalDirectoryDidChange`) to sync remote pane path in real time.
+- [x] **T-097** Relocate `ActivityLogView` to left sidebar above `ConnectionManagerView` with restore bar indicator.
+- [x] **T-098** Add 27 new strings across `en.json` and `id.json` achieving 100% key parity (517 keys total).
+- [x] **T-099** Create comprehensive unit tests (`BookmarkManagerTests`, `RemoteCommandSanitizerTests`) with all 129 tests across 35 test suites passing.
+- [x] **T-100** Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.5.0-universal.dmg` + `.sha256`) and update documentation.
+
 ## Post-MVP / External Infrastructure Gates (Deferred)
 
 - [ ] Run live Docker server integration tests (`Tools/TestServers/run-integration-tests.sh`) against live SSH/SFTP/FTP containers (Docker runtime not installed on this host).

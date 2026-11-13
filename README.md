@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Release-v0.4.1-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v0.4.1"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Release-v0.5.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v0.5.0"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Ventura_%7C_Sonoma_%7C_Sequoia)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+"></a>
   <a href="https://github.com/alsyundawy/SparkleSFTP"><img src="https://img.shields.io/badge/Architecture-Universal_2_(arm64_%2B_x86__64)-purple?style=for-the-badge&logo=apple&logoColor=white" alt="Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Language: Swift 6"></a>
@@ -39,7 +39,7 @@
 
 <p align="center">
   <a href="#-quick-download--installation-guide">
-    <img src="https://img.shields.io/badge/🚀_Download_DMG-v0.4.1-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Download DMG">
+    <img src="https://img.shields.io/badge/🚀_Download_DMG-v0.5.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Download DMG">
   </a>
   <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest">
     <img src="https://img.shields.io/badge/🪞_Releases_&_Changelog-GitHub-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Releases & Changelog">
@@ -70,10 +70,14 @@
 
 ## 🌟 Key Highlights & What Makes SparkleSFTP Special
 
+- 📌 **Bookmarks & Path History Manager**: Save local and remote directory bookmarks with custom icons and host scoping. Includes a 20-item ring buffer history per pane with quick-jump menus and optional **Synchronized Browsing** across matching folder hierarchies.
+- 🌲 **Directory Tree Navigation Sidebar**: Collapsible tree navigation for both local and remote panes with on-demand lazy subdirectory loading and cycle-safe symlink detection to prevent UI freezes.
+- ⚡ **Quick Remote Commands Runner**: Bottom-docked retractable remote command bar with pre-configured cross-platform presets (Linux, BSD, macOS) and rigorous WinSCP-style placeholder substitution (`!`, `!/`, `!?prompt?!`) protected by shell metacharacter sanitization (CWE-78).
+- 🐚 **SwiftTerm OSC 7 Shell Directory Sync**: Bi-directional terminal integration that captures shell OSC 7 escape sequences (`\033]7;file://...`), automatically keeping the active commander pane path in sync with terminal directory changes (`cd`).
 - ⚡ **Zero Runaway CPU & Battery Coolness**: Engineered with precision AppKit window notifications (`NSWindow.didResizeNotification`), eliminating redraw loops so your Mac stays cool and battery usage drops to 0.0% at idle.
 - 🎨 **All 76 Themes Restored & Instant Eager Access**: Complete catalog of 76 curated themes across 26 families meeting WCAG 2.1 AA/AAA contrast guidelines. Browse and switch palettes instantly with live preview, JSON import/export, and seamless dark/light mode integration.
 - 📂 **Dual-Pane Commander Architecture**: High-speed side-by-side local and remote directory browsers with native AppKit cell reuse (`ThemedFileRowView`), rendering folders containing 10,000+ files instantly without lag.
-- 📜 **Real-Time FileZilla Activity Log Console (`⌥⌘L`)**: Live color-coded server activity log showing connection negotiations, raw commands, server replies, and transfer statuses. Features dedicated **Minimize / Restore arrow controls** (`chevron.up` to hide, `chevron.down` to restore).
+- 📜 **Left Sidebar Activity Log (`⌥⌘L`)**: Live color-coded server activity log relocated above the connection manager in the left sidebar with a minimal restore pill bar (`chevron.down` to restore, `chevron.up` to minimize).
 - 🚀 **High-Throughput Resilient Transfer Queue**: Non-blocking batch transfers with 8 conflict resolution policies, 80ms progress coalescing, temporary `.filepart` naming with atomic completion renames, and dedicated **Minimize / Restore arrow controls** (`chevron.down` to collapse, `chevron.up` to restore).
 - 🖥️ **Sparkle Commander UI/UX Showcase Gallery (`--showcase-gallery`)**: An interactive 8-screen showcase gallery providing live previews of the next-generation native macOS interface redesign.
 - 💻 **Standalone iTerm2-Style Terminal (`⌘⌥T`)**: Dedicated terminal workspace featuring split vertical (`⌘D`) and horizontal (`⌘⇧D`) panes, remote SSH sessions, local shell tabs, and live palette synchronization.
@@ -85,11 +89,11 @@
 
 ### Step 1: Download the Universal 2 DMG
 
-Grab the latest official release image **`SparkleSFTP-0.4.1-universal.dmg`** from GitHub Releases.
+Grab the latest official release image **`SparkleSFTP-0.5.0-universal.dmg`** from GitHub Releases.
 
 ### Step 2: Drag to Applications
 
-1. Double-click `SparkleSFTP-0.4.1-universal.dmg` to mount the disk image.
+1. Double-click `SparkleSFTP-0.5.0-universal.dmg` to mount the disk image.
 2. Drag the **SparkleSFTP** icon into your **Applications** folder.
 3. Launch SparkleSFTP from Launchpad, Finder, or Spotlight (`⌘Space`).
 
@@ -121,7 +125,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 | `F5` | Cross-Pane Transfer | Transfer selected items directly to the opposing file pane |
 | `⇧F5` | Copy To... | Prompt for a custom destination directory to copy files |
 | `⌘C` / `⌘V` | Clipboard Copy / Paste | Standard macOS clipboard file operations |
-| `⌥⌘L` | Toggle Activity Log | Show or hide the FileZilla-style real-time command log |
+| `⌥⌘L` | Toggle Activity Log | Show or hide the real-time command log in sidebar |
 | `⌘⌥T` | Standalone Terminal | Open the multi-tab iTerm2 terminal workspace |
 | `⌘\` | Toggle Quick Connect | Show or hide the quick connect connection bar |
 | `⌘1` / `⌘2` | Pane Focus | Switch keyboard focus between Local and Remote file tables |
@@ -137,13 +141,13 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 - **SHA-256 Checksum Verification**:
 
 ```text
-4e67d6ea53cc3702376e87e56ec5c16275cc4be2e1fbe46ba1537680702102e6  SparkleSFTP-0.4.1-universal.dmg
+a70c83d39c3901d0fa9541811bc695b167bad374fa0a89ccd83962e736d446eb  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verify in Terminal:
 
 ```bash
-shasum -a 256 SparkleSFTP-0.4.1-universal.dmg
+shasum -a 256 SparkleSFTP-0.5.0-universal.dmg
 ```
 
 ---
@@ -155,7 +159,7 @@ Build and test using Swift 6 on macOS 13+:
 ```bash
 swift build -j 2
 Tools/Release/build-universal.sh
-Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.4.1
+Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.5.0
 ```
 
 ---

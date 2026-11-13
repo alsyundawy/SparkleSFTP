@@ -109,6 +109,23 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`) (`T-074`)
 - [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.1.md`, `docs/ROADMAP.md`, `docs/TASK_LIST.md`, `tasks/plan.md`, `tasks/todo.md`) (`T-075`)
 
+## Phase K: WinSCP Productivity Features & Terminal Integration (`v0.5.0`, `T-076` – `T-089`)
+
+- [x] Implement `BookmarkItem` and `PathHistoryItem` models supporting Sendable/Codable isolation (`src/Features/Bookmarks/`) (`T-076`)
+- [x] Implement `BookmarkManager` handling UserDefaults persistence with a 20-item ring buffer history per scope (`local` / `remote`) (`T-077`)
+- [x] Implement `BookmarkQuickJumpMenu` and `BookmarkManagementSheet` with Synchronized Browsing toggle (`T-078`)
+- [x] Implement `DirectoryTreeNode` with cycle-safe symlink resolution and lazy-loaded subdirectories (`src/Features/DirectoryTree/`) (`T-079`)
+- [x] Implement `DirectoryTreeView` with search filtering and bidirectional selection synchronization (`T-080`)
+- [x] Implement `RemoteCommandModels` with Linux, BSD, and macOS command presets (`src/Features/RemoteCommands/`) (`T-081`)
+- [x] Implement `RemoteCommandSanitizer` supporting WinSCP placeholders (`!`, `!/`, `!?prompt:default?!`) and CWE-78 shell injection blocking (`T-082`)
+- [x] Implement `RemoteCommandBar` docked at remote pane delivering commands directly to active SwiftTerm SSH session (`T-083`)
+- [x] Implement SwiftTerm OSC 7 escape sequence detection (`sparkleTerminalDirectoryDidChange`) to sync remote pane path (`T-084`)
+- [x] Relocate `ActivityLogView` to left sidebar above `ConnectionManagerView` with restore bar indicator (`T-085`)
+- [x] Add 27 new strings across `en.json` and `id.json` achieving 100% key parity (517 keys total) (`T-086`)
+- [x] Create comprehensive unit tests (`BookmarkManagerTests`, `RemoteCommandSanitizerTests`) with all 129 tests across 35 test suites passing (`T-087`)
+- [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.5.0-universal.dmg` + `.sha256`) (`T-088`)
+- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.5.0.md`) (`T-089`)
+
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 
 - [ ] Run live Docker multi-server interop smoke suite (`Tools/TestServers/run-integration-tests.sh` against SFTP/FTP/FTPS containers; requires Docker Engine)

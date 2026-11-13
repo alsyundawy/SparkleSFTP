@@ -241,6 +241,20 @@ let package = Package(
                 .product(name: "NIOSSH", package: "swift-nio-ssh")
             ],
             path: "Tests/IntegrationTests"
+        ),
+        .testTarget(
+            name: "SparkleSFTPTests",
+            dependencies: [
+                "SparkleCore",
+                "SparkleDesignSystem",
+                "SparkleFeatures",
+                "SparkleFileManager",
+                "SparkleNetworking",
+                "SparklePersistence",
+                "SparkleSecurity",
+                "SparkleTerminal"
+            ],
+            path: "Tests/SparkleSFTPTests"
         )
     ],
     swiftLanguageModes: [.v6]

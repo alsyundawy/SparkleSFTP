@@ -208,4 +208,65 @@ extension MainWindowView {
             Label(appState.activeLocaleCode.uppercased(), systemImage: "globe")
         }
     }
+
+    var themeSelectionMenu: some View {
+        Menu {
+            ForEach(groupedThemeFamilies, id: \.self) { family in
+                Menu(family) {
+                    ForEach(appState.availableThemes.filter { $0.family == family }) { theme in
+                        Button {
+                            appState.selectTheme(theme)
+                        } label: {
+                            if appState.activePalette.id == theme.id {
+                                Label(theme.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(theme.displayName)
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label(appState.strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme)
+        }
+        .help(appState.activePalette.displayName)
+    }
+
+    func detailContentView(palette: SparkleThemePalette) -> some View {
+        VStack(spacing: 0) {
+            WorkspaceTabBar(appState: appState)
+
+            if appState.isQuickConnectAvailable, appState.isQuickConnectBarVisible {
+                QuickConnectBar(appState: appState)
+                    .accessibilityIdentifier("quickConnectBar")
+            }
+
+            VSplitView {
+                DualPaneCommanderView(appState: appState)
+                    .frame(minHeight: 180, idealHeight: 420)
+
+                if appState.isTerminalVisible {
+                    TerminalWorkspaceView(appState: appState)
+                        .frame(minHeight: 120, idealHeight: 180)
+                }
+
+                if appState.isTransferDrawerVisible {
+                    TransferQueueView(appState: appState)
+                        .frame(minHeight: 90, idealHeight: 150)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if !appState.isTransferDrawerVisible {
+                minimizedTransferBar
+            }
+
+            statusBar
+        }
+        .navigationSplitViewColumnWidth(min: 520, ideal: 920)
+        .clipped()
+        .background(palette.windowColor, ignoresSafeAreaEdges: [])
+        .foregroundStyle(palette.primaryTextColor)
+        .tint(palette.accentColor)
+    }
 }

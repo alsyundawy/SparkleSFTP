@@ -81,9 +81,22 @@ public extension AppState {
         do {
             let items = try await localFileService.listDirectory(at: url)
             let sorted = await FileSortDescriptor.sortRemoteFiles(items, by: localSortDescriptor)
+            let oldURL = localCurrentURL
             localCurrentURL = url
             if recordHistory {
                 localHistory.navigate(to: url.path)
+                BookmarkManager.shared.recordPath(url.path, isRemote: false)
+                if !Self.isSynchronizingBrowsing,
+                   let session = currentSession,
+                   let syncPath = BookmarkManager.shared.computeSynchronizedPath(
+                       from: oldURL.path,
+                       to: url.path,
+                       currentOppositePath: session.currentRemotePath.rawValue
+                   ) {
+                    Self.isSynchronizingBrowsing = true
+                    await refreshRemoteDirectory(at: RemotePath(rawValue: syncPath))
+                    Self.isSynchronizingBrowsing = false
+                }
             }
             localFiles = PaginatedFileWindow(allFiles: sorted)
             syncCurrentTabLocalSnapshot()
@@ -112,9 +125,26 @@ public extension AppState {
             let items = try await fileSystem.listDirectory(at: targetPath)
             let sorted = await FileSortDescriptor.sortRemoteFiles(items, by: sort)
             guard let refreshedIdx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+            let oldPath = activeSessions[refreshedIdx].currentRemotePath
             activeSessions[refreshedIdx].currentRemotePath = targetPath
             if recordHistory {
                 activeSessions[refreshedIdx].history.navigate(to: targetPath.rawValue)
+                let host = activeSessions[refreshedIdx].profile.host
+                BookmarkManager.shared.recordPath(targetPath.rawValue, isRemote: true, hostIdentifier: host)
+                if !Self.isSynchronizingBrowsing,
+                   let syncPath = BookmarkManager.shared.computeSynchronizedPath(
+                       from: oldPath.rawValue,
+                       to: targetPath.rawValue,
+                       currentOppositePath: localCurrentURL.path
+                   ) {
+                    let localURL = URL(fileURLWithPath: syncPath)
+                    var isDir: ObjCBool = false
+                    if FileManager.default.fileExists(atPath: syncPath, isDirectory: &isDir), isDir.boolValue {
+                        Self.isSynchronizingBrowsing = true
+                        await refreshLocalDirectory(localURL)
+                        Self.isSynchronizingBrowsing = false
+                    }
+                }
             }
             activeSessions[refreshedIdx].remoteFiles = PaginatedFileWindow(allFiles: sorted)
             ActivityLogger.shared.logResponse(
@@ -156,6 +186,13 @@ public extension AppState {
         guard let idx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
         activeSessions[idx].selectedRemoteFileIDs = Set(activeSessions[idx].remoteFiles.visibleFiles.map(\.id))
         activePane = .right
+    }
+
+    func syncRemotePaneToTerminalDirectory(_ directory: String) async {
+        guard let session = currentSession,
+              session.currentRemotePath.rawValue != directory
+        else { return }
+        await refreshRemoteDirectory(at: RemotePath(rawValue: directory))
     }
 
     func sortRemoteFiles(by field: FileSortField) async {

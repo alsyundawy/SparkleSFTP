@@ -1,5 +1,9 @@
 import Foundation
 
+public extension Notification.Name {
+    static let sparkleTerminalDirectoryDidChange = Notification.Name("sparkleSFTP.terminalDirectoryDidChange")
+}
+
 public enum ConnectionState: Sendable, Equatable {
     case disconnected
     case connecting

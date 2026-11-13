@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-14
+
+### Added & Enhanced (WinSCP Productivity Features & Terminal Integration Release)
+
+- **Bookmarks & Path History Manager (`src/Features/Bookmarks/`)**:
+  - Implemented `BookmarkItem` and `PathHistoryItem` models supporting Sendable and Codable isolation with icon indicators, host scoping, and custom naming.
+  - Implemented `BookmarkManager` handling UserDefaults persistence and 20-item ring buffer history per scope (`local` / `remote`).
+  - Added `BookmarkQuickJumpMenu` integrated into both local and remote pane toolbars with quick jump, parent directory, and bookmark management triggers.
+  - Added `BookmarkManagementSheet` providing complete CRUD operations (add, edit, delete, reorder) for bookmarks.
+  - Implemented Synchronized Browsing toggle (`isSynchronizedBrowsingEnabled`) that automatically navigates the opposite pane if a matching relative subpath exists.
+- **Directory Tree Navigation Sidebar (`src/Features/DirectoryTree/`)**:
+  - Implemented hierarchical `DirectoryTreeNode` supporting lazy evaluation of children on node expansion and cycle-safe symlink resolution.
+  - Implemented collapsible `DirectoryTreeView` with search filtering, manual refresh, and bidirectional selection synchronization with commander panes.
+  - Added dedicated toggle button (`sidebar.left`) and HSplitView integration to `DualPaneCommanderView` for both local and remote panes.
+- **Quick Remote Commands Runner (`src/Features/RemoteCommands/`)**:
+  - Implemented `RemoteCommandModels` with built-in presets for Linux (`systemctl status !`, `df -h`, `journalctl -u ! -n 50`), BSD (`service ! status`, `top -s 1`), and macOS (`launchctl list`, `du -sh *`).
+  - Implemented `RemoteCommandSanitizer` supporting WinSCP-style substitutions (`!` for current file, `!/` for remote path, `!?prompt:default?!` for interactive prompts) and rigorous metacharacter filtering to prevent shell injection (CWE-78).
+  - Added `RemoteCommandBar` docked at the bottom of the active remote pane delivering sanitized commands directly to active SwiftTerm SSH channels.
+- **OSC 7 Directory Synchronization (`TerminalSessionManager`, `DualPaneCommanderView`)**:
+  - Implemented OSC 7 escape sequence detection (`\033]7;file://...`) emitted by active terminal shells (bash, zsh, fish) in SwiftTerm.
+  - Synchronizes remote commander pane path in real time when navigating directories via shell `cd`.
+- **Activity Log Relocation to Left Sidebar (`MainWindowView`, `MainWindowView+Subviews`)**:
+  - Relocated `ActivityLogView` above `ConnectionManagerView` in the left sidebar, maximizing vertical real estate for dual commander panes and terminal workspace.
+  - Retained symmetrical minimize/restore arrows (`chevron.down` on restore pill bar, `chevron.up` on active header).
+- **Comprehensive Localization & Quality Gates**:
+  - Added 27 new localization keys across `en.json` and `id.json` achieving 100% key parity across 517 strings.
+  - Created comprehensive unit tests in `BookmarkManagerTests` and `RemoteCommandSanitizerTests`, bringing test suite to 129 tests across 35 test suites passing with 100% green status.
+  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg`.
+
 ## [0.4.1] - 2026-11-13
 
 ### Added & Enhanced ("Sparkle Commander" Visual Refresh & Showcase Gallery)
@@ -301,3 +330,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `.swiftlint.yml` with security & concurrency custom rules (`no_password_in_logs`, `no_accept_any_host_key`, `no_unchecked_sendable_without_comment`, `no_icloud_keychain_sync`).
   - `.swiftformat`, `.markdownlint.json`, `.yamllint.yml`, `.editorconfig`, `.gitignore`, and `.gitattributes`.
   - `.github/` issue templates, pull request template, Dependabot config, funding metadata, and staged CI workflow (`.github/workflows/ci.yml`).
+
+[Unreleased]: https://github.com/alsyundawy/SparkleSFTP/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/alsyundawy/SparkleSFTP/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/alsyundawy/SparkleSFTP/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/alsyundawy/SparkleSFTP/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/alsyundawy/SparkleSFTP/compare/v0.2.0-mvp...v0.3.0
+[0.2.0-mvp]: https://github.com/alsyundawy/SparkleSFTP/compare/v0.1.0-bootstrap...v0.2.0-mvp
+[0.1.0-bootstrap]: https://github.com/alsyundawy/SparkleSFTP/releases/tag/v0.1.0-bootstrap

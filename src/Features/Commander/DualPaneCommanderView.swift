@@ -21,6 +21,8 @@ public struct DualPaneCommanderView: View {
     @State var renamingContext: (item: RemoteFile, isLocal: Bool)?
     @State var inspectorContext: FileInspectorContext?
     @State var quickLookCoordinator = QuickLookCoordinator()
+    @State var isShowingLocalTree = false
+    @State var isShowingRemoteTree = false
 
     public init(appState: AppState) {
         self.appState = appState
@@ -158,6 +160,16 @@ private extension DualPaneCommanderView {
         return VStack(spacing: 0) {
             HStack(spacing: SparkleTheme.Spacing.tiny) {
                 Button {
+                    withAnimation {
+                        isShowingLocalTree.toggle()
+                    }
+                } label: {
+                    Image(systemName: "sidebar.left")
+                        .foregroundStyle(isShowingLocalTree ? palette.accentColor : palette.secondaryTextColor)
+                }
+                .help(appState.strings.t("tree.toggleTooltip"))
+
+                Button {
                     appState.activePane = .left
                     Task { await appState.goBackInActivePane() }
                 } label: {
@@ -191,6 +203,8 @@ private extension DualPaneCommanderView {
                         Task { await appState.refreshLocalDirectory(url) }
                     }
 
+                BookmarkQuickJumpMenu(appState: appState, isLocal: true)
+
                 Button {
                     if let selectedID = appState.selectedLocalFileIDs.first {
                         quickLookCoordinator.preview(url: URL(fileURLWithPath: selectedID))
@@ -203,38 +217,45 @@ private extension DualPaneCommanderView {
             .padding(SparkleTheme.Spacing.tiny)
             .background(palette.windowColor)
 
-            FilePaneTableView(
-                files: Array(appState.localFiles.visibleFiles),
-                selectedIDs: $appState.selectedLocalFileIDs,
-                isLocalPane: true,
-                strings: appState.strings,
-                palette: palette,
-                onActivateRow: { item in
-                    if item.isDirectory {
-                        Task { await appState.refreshLocalDirectory(URL(fileURLWithPath: item.path.rawValue)) }
-                    } else if appState.openDoubleClickInInternalEditor {
-                        appState.openLocalFileInInternalEditor(item)
-                    } else {
-                        quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
-                    }
-                },
-                onQuickLookRow: { item in
-                    if !item.isDirectory {
-                        quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
-                    }
-                },
-                onGoParent: {
-                    let parent = appState.localCurrentURL.deletingLastPathComponent()
-                    Task { await appState.refreshLocalDirectory(parent) }
-                },
-                onSortColumn: { field in
-                    Task { await appState.sortLocalFiles(by: field) }
-                },
-                onFocusPane: { appState.activePane = .left },
-                onContextAction: { action, targetFile in
-                    handleContextAction(action, file: targetFile, isLocal: true)
+            HSplitView {
+                if isShowingLocalTree {
+                    DirectoryTreeView(appState: appState, isLocal: true)
+                        .frame(minWidth: 140, idealWidth: 180, maxWidth: 280)
                 }
-            )
+
+                FilePaneTableView(
+                    files: Array(appState.localFiles.visibleFiles),
+                    selectedIDs: $appState.selectedLocalFileIDs,
+                    isLocalPane: true,
+                    strings: appState.strings,
+                    palette: palette,
+                    onActivateRow: { item in
+                        if item.isDirectory {
+                            Task { await appState.refreshLocalDirectory(URL(fileURLWithPath: item.path.rawValue)) }
+                        } else if appState.openDoubleClickInInternalEditor {
+                            appState.openLocalFileInInternalEditor(item)
+                        } else {
+                            quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
+                        }
+                    },
+                    onQuickLookRow: { item in
+                        if !item.isDirectory {
+                            quickLookCoordinator.preview(url: URL(fileURLWithPath: item.path.rawValue))
+                        }
+                    },
+                    onGoParent: {
+                        let parent = appState.localCurrentURL.deletingLastPathComponent()
+                        Task { await appState.refreshLocalDirectory(parent) }
+                    },
+                    onSortColumn: { field in
+                        Task { await appState.sortLocalFiles(by: field) }
+                    },
+                    onFocusPane: { appState.activePane = .left },
+                    onContextAction: { action, targetFile in
+                        handleContextAction(action, file: targetFile, isLocal: true)
+                    }
+                )
+            }
 
             if appState.localFiles.hasMorePages {
                 paginationBanner(isLocal: true)
@@ -254,57 +275,65 @@ private extension DualPaneCommanderView {
 
                 remoteToolbar(session: session)
 
-                FilePaneTableView(
-                    files: Array(session.remoteFiles.visibleFiles),
-                    selectedIDs: Binding(
-                        get: { session.selectedRemoteFileIDs },
-                        set: { newSet in
-                            if let idx = appState.activeSessions.firstIndex(where: { $0.id == session.id }) {
-                                appState.activeSessions[idx].selectedRemoteFileIDs = newSet
-                            }
-                        }
-                    ),
-                    isLocalPane: false,
-                    strings: appState.strings,
-                    palette: palette,
-                    onActivateRow: { item in
-                        if item.isDirectory {
-                            Task { await appState.refreshRemoteDirectory(at: item.path) }
-                        } else if appState.openDoubleClickInInternalEditor {
-                            Task { await appState.openRemoteFileInInternalEditor(item) }
-                        } else {
-                            Task { await appState.openRemoteFileInEditor(item) }
-                        }
-                    },
-                    onQuickLookRow: { item in
-                        if !item.isDirectory {
-                            Task {
-                                if let url = await appState.quickLookRemoteFile(item) {
-                                    quickLookCoordinator.preview(url: url)
+                HSplitView {
+                    if isShowingRemoteTree {
+                        DirectoryTreeView(appState: appState, isLocal: false)
+                            .frame(minWidth: 140, idealWidth: 180, maxWidth: 280)
+                    }
+
+                    FilePaneTableView(
+                        files: Array(session.remoteFiles.visibleFiles),
+                        selectedIDs: Binding(
+                            get: { session.selectedRemoteFileIDs },
+                            set: { newSet in
+                                if let idx = appState.activeSessions.firstIndex(where: { $0.id == session.id }) {
+                                    appState.activeSessions[idx].selectedRemoteFileIDs = newSet
                                 }
                             }
+                        ),
+                        isLocalPane: false,
+                        strings: appState.strings,
+                        palette: palette,
+                        onActivateRow: { item in
+                            if item.isDirectory {
+                                Task { await appState.refreshRemoteDirectory(at: item.path) }
+                            } else if appState.openDoubleClickInInternalEditor {
+                                Task { await appState.openRemoteFileInInternalEditor(item) }
+                            } else {
+                                Task { await appState.openRemoteFileInEditor(item) }
+                            }
+                        },
+                        onQuickLookRow: { item in
+                            if !item.isDirectory {
+                                Task {
+                                    if let url = await appState.quickLookRemoteFile(item) {
+                                        quickLookCoordinator.preview(url: url)
+                                    }
+                                }
+                            }
+                        },
+                        onGoParent: {
+                            Task { await appState.refreshRemoteDirectory(at: session.currentRemotePath.parent) }
+                        },
+                        onSortColumn: { field in
+                            Task { await appState.sortRemoteFiles(by: field) }
+                        },
+                        onFocusPane: { appState.activePane = .right },
+                        onContextAction: { action, targetFile in
+                            handleContextAction(action, file: targetFile, isLocal: false)
                         }
-                    },
-                    onGoParent: {
-                        Task { await appState.refreshRemoteDirectory(at: session.currentRemotePath.parent) }
-                    },
-                    onSortColumn: { field in
-                        Task { await appState.sortRemoteFiles(by: field) }
-                    },
-                    onFocusPane: { appState.activePane = .right },
-                    onContextAction: { action, targetFile in
-                        handleContextAction(action, file: targetFile, isLocal: false)
+                    )
+                    .id(session.id)
+                    .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                        handleDrop(providers: providers)
                     }
-                )
-                .id(session.id)
-                .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-                    handleDrop(providers: providers)
                 }
 
                 if session.remoteFiles.hasMorePages {
                     paginationBanner(isLocal: false)
                 }
                 commanderActionBar(isLocal: false, session: session)
+                RemoteCommandBar(appState: appState)
             } else {
                 VStack(spacing: SparkleTheme.Spacing.medium) {
                     Image(systemName: "server.rack")
