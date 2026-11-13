@@ -2,6 +2,41 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
+struct MainWindowMinimizedActivityLogBar: View {
+    @ObservedObject var appState: AppState
+
+    var body: some View {
+        HStack {
+            Spacer()
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    appState.isActivityLogVisible = true
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(appState.strings.t("activityLog.showLog"))
+                        .font(SparkleTheme.Typography.caption)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 3)
+                .background(appState.activePalette.windowColor)
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(appState.activePalette.borderColor.opacity(0.8), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .help(appState.strings.t("activityLog.showLogTooltip"))
+            Spacer()
+        }
+        .padding(.vertical, 2)
+        .background(appState.activePalette.windowColor.opacity(0.85))
+    }
+}
+
 struct MainWindowMinimizedTransferBar: View {
     @ObservedObject var appState: AppState
 
@@ -136,6 +171,10 @@ struct MainWindowStatusBar: View {
 }
 
 extension MainWindowView {
+    var minimizedActivityLogBar: some View {
+        MainWindowMinimizedActivityLogBar(appState: appState)
+    }
+
     var minimizedTransferBar: some View {
         MainWindowMinimizedTransferBar(appState: appState)
     }

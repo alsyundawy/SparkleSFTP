@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added, Fixed & Optimized (`T-054`–`T-065`)
 
+- **Log Box & Transfer Box Minimize/Restore Controls (`MainWindowMinimizedActivityLogBar`, `MainWindowMinimizedTransferBar`, `ActivityLogView`, `TransferQueueView`, `MainWindowView+Subviews`)**:
+  - Implemented `MainWindowMinimizedActivityLogBar` with localized text and small arrow indicator (`chevron.down`) to restore the activity log when minimized, paired with header `chevron.up` indicator to minimize.
+  - Symmetrically polished `TransferQueueView` with `chevron.down` to minimize, and `MainWindowMinimizedTransferBar` with `chevron.up` arrow indicator to restore.
+  - Added localized strings `activityLog.showLog` and `activityLog.showLogTooltip` across `en.json`, `id.json`, and `LocalizationCatalog.swift`.
+- **Desktop Suite Flyer Banner & User-Friendly README (`assets/sparklesftp-desktop-banner.jpg`, `README.md`, `README-id.md`, `docs/releases/v0.4.0.md`)**:
+  - Added high-resolution cyber-tech marketing flyer banner in `assets/sparklesftp-desktop-banner.jpg` (1376x768).
+  - Redesigned `README.md` and `README-id.md` referencing SparkNotePad's layout for optimal clarity, elegant action buttons, and clear newcomer onboarding.
 - **Cold-Launch Theme Catalog Lazy-Loading (`ThemeCatalog`, `ThemePalette`, `AppState+NavigationAndShortcuts`, `PreferencesThemeTab`, `AppState+ConnectionManagement`)**:
   - Replaced eager startup instantiation of all 76 theme palettes with lightweight bootstrap initialization (`SparkleThemeStore.loadBootstrapPalettes`), instantiating only `defaultLight`, `defaultDark`, and the user's currently active palette at cold start.
   - Converted `SparkleThemeCatalog.builtInPalettes` to a computed property and added `findBuiltInPalette(id:)` with short-circuit lookup across Core, Extended, Spectrum, and Studio palettes.

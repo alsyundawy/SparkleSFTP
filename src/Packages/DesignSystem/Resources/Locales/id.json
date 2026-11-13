@@ -429,6 +429,8 @@
     "activityLog.autoScrollTooltip": "Secara otomatis menggulir ke entri log terbaru",
     "activityLog.hideMinimize": "Sembunyikan / Perkecil Log",
     "activityLog.hideMinimizeTooltip": "Kecilkan atau sembunyikan panel log aktivitas",
+    "activityLog.showLog": "Tampilkan Log Aktivitas",
+    "activityLog.showLogTooltip": "Pulihkan dan luaskan konsol log aktivitas",
     "activityLog.empty": "Belum ada aktivitas yang tercatat.",
     "activityLog.filterAll": "Semua Log",
     "activityLog.filterStatus": "Status Saja",

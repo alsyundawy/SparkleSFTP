@@ -29,6 +29,10 @@ public struct MainWindowView: View {
                         .accessibilityIdentifier("quickConnectBar")
                 }
 
+                if !appState.isActivityLogVisible {
+                    minimizedActivityLogBar
+                }
+
                 VSplitView {
                     if appState.isActivityLogVisible {
                         ActivityLogView(appState: appState)
