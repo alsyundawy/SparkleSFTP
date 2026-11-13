@@ -173,7 +173,7 @@ public struct PreferencesThemesShowcase: View {
 
         return ScrollView {
             LazyVGrid(columns: gridCols, spacing: 12) {
-                ForEach(filteredPalettes.prefix(18)) { theme in
+                ForEach(filteredPalettes) { theme in
                     let isSelected = (selectedThemeID == theme.id)
                     ThemeCardView(
                         theme: theme,

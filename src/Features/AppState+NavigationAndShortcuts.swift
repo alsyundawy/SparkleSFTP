@@ -79,7 +79,7 @@ public extension AppState {
     internal static func makeInitialWorkspaceBootstrap() -> InitialWorkspaceBootstrap {
         let initialLocales = LocalizationCatalog.loadAvailableLocales()
         let activeThemeID = UserDefaults.standard.string(forKey: "sparklesftp.selectedThemeID")
-        let initialThemes = SparkleThemeStore.loadBootstrapPalettes(activeThemeID: activeThemeID)
+        let initialThemes = SparkleThemeStore.loadAllPalettes()
         let initialStrings = AppStrings(language: .english, localeCode: "en", availableLocales: initialLocales)
         let firstTab = WorkspaceTab(
             id: UUID(),

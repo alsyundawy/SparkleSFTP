@@ -117,8 +117,9 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 - [x] `T-082` Implement Screen 5: `PreferencesThemesShowcase.swift` (Theme family browser and contrast checker preview) with Xcode Previews at 1280×800
 - [x] `T-083` Implement Screen 6 (`EmptyStateShowcase.swift`), Screen 7 (`ConflictDialogShowcase.swift`), and Screen 8 (`DashboardShowcase.swift`) with Xcode Previews at 1280×800
 - [x] `T-084` Implement Gallery Launcher (`src/Features/Showcase/ShowcaseGalleryView.swift`) and hook into `SparkleSFTPApp.swift` via `--showcase-gallery` / `--mockup-gallery` launch arguments
-- [x] `T-085` Add display strings with 100% parity across `en.json` and `id.json` (488 keys each), establish maintenance branches `0.1.0` through `0.4.1`, and configure IDE diagnostic exclusions (`.vscode/settings.json`, `.markdownlint-cli2.jsonc`, `.markdownlintignore`)
-- [x] `T-086` Execute 14-Pillar code audit, build universal binary `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`), update `README.md`, `README-id.md`, `CHANGELOG.md`, `DOCNOTE.md`, `TODO.md`, and docs
+- [x] `T-085` Add display strings with 100% parity across `en.json` and `id.json` (490 keys each), establish maintenance branches `0.1.0` through `0.4.1`, and configure IDE diagnostic exclusions (`.vscode/settings.json`, `.markdownlint-cli2.jsonc`, `.markdownlintignore`)
+- [x] `T-086` Restore eager loading of all 76 themes in `AppState` and showcase components, and implement symmetrical minimize/restore arrow indicators (`chevron.down` / `chevron.up`) for both Activity Log and Transfer Queue docks
+- [x] `T-087` Generate desktop suite flyer banner (`assets/sparklesftp-desktop-banner.jpg`), overhaul `README.md` and `README-id.md` matching SparkNotePad user-friendly format, execute 14-Pillar code audit, build universal binary `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`), update `README.md`, `README-id.md`, `CHANGELOG.md`, `DOCNOTE.md`, `TODO.md`, and docs
 
 ## External Operational & Release Gates (Deferred to Release Environment)
 

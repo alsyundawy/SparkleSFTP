@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added & Enhanced ("Sparkle Commander" Visual Refresh & Showcase Gallery)
 
+- **Restoration of Eager Loading for All 76 SparkNotePad Palettes (`AppState+NavigationAndShortcuts`, `PreferencesThemesShowcase`, `ShowcaseGalleryView`)**:
+  - Restored full eager loading of all 76 built-in themes at cold startup via `SparkleThemeStore.loadAllPalettes()`, ensuring all themes across Core, Extended, Spectrum, and Studio collections are immediately available without delay.
+  - Removed `.prefix(18)` limitation in `PreferencesThemesShowcase.swift` so the complete catalog of 76 themes is viewable in the showcase grid.
+  - Updated `ShowcaseGalleryView.swift` to list all 76 palettes in its dynamic live preview palette switcher.
+- **Symmetrical Minimize & Restore Indicators for Log Box & Transfer Box (`MainWindowView`, `MainWindowView+Subviews`, `ActivityLogView`, `TransferQueueView`)**:
+  - Implemented `MainWindowMinimizedActivityLogBar` in `MainWindowView+Subviews.swift` with a centered `[ ⌄ Show Activity Log ]` restore button featuring a `chevron.down` arrow indicator when the log dock is collapsed.
+  - Aligned the minimize toggle button in `ActivityLogView.swift` to use a `chevron.up` arrow indicator.
+  - Paired symmetrically with the Transfer Queue drawer's `chevron.down` minimize button in `TransferQueueView.swift` and `chevron.up` restore bar (`MainWindowMinimizedTransferBar`) in `MainWindowView+Subviews.swift`.
+- **Marketing & Desktop Suite Flyer Banner (`assets/sparklesftp-desktop-banner.jpg`)**:
+  - Added a high-resolution marketing and desktop suite banner (1376x768 pixels, sRGB JPEG) in `assets/sparklesftp-desktop-banner.jpg`, matching the layout, typography, and cyber-tech visual style of `SparkNotePad/assets/sparknotepad-desktop-banner.jpg`.
+- **User-Friendly Documentation Overhaul (`README.md`, `README-id.md`)**:
+  - Completely redesigned `README.md` and `README-id.md` modeled directly after SparkNotePad's clean, user-friendly documentation with quick navigation badges, visual feature table, keyboard shortcut guide, and accessible installation instructions for average users.
 - **Semantic Surface Tokens (`SemanticSurfaceTokens.swift`)**:
   - Implemented dynamic semantic tokens resolving surface backgrounds, card elevations, hairline borders (1 px @ 6–8% opacity), text hierarchies, and row selection states directly from the active `SparkleThemePalette`.
   - Guaranteed zero hardcoded hex colors and verified full WCAG 2.1 AA contrast compliance across both dark and light palette modes.

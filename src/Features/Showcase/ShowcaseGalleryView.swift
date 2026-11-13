@@ -232,16 +232,8 @@ public struct ShowcaseGalleryView: View {
                 .foregroundStyle(tokens.secondaryText)
 
             Picker("Palette", selection: $selectedPaletteID) {
-                Text("Default Dark").tag(SparkleThemeCatalog.defaultDark.id)
-                Text("Default Light").tag(SparkleThemeCatalog.defaultLight.id)
-                if let solarized = SparkleThemeCatalog.findBuiltInPalette(id: "solarized-dark") {
-                    Text("Solarized Dark").tag(solarized.id)
-                }
-                if let nord = SparkleThemeCatalog.findBuiltInPalette(id: "nord") {
-                    Text("Nord").tag(nord.id)
-                }
-                if let monokai = SparkleThemeCatalog.findBuiltInPalette(id: "monokai") {
-                    Text("Monokai").tag(monokai.id)
+                ForEach(SparkleThemeCatalog.builtInPalettes) { pal in
+                    Text(pal.displayName).tag(pal.id)
                 }
             }
             .frame(width: 150)
