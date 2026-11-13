@@ -28,14 +28,14 @@ public final class LocalDirectoryWatcher: @unchecked Sendable { // JUSTIFICATION
         )
         dispatchSource.setEventHandler { [weak self] in
             guard let self else { return }
-            self.lock.lock()
-            self.pendingWorkItem?.cancel()
+            lock.lock()
+            pendingWorkItem?.cancel()
             let workItem = DispatchWorkItem {
                 onChange()
             }
-            self.pendingWorkItem = workItem
-            self.lock.unlock()
-            self.queue.asyncAfter(deadline: .now() + .milliseconds(250), execute: workItem)
+            pendingWorkItem = workItem
+            lock.unlock()
+            queue.asyncAfter(deadline: .now() + .milliseconds(250), execute: workItem)
         }
         dispatchSource.setCancelHandler { [weak self] in
             self?.lock.lock()

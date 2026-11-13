@@ -21,46 +21,7 @@ public struct MainWindowView: View {
             )
             .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
         } detail: {
-            VStack(spacing: 0) {
-                WorkspaceTabBar(appState: appState)
-
-                if appState.isQuickConnectAvailable, appState.isQuickConnectBarVisible {
-                    QuickConnectBar(appState: appState)
-                        .accessibilityIdentifier("quickConnectBar")
-                }
-
-                VSplitView {
-                    if appState.isActivityLogVisible {
-                        ActivityLogView(appState: appState)
-                            .frame(minHeight: 70, idealHeight: 130)
-                    }
-
-                    DualPaneCommanderView(appState: appState)
-                        .frame(minHeight: 180, idealHeight: 420)
-
-                    if appState.isTerminalVisible {
-                        TerminalWorkspaceView(appState: appState)
-                            .frame(minHeight: 120, idealHeight: 180)
-                    }
-
-                    if appState.isTransferDrawerVisible {
-                        TransferQueueView(appState: appState)
-                            .frame(minHeight: 90, idealHeight: 150)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if !appState.isTransferDrawerVisible {
-                    minimizedTransferBar
-                }
-
-                statusBar
-            }
-            .navigationSplitViewColumnWidth(min: 520, ideal: 920)
-            .clipped()
-            .background(palette.windowColor, ignoresSafeAreaEdges: [])
-            .foregroundStyle(palette.primaryTextColor)
-            .tint(palette.accentColor)
+            workspaceDetailView
         }
         .frame(
             minWidth: 820,
@@ -271,7 +232,7 @@ public struct MainWindowView: View {
     }
 }
 
-private extension MainWindowView {
+extension MainWindowView {
     var statusBar: some View {
         let palette = appState.activePalette
         return HStack(spacing: SparkleTheme.Spacing.medium) {

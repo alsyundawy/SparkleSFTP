@@ -204,6 +204,9 @@ public enum LocalizationCatalog {
             "tabs.disconnect": isID ? "Putuskan Koneksi" : "Disconnect",
             "tabs.connectOnNewTab": isID ? "Sambungkan di Tab Baru" : "Connect on New Tab",
             "activityLog.title": isID ? "Log Aktivitas" : "Activity Log",
+            "activityLog.showLog": isID ? "Tampilkan Log Aktivitas" : "Show Activity Log",
+            "activityLog.showLogTooltip": isID ? "Pulihkan dan luaskan konsol log aktivitas" :
+                "Restore and expand the activity log console",
             "transfers.hideMinimize": isID ? "Sembunyikan / Perkecil Transfer" : "Hide / Minimize Transfers",
             "transfers.showQueue": isID ? "Transfer" : "Transfers",
             "pane.copyTo": isID ? "Salin Ke... (⇧F5)" : "Copy To... (⇧F5)"

@@ -5,7 +5,7 @@ import SwiftUI
 
 public struct ActivityLogView: View {
     @ObservedObject var appState: AppState
-    @ObservedObject var logger: ActivityLogger = ActivityLogger.shared
+    @ObservedObject var logger: ActivityLogger = .shared
 
     public init(appState: AppState) {
         self.appState = appState
@@ -57,7 +57,7 @@ public struct ActivityLogView: View {
                 }
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: "chevron.down")
+                    Image(systemName: "chevron.up")
                         .font(.system(size: 10, weight: .bold))
                     Text(strings.t("activityLog.hideMinimize"))
                         .font(SparkleTheme.Typography.caption)

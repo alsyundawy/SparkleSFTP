@@ -19,14 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added a 250ms debouncer in `LocalDirectoryWatcher` (`LocalFileService.swift`) to coalesce bursts of filesystem notification events and prevent repeated concurrent directory re-reads.
 - **FileZilla-Inspired Activity Logging Console (`ActivityLogger`, `ActivityLogView`, `MainWindowView`, `SparkleSFTPApp`)**:
   - Added real-time timestamped `[HH:mm:ss]` activity logging engine (`ActivityLogger`) with semantic message categorization (Status, Command, Response, Error, Transfer) and active theme palette integration.
-  - Created collapsible `ActivityLogView` console dock with level filters, auto-scroll toggle, quick copy (`⌘C` / Copy row / Copy message), clear, centered minimize/hide control, and global menu/toolbar toggle (`⌥⌘L`).
+  - Created collapsible `ActivityLogView` console dock with level filters, auto-scroll toggle, quick copy (`⌘C` / Copy row / Copy message), clear, centered minimize button with small arrow indicator (`chevron.up`), dedicated restore bar (`MainWindowMinimizedActivityLogBar` with `chevron.down` arrow indicator and localized label), and global menu/toolbar toggle (`⌥⌘L`).
 - **Workspace Tab Disconnect & Connect on New Tab (`AppState+WorkspaceTabs`, `WorkspaceTabStripRepresentable`, `WorkspaceTabBar`)**:
   - Added `tabs.disconnect` context menu option to drop the remote SSH/SFTP connection without closing the workspace tab, returning it safely to the local browser state.
   - Added `tabs.connectOnNewTab` context menu option to duplicate the profile connection directly into a fresh workspace tab.
 - **Orthodox Commander Keyboard Shortcut Resolution (`InteractiveFileTableSupport`, `AboutView+Tabs`, `LocalizationCatalog`)**:
   - Resolved `F5` shortcut ambiguity: aligned `F5` strictly to cross-pane direct transfer (Upload in local pane, Download in remote pane), mapped custom target path prompt to `Copy To... (⇧F5)`, and preserved standard clipboard copy as `⌘C`.
 - **Collapsible Transfer Drawer with Centered Minimize/Hide Toggle (`TransferQueueView`, `MainWindowView`)**:
-  - Added a centered `[ ⌵ Hide / Minimize Transfers ]` button in `TransferQueueView` and a centered `[ ⌃ Transfers (N) ]` restore button in `MainWindowView` when collapsed.
+  - Added a centered `[ ⌵ Hide / Minimize Transfers ]` button with small arrow indicator (`chevron.down`) in `TransferQueueView` and a centered `[ ⌃ Transfers (N) ]` restore button (`MainWindowMinimizedTransferBar` with `chevron.up`) in `MainWindowView` when collapsed.
+- **Desktop Suite Flyer Banner & User-Friendly Documentation (`assets/sparklesftp-desktop-banner.jpg`, `README.md`, `README-id.md`, `docs/releases/v0.3.0.md`)**:
+  - Added high-resolution cyber-tech marketing banner flyer in `assets/sparklesftp-desktop-banner.jpg` (1376x768).
+  - Redesigned `README.md` and `README-id.md` referencing SparkNotePad's layout for optimal clarity, elegant action buttons, and clear newcomer onboarding.
 - **Tooltips Perfection & Complete Bilingual Localization (`QuickConnectBar`, `DualPaneCommanderView+Actions`, `en.json`, `id.json`)**:
   - Audited and enriched interactive tooltips across all Quick Connect controls, action bar buttons, and status bar toggles with shortcut indicators, fully localized in English and Bahasa Indonesia.
 - **Manual Update Check Modal User Feedback (`AppState+Settings`)**:

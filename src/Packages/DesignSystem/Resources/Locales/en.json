@@ -429,6 +429,8 @@
     "activityLog.autoScrollTooltip": "Automatically scroll to newest log entry",
     "activityLog.hideMinimize": "Hide / Minimize Log",
     "activityLog.hideMinimizeTooltip": "Collapse or hide the activity log panel",
+    "activityLog.showLog": "Show Activity Log",
+    "activityLog.showLogTooltip": "Restore and expand the activity log console",
     "activityLog.empty": "No log activity recorded yet.",
     "activityLog.filterAll": "All Logs",
     "activityLog.filterStatus": "Status Only",

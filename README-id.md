@@ -1,12 +1,22 @@
+<!-- markdownlint-disable-file MD013 MD022 MD026 MD032 MD033 MD041 MD060 -->
+
 <p align="center">
-  <img src="src/App/Resources/AppIcon.png" width="144" height="144" alt="Logo SparkleSFTP">
+  <a href="https://github.com/alsyundawy/SparkleSFTP">
+    <img src="assets/sparklesftp-desktop-banner.jpg" width="100%" alt="SparkleSFTP Desktop Suite — Commander Transfer Berkas Dual-Pane Asli macOS untuk SFTP, FTP/FTPS, SCP &amp; SSH" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/alsyundawy/SparkleSFTP">
+    <img src="src/App/Resources/AppIcon.png" width="128" height="128" alt="Ikon Aplikasi macOS Asli SparkleSFTP" />
+  </a>
 </p>
 
 <h1 align="center">SparkleSFTP</h1>
 
 <p align="center">
-  <b>Klien SFTP, FTP/FTPS, SCP &amp; SSH Commander Dual-Pane Native macOS — Dibangun dengan Swift 6 &amp; SwiftUI</b><br>
-  <i>Manajemen berkas berkinerja tinggi, keamanan Keychain + Touch ID, terminal PTY SwiftTerm terintegrasi, dan transfer atomik tahan crash tanpa beban Electron</i>
+  <b>SparkleSFTP — Commander Transfer Berkas Dual-Pane Native macOS yang Ringan dan Secepat Kilat.</b><br>
+  <i>Dirancang dengan Swift 6 dan arsitektur native SwiftUI + AppKit untuk performa transfer maksimal dan efisiensi memori tingkat tinggi</i>
 </p>
 
 <p align="center">
@@ -14,236 +24,133 @@
 </p>
 
 <p align="center">
-  <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Tahap-Full_MVP_Terealisasi-16a34a?style=for-the-badge&logo=github&logoColor=white" alt="Tahap: Full MVP Terealisasi"></a>
-  <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Universal_2)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+ Universal 2"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/Rilis-v0.3.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.3.0"></a>
+  <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Ventura_%7C_Sonoma_%7C_Sequoia)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP"><img src="https://img.shields.io/badge/Arsitektur-Universal_2_(arm64_%2B_x86__64)-purple?style=for-the-badge&logo=apple&logoColor=white" alt="Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Bahasa-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Bahasa: Swift 6"></a>
   <a href="https://developer.apple.com/xcode/swiftui/"><img src="https://img.shields.io/badge/UI-SwiftUI_%2B_AppKit-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="UI: SwiftUI dan AppKit"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lisensi-MIT-2ea44f?style=for-the-badge" alt="Lisensi: MIT"></a>
-  <a href="https://github.com/alsyundawy/SparkleSFTP/actions"><img src="https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI/CD GitHub Actions"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/actions"><img src="https://img.shields.io/badge/CI%2FCD-100%25_Lulus-success?style=for-the-badge&logo=githubactions&logoColor=white" alt="Status CI/CD"></a>
 </p>
+
+<p align="center">
+  <b>SparkleSFTP</b> adalah aplikasi transfer dan pengelola berkas native dual-pane yang elegan dan super cepat untuk macOS. Dibuat murni sebagai alternatif modern pengganti perkakas transfer berkas tradisional, SparkleSFTP mengutamakan efisiensi daya baterai, hemat RAM, keamanan kriptografi Apple Keychain, dan kenyamanan pengguna tanpa beban browser webview atau Electron.
+</p>
+
+<p align="center">
+  <a href="#-panduan-unduh--instalasi-cepat">
+    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.3.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
+  </a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/tag/v0.3.0">
+    <img src="https://img.shields.io/badge/🪞_Rilis_&_Catatan_Perubahan-GitHub-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Rilis & Catatan Perubahan">
+  </a>
+  <a href="docs/ARCHITECTURE.md">
+    <img src="https://img.shields.io/badge/📖_Dokumentasi_Arsitektur-Docs-6f42c1?style=for-the-badge&logo=gitbook&logoColor=white" alt="Dokumentasi Arsitektur">
+  </a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/issues">
+    <img src="https://img.shields.io/badge/🐛_Laporkan_Masalah-GitHub_Issues-red?style=for-the-badge&logo=github&logoColor=white" alt="Laporkan Masalah">
+  </a>
+</p>
+
+---
 
 > Pengembang Utama & Pemelihara:<br>
 > **[`HARRY DERTIN SUTISNA ALSYUNDAWY (@alsyundawy)`](https://github.com/alsyundawy)** — [`ALSYUNDAWY IT SOLUTION`](https://alsyundawy.com)<br>
 >
 > 📋 **[`Rencana Implementasi`](docs/IMPLEMENTATION_PLAN.md)** &nbsp;|&nbsp;
-> 🔍 **[`Review Kode 14 Pilar`](docs/CODE_REVIEW_14_PILLARS.md)** &nbsp;|&nbsp;
-> 📐 **[`Arsitektur`](docs/ARCHITECTURE.md)** &nbsp;|&nbsp;
-> 🗺️ **[`Roadmap & Release Gate`](docs/ROADMAP.md)** &nbsp;|&nbsp;
+> 🔍 **[`Tinjauan Kode 14 Pilar`](docs/CODE_REVIEW_14_PILLARS.md)** &nbsp;|&nbsp;
+> 📐 **[`Arsitektur Sistem`](docs/ARCHITECTURE.md)** &nbsp;|&nbsp;
+> 🗺️ **[`Peta Jalan & Syarat Rilis`](docs/ROADMAP.md)** &nbsp;|&nbsp;
 > 🔐 **[`Kebijakan Keamanan`](SECURITY.md)** &nbsp;|&nbsp;
-> 📜 **[`Changelog`](CHANGELOG.md)** &nbsp;|&nbsp;
+> 📜 **[`Catatan Perubahan`](CHANGELOG.md)** &nbsp;|&nbsp;
 > 🤝 **[`Panduan Kontribusi`](CONTRIBUTING.md)** &nbsp;|&nbsp;
 > 💖 **[`Dukungan via PayPal`](https://www.paypal.me/alsyundawy)**
 
 ---
 
-> [!IMPORTANT]
->
-> ### Status Repositori: Full MVP Terealisasi (Swift 6 + macOS 13+)
->
-> Seluruh modul SwiftPM (`Package.swift`, `src/App/`, `src/Packages/*`, `src/Features/`, `Tests/*`, `Tools/*`) telah diimplementasikan dan diverifikasi dengan `swift build` serta `swift test`. Lihat [`docs/TECHNICAL_SPECIFICATION.md`](docs/TECHNICAL_SPECIFICATION.md), [`DOCNOTE.md`](DOCNOTE.md), [`TODO.md`](TODO.md), dan [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
->
-> **Asal-Usul Proyek:** Awalnya dirancang dengan nama kerja `MacSFTP` dan distandardisasi menjadi **SparkleSFTP** dengan seluruh 55 temuan dari [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md) terintegrasi sebelum penulisan kode dimulai.
+## 🌟 Sorotan Utama & Keunggulan bagi Pengguna
+
+- ⚡ **Super Adem & Hemat Daya (Zero Runaway CPU)**: Dirancang dengan penanganan notifikasi jendela AppKit yang presisi (`NSWindow.didResizeNotification`), menghentikan perulangan render sehingga Mac tetap dingin dan konsumsi daya turun ke 0.0% saat santai (idle).
+- 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan teknologi daur ulang baris (*Cell Reuse*) AppKit (`ThemedFileRowView`), membuka direktori berisi 10.000+ berkas secara instan tanpa tersendat.
+- 📜 **Konsol Log Aktivitas Real-Time ala FileZilla (`⌥⌘L`)**: Pantau komunikasi server secara langsung dengan pewarnaan yang jelas. Dilengkapi **tombol indikator panah Minimize / Restore** (`chevron.up` untuk menyembunyikan, `chevron.down` untuk memulihkan kembali).
+- 🚀 **Antrean Transfer Tangguh di Latar Belakang**: Pengiriman berkas tanpa menghambat jendela kerja, dilengkapi 8 kebijakan resolusi konflik, fitur jeda/lanjut, dan **tombol indikator panah Minimize / Restore** (`chevron.down` untuk mengecilkan, `chevron.up` untuk memulihkan).
+- 💻 **Terminal Mandiri Bergaya iTerm2 (`⌘⌥T`)**: Ruang kerja terminal multi-tab dengan pembagian jendela vertikal (`⌘D`) dan horizontal (`⌘⇧D`), koneksi SSH server, serta sinkronisasi tema warna aktif.
+- 🎨 **76 Tema Bawaan dalam 26 Rumpun**: Kepatuhan kontras tinggi WCAG 2.1 AA/AAA untuk tema Terang dan Gelap, lengkap dengan pratinjau langsung dan impor/ekspor tema JSON.
+- 🔐 **Keamanan Apple Keychain & Touch ID**: Tanpa server pihak ketiga (*Zero-cloud*), seluruh kata sandi dan kunci rahasia SSH Anda tersimpan aman di dalam Apple Keychain fisik Mac Anda.
 
 ---
 
-## Navigasi
+## 📥 Panduan Unduh & Instalasi Cepat
 
-- [Ringkasan & Visi](#ringkasan--visi)
-- [Tumpukan Teknologi](#tumpukan-teknologi)
-- [Arsitektur Sistem](#arsitektur-sistem)
-- [Garis Dasar Keamanan & Hardening](#garis-dasar-keamanan--hardening)
-- [Struktur Repositori](#struktur-repositori)
-- [Ringkasan Roadmap](#ringkasan-roadmap)
-- [Dokumentasi & ADR](#dokumentasi--adr)
-- [Kontribusi & Gerbang Kualitas](#kontribusi--gerbang-kualitas)
-- [Lisensi](#lisensi)
+### Langkah 1: Unduh Berkas DMG
 
----
+Unduh berkas instalasi resmi **`SparkleSFTP-0.3.0-universal.dmg`** dari GitHub Releases.
 
-## Ringkasan & Visi
+### Langkah 2: Pasang ke Folder Applications
 
-**SparkleSFTP** adalah aplikasi Commander transfer berkas, SFTP/SSH, dan terminal mandiri native untuk macOS yang dirancang bagi engineer, sysadmin, dan alur kerja DevOps dengan ergonomi native macOS:
+1. Klik dua kali berkas `SparkleSFTP-0.3.0-universal.dmg` untuk membukanya.
+2. Seret ikon **SparkleSFTP** ke dalam folder **Applications**.
+3. Buka SparkleSFTP melalui Launchpad, Finder, atau Spotlight (`⌘Spasi`).
 
-- **Pengalaman Commander Dual-Pane & Menu Konteks Lengkap**: Panel Lokal ↔ Remote maupun Remote ↔ Remote berbasis AppKit `InteractiveFileTableView` (sorotan hover cursor `NSTrackingArea`, penundaan reload saat menu konteks terbuka via `NSMenuDelegate`, auto-pilih saat klik kanan, `⌘A` Pilih Semua, `F2`–`F9`, Quick Look, seret-lepas Finder), lengkap dengan menu konteks Commander (`Sunting` -> Editor Internal / Aplikasi Luar / Preferensi, `Unggah/Unduh F5`, `Salin Ke... ⇧F5`, `Pindah... F6`, `Perintah Kustom Berkas` -> Bandingkan Berkas / Kompres & Unggah `.gz` `-lz` / Verifikasi SHA-256 / Perintah SSH Kustom terutip POSIX, dan `Nama Berkas` -> Sisipkan ke Terminal / Salin Nama / Salin Path Lengkap).
-- **Konsol Logging Aktivitas Bergaya FileZilla (`⌥⌘L`)**: Konsol pesan riwayat aktivitas real-time dengan stempel waktu `[HH:mm:ss]` (`ActivityLogger`, `ActivityLogView`) yang dikategorikan secara semantik (Status, Perintah, Tanggapan, Kesalahan, Transfer) dengan palet tema `SparkleThemePalette`, filter kategori, salin baris/pesan cepat, pembersihan, kontrol minimalkan di tengah, serta pintasan `⌥⌘L`.
-- **Terminal Mandiri macOS Bergaya iTerm2 (`⌘⌥T`) & Shell Lokal Langsung**: Jendela macOS terpisah (`StandaloneTerminalWindowController`, `StandaloneTerminalWindowView`, `StandaloneTerminalSplitView`) berbasis `SwiftTerm.LocalProcessTerminalView` lengkap dengan multi-tab shell login (`/usr/local/bin/bash -l`, `/bin/zsh -l`, `$SHELL` pengguna), tab SSH ke server aktif, pembagian panel vertikal (`⌘D`) dan horizontal (`⌘⇧D`) rekursif, pencarian scrollback (`⌘F` case/regex/kata penuh + pencacah), zoom huruf (`⌘+`/`⌘-`/`⌘0`), sinkronisasi 76 palet ANSI, dan eksekusi Hardened Runtime tanpa sandbox (`SparkleSFTP.entitlements`).
-- **Multi-Jendela Independen, Multi-Tab Koneksi (`⌘N` / `⌘T`) & 1 Tab = 1 Shell**: `AppEnvironment` membuat `AppState` terisolasi per jendela (`WindowGroup` + `FocusedValues`) sehingga **Jendela Baru (`⌘N`)** selalu membuka sesi bersih bukan kloning sesi aktif, lengkap dengan `WorkspaceTabBar` (`WorkspaceTabStripRepresentable` + tombol AppKit `TabBarActionButton`, state lokal+remote berpasangan per tab, tab duplikat host `#2`, perpindahan & penutupan tab instan, `⌘W` / `⌘⇧[` / `⌘⇧]`, menu konteks tab dengan opsi **Putuskan Koneksi** dan **Sambungkan di Tab Baru**, serta `Sambungkan di Jendela Baru`). Setiap tab terhubung 1-ke-1 dengan satu `TerminalTabSession` (`workspaceTabID` + `remoteSessionID`, pindah tab menyinkronkan Shell terikat sedangkan tab baru terputus menyembunyikan Shell), sementara `QuickConnectBar`, tombol Sambung Cepat, dan `Connect` di toolbar hanya tampil pada tab/jendela yang belum terhubung.
-- **Editor Berkas Internal Minimalis Notepad2 (`⌘E`)**: Editor multi-tab AppKit `NSTextView` (`src/Features/Editor/`) dengan nomor baris (`NSRulerView`), syntax highlighting mengikuti palet tema aktif, simbol spasi/tab (`¶`), word wrap, zoom `+/-/%`, mode hanya-baca, Cari & Ganti berbasis regex, lompat ke baris, transformasi teks (UPPER/lower/Title/Trim/Sort), konversi `UTF-8`/`UTF-8 BOM`/`UTF-16 LE`/`ASCII` + `LF`/`CRLF`, serta simpan & unggah otomatis ke server remote.
-- **Sistem Multi-Tema (`76` Palet `SparkNotePad`/`NotepadNext`) & Propagasi Penuh**: `76` tema terkurasi di `26` keluarga palet dengan mode `Auto / Terang / Gelap`, kartu Pratinjau Tema Aktif langsung, kontrol filter pencarian + nada warna terstruktur, grid kartu `LazyVGrid` interaktif (`PreferencesThemeTab`), submenu 26 rumpun tema (`MainWindowView`), validasi kontras WCAG 2.1 AA pada kanvas dan window chrome, impor/ekspor tema JSON kustom, serta penegakan tombol Close/Minimize/Zoom native + z-order titlebar `positioned: .above` berbatas safe-area + `NSAppearance` (`SparkleWindowConfigurator`) di jendela Utama, Pengaturan, About, dan Editor.
-- **Manajemen Koneksi, Zero-Prompt Keychain/Trust Store, Responsivitas Cursor & Pintasan**: `ConnectionListTableView` & `InteractiveFileTableView` (`NSTrackingArea` sorotan hover mouse, seleksi instan `rightMouseDown`, pengaman reload menu konteks, validasi modifier ketat untuk `F2`/`F5`/`F6`/`F7`/`F8`/`F9`, `⌘A`, `⌘C`, `⌘⇧C`, `⌘⌥C`, `⌘↩`, `⌥↩`, `⌘⌫`, `⌘\`, `⌘⇧S`, `⌘⌥T`, fokus `Tab` terlingkup, pengaman `NSText`, serta `⇧⌘N`), bilah aksi (`Hubungkan`, `Baru`, `Sunting`, `Semua`, `Hapus`) + menu klik kanan host Commander, `FileHostTrustBackingStore` (`0600` JSON + migrasi senyap `LAContext` tanpa dialog Keychain saat aplikasi dibuka), `KeychainMemoryCache` untuk kredensial non-Touch ID (`hasSecret` `interactionNotAllowed = true`), **Ingat Kata Sandi di Apple Keychain**, serta keluar non-deadlock via `applicationShouldTerminate`.
-- **Jendela About, Pengaturan AppKit Mandiri & Ukuran Dialog Tetap**: Jendela About 7 tab (`AboutView`, `AboutWindowController`, `720x560`), jendela Pengaturan AppKit mandiri (`PreferencesView`, `PreferencesWindowController`, `760x600`, menggantikan scene `Settings` SwiftUI yang menghilangkan Minimize/Maximize), dan Editor Internal (`900x620`) berbagi `ManagedWindowController` (`sizingOptions = [.minSize]`) agar tombol Tutup/Perkecil/Perbesar aktif dengan ukuran antartab konstan, sementara seluruh modal `.sheet` terkunci pada ukuran `width x height` tetap bersama diagnostik, tautan GitHub/PayPal, pintasan, lisensi, serta logo `AppIcon.png`/`.icns` 1:1.
-- **Pustaka Pihak Ketiga & Integrasi Terminal Eksternal (`zlib`, `libcurl`, `libssh2`, `OpenSSL`, `OpenSSH`, `iTerm2`)**: C11 `Clibcurl` menautkan `-lcurl` + `-lz` SDK macOS (buffer `256 KB`, `TCP_NODELAY`, `TCP_KEEPALIVE`, worker GCD di luar pool kooperatif, codec `zlib`/`gzip` berbatas `CWE-409` di `ZlibCompressionCodec`), probing dinamis `dlopen`/`dlsym` untuk `libssh2` opsional, deteksi `OpenSSL`/`OpenSSH` (`ToolchainInspector`), ikon Shell `terminal.fill` v0.1 (tanpa Local Shell), serta peluncur eksternal tersanitasi `CWE-78` untuk `iTerm2`/`Terminal.app` (`ExternalTerminalLauncher`).
-- **Transfer Multi-Thread Non-Pemblokir, Kontrol Antrean & Kebijakan Konflik 8-Opsi Unggah/Unduh Independen**: Pemindaian folder rekursif di luar `MainActor` (`Task.detached`) + `TransferQueue.enqueueBatch` (batch 50 item), `TransferScheduler` O(1) (`pendingIDs`), transaksi batch SQLite WAL (`TransferJournal+Batch`), penyiaran snapshot 60ms & refresh panel ter-debounce 2 detik, `SFTPPipelinedTransfer` (`64 KB`), `TransferSpeedMeter` adaptif, izin POSIX bottom-up (`0o755`), tab filter `Aktif`/`Selesai`/`Gagal`/`Semua` dengan **Batalkan Semua**, **Jeda Semua**, **Coba Ulang Gagal**, **Bersihkan Selesai**, **Bersihkan Gagal**, dan **Bersihkan Selesai** (`TransferQueueView`), supresi senyap `CancellationError` (tanpa dialog error pemblokir saat transfer berjalan/dibatalkan), serta aturan konflik **Unggah** dan **Unduh** terpisah (`Tanya Setiap Kali`, `Timpa`, `Timpa Jika Lebih Baru`, `Timpa Jika Ukuran Beda`, `Timpa Jika Ukuran Beda/Lebih Baru`, `Lanjutkan`, `Ubah Nama`, `Lewati`).
-- **Arsitektur Runtime Ringan & Responsif**: `TransferMonitor` terpisah + rendering daftar berjendela `visibleLimit = 150`, cache `AppStrings`, `SparkleThemePalette`, serta `SparkleWindowConfigurator`, dan pembacaan metadata POSIX single-`lstat` agar klik dan menu kanan tetap responsif.
-- **i18n JSON Terkelola, Kartu Bahasa & Importer**: Katalog JSON (`en.json` & `id.json`, `456` kunci sinkron) + direktori override lokal tervalidasi `CWE-22` (`~/Library/Application Support/SparkleSFTP/Locales/`), grid kartu bahasa (`PreferencesLocalizationTab`), pengalih Globe (`MainWindowView`, `SparkleSFTPApp`), serta `ExternalSessionFileReader` & `ImportConnectionsSheet` untuk FileZilla XML (`<Folder>`, `base64`, proteksi `crypt`, spasi `RemoteDir`) dan Commander INI (`IniSessionImporter` / `IniSessionPasswordDecoder`: UTF-16LE/BE BOM, dekripsi sandi `0xA3` + tolakan `UseMasterPassword=1`, `FSProtocol` `0=SCP, 1/2=SFTP, 5=FTP`, proxy, subgrup bersarang).
-- **Pengaturan Pembaruan Otomatis & Sinkronisasi Dua Arah**: Konfigurasi `AutoUpdateSettings` lengkap (periksa/unduh otomatis, frekuensi `Jam`/`Harian`/`Mingguan`/`Manual`, kanal `Stable`/`Beta`, validasi feed HTTPS, fallback pengecekan GitHub Releases API untuk build komunitas) dan dukungan penuh `SyncDirection` (`Local -> Remote`, `Remote -> Local`, `Bidirectional`).
-- **Dukungan Protokol Lengkap**: SFTP, Terminal SSH (PTY), FTPS Explicit/Implicit, FTP biasa (dengan peringatan keamanan eksplisit), serta fallback SCP terisolasi (`SCPCompatibilityAdapter`).
-- **Mesin Transfer Terisolasi Actor**: Konkurensi terbatas per-host dan global, jeda/lanjutkan berbasis checkpoint dengan revalidasi metadata remote, pemulihan crash `TransferJournal`, serta unggahan atomik (tulis sementara → verifikasi SHA-256 → ganti nama atomik).
-- **Keamanan Sejak Hari Pertama**: Apple Keychain terkunci perangkat (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`), pembukaan opsional Touch ID, state machine verifikasi host key TOFU yang ketat, validasi TLS `SecTrust`, dan redaksi log `OSLog` tanpa kebocoran rahasia.
+### Langkah 3: Tips Keamanan Gatekeeper Pertama Kali
+
+Karena rilis komunitas ini menggunakan sertifikat mandiri, Anda dapat membukanya dengan mudah:
+
+- **Cara Termudah**: Klik kanan (atau `Control` + Klik) **SparkleSFTP** di `/Applications`, pilih **Open (Buka)**, lalu klik **Open** pada jendela konfirmasi.
+- **Alternatif Terminal**:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/SparkleSFTP.app
+  ```
 
 ---
 
-## Tumpukan Teknologi
+## ⌨️ Daftar Tombol Pintas Penting
 
-| Lapisan                       | Teknologi                                                     | Tujuan & Standar Keamanan                                                                                                                                           |
-| :---------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Bahasa**                    | Swift 6                                                       | Strict concurrency, isolasi actor, penegakan `Sendable`                                                                                                             |
-| **Antarmuka UI**              | SwiftUI + AppKit (`NSTableView`)                              | HIG macOS native dengan reuse sel tabel (`ObservableObject` untuk macOS 13+)                                                                                        |
-| **SSH & SFTP**                | `apple/swift-nio-ssh` (`0.15.1` >= `0.14.1`) + Codec SFTP v3  | SFTP v3 async/await, PTY, port forwarding; mitigasi CVE-2026-43798 & macOS 13+                                                                                      |
-| **FTP/FTPS & Bridge Pustaka** | Sistem `libcurl` + `zlib` (`Clibcurl`) + `ToolchainInspector` | Worker GCD `256 KB` TCP keepalive terkunci `ftp,ftps` (anti CVE-2025-15224), zlib/gzip berbatas `CWE-409`, probing dinamis `libssh2`, deteksi OpenSSL/OpenSSH/shell |
-| **Terminal SSH**              | `SwiftTerm` (`1.20.0`) + `ExternalTerminalLauncher`           | PTY VT100/xterm remote & peluncur eksternal tersanitasi `iTerm2` / `Terminal.app`                                                                                   |
-| **Rahasia & Trust**           | Apple `Security.framework`                                    | Keychain ACL native (`WhenUnlockedThisDeviceOnly`), Touch ID (`LAContext`), `SecTrustEvaluateWithError`                                                             |
-| **Persistensi**               | JSON (`Codable`) + `SQLite3` WAL                              | JSON ringan untuk profil (`ConnectionStore`) + `TransferJournal` ACID (macOS 13+)                                                                                   |
-| **Pengujian**                 | Swift Testing + Docker Compose                                | Fixture deterministik OpenSSH, vsftpd, dan ProFTPD                                                                                                                  |
-| **Distribusi**                | Universal 2 DMG + Sparkle                                     | `arm64` + `x86_64`, notarized Developer ID, pembaruan bertanda Ed25519                                                                                              |
-
----
-
-## Arsitektur Sistem
-
-```mermaid
-flowchart TD
-    UI["Lapisan UI (SwiftUI + NSTableView + SwiftTerm)"]
-    VM["ViewModel (@MainActor ObservableObject)"]
-    APP["Inti Aplikasi (AppState · TransferQueue · TransferScheduler)"]
-    DOM["Lapisan Domain (RemoteConnection · RemoteFileSystem · AppError)"]
-    PA["Adaptor Protokol (SFTP · SSH · FTP/FTPS · SCP)"]
-    SEC["Lapisan Keamanan (KeychainService · HostTrustStore · SecTrust)"]
-    PERS["Persistensi (ConnectionStore JSON · TransferJournal SQLite3)"]
-
-    UI --> VM
-    VM --> APP
-    APP --> DOM
-    PA --> DOM
-    SEC --> DOM
-    PERS --> DOM
-    APP --> PA
-    APP --> SEC
-    APP --> PERS
-    PA --> SEC
-```
-
-### Aturan Lapisan Wajib (Non-Negotiable)
-
-1. `src/App -> SparkleFeatures -> src/Packages/*`; `ProtocolAdapters -> Domain`, `Security -> Domain`, `Persistence -> Domain`.
-2. View dan ViewModel **dilarang** memanggil `NIOSSH`, `Clibcurl`, `SQLite3`, atau Keychain secara langsung.
-3. Modul di `src/Packages/` **dilarang** mengimpor modul dari `src/Features/`.
-4. Siklus hidup transfer berjalan di dalam `TransferQueue` actor — terpisah sepenuhnya dari siklus hidup jendela maupun tab.
+| Tombol Pintas | Tindakan | Keterangan |
+| :--- | :--- | :--- |
+| `F5` | Transfer Cepat Antar-Panel | Mengirimkan berkas terpilih langsung ke panel di seberangnya |
+| `⇧F5` | Salin Ke... | Meminta lokasi folder tujuan kustom untuk menyalin berkas |
+| `⌘C` / `⌘V` | Salin / Tempel Clipboard | Operasi salin-tempel standar clipboard macOS |
+| `⌥⌘L` | Tampilkan/Sembunyikan Log | Membuka atau menutup konsol riwayat perintah aktivitas server |
+| `⌘⌥T` | Terminal Mandiri | Membuka jendela kerja terminal multi-tab bergaya iTerm2 |
+| `⌘\` | Bilah Sambungan Cepat | Menampilkan atau menyembunyikan bilah Quick Connect |
+| `⌘1` / `⌘2` | Fokus Panel Berkas | Berpindah fokus keyboard antara panel Lokal dan Remote |
+| `⌘,` | Pengaturan / Preferensi | Membuka jendela setelan tema, bahasa, dan pembaruan |
+| `⌘W` | Tutup Tab | Menutup tab koneksi server yang sedang aktif |
 
 ---
 
-## Garis Dasar Keamanan & Hardening
+## 🛡️ Jaminan Keamanan & Privasi
 
-Setiap keputusan desain di SparkleSFTP menegakkan hasil audit pada [`docs/CODE_REVIEW_14_PILLARS.md`](docs/CODE_REVIEW_14_PILLARS.md):
-
-| Kontrol                        | Standar / Referensi | Penegakan                                                                          |
-| :----------------------------- | :------------------ | :--------------------------------------------------------------------------------- |
-| **Keamanan Pre-Auth SSH**      | CVE-2026-43798      | Pin `apple/swift-nio-ssh >= 0.15.1` (`>= 0.14.1`) di `Package.swift`               |
-| **Keamanan Auth SSH libcurl**  | CVE-2025-15224      | Kunci `Clibcurl` ke `ftp,ftps` (`CURLOPT_PROTOCOLS_STR`); tanpa permukaan `libssh` |
-| **Isolasi Keychain Perangkat** | CWE-312 / CWE-522   | `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` + aturan SwiftLint                  |
-| **Validasi Sertifikat TLS**    | CWE-295             | `SecTrustEvaluateWithError` + OCSP + tanpa auto-downgrade FTPS                     |
-| **Kepercayaan Host SSH**       | State Machine TOFU  | Siklus 6-state; perubahan host key langsung memblokir koneksi                      |
-| **Keamanan Path & Symlink**    | CWE-22 / CWE-59     | Kanonisasi path ketat + validasi target symlink & loop                             |
-| **Integritas Pembaruan**       | Ed25519 + TLS       | `UpdateConfigurationValidator` menolak feed non-HTTPS & key placeholder            |
-| **Redaksi Log**                | CWE-532             | Label privasi `OSLog` + aturan SwiftLint `no_password_in_logs`                     |
-
----
-
-## Struktur Repositori
-
-### Struktur Repositori Swift 6 Terealisasi (Full MVP)
+- **100% Lokal & Tanpa Telemetri**: SparkleSFTP tidak pernah memantau, mengumpulkan, atau mengirimkan analitik, alamat server, maupun data berkas Anda.
+- **Penyimpanan Lokal Terenkripsi**: Frasa sandi SSH dan kunci privat tersimpan langsung di Apple Keychain yang dilindungi Touch ID.
+- **Verifikasi Integritas SHA-256**:
 
 ```text
-SparkleSFTP/
-├── Package.swift                  # Manifest Swift 6.0 (.macOS(.v13), dependensi SPM ter-pin)
-├── sonar-project.properties       # Konfigurasi SonarQube / SonarScanner & laporan SonarQube SwiftLint
-├── src/
-│   ├── App/                       # Entry point multi-jendela (WindowGroup), AppDelegate, AppEnvironment, SparkleUpdaterService, Info.plist, Entitlements
-│   ├── Features/                  # View SwiftUI + AppKit (WorkspaceTabBar, QuickConnectBar, Dual-Pane Commander, Terminal Mandiri, About 7 Tab, Editor Notepad2, TransferQueueView, Settings)
-│   └── Packages/
-│       ├── Clibcurl/              # Wrapper helper C11 non-variadik untuk libcurl (-lcurl) + zlib (-lz) & probing dlopen libssh2
-│       ├── Core/                  # Model domain (ToolchainModels, TransferModels konflik), RemotePath, AppError, Protocols
-│       ├── DesignSystem/          # 76 palet tema SparkNotePad/NotepadNext (26 keluarga), SparkleWindowConfigurator, katalog JSON i18n EN/ID (406 kunci)
-│       ├── FileManager/           # LocalFileService, LocalDirectoryWatcher, POSIXPermissions, DualPaneState
-│       ├── Networking/            # SFTPPacketCodec, SFTPPipelinedTransfer (64KB), SSHClientService, SCP, FTPService (GCD 256KB), ToolchainInspector
-│       ├── Persistence/           # ConnectionStore (JSON), TransferJournal+Batch (SQLite3 WAL), Importer FileZilla XML, Commander INI & SSH
-│       ├── Security/              # KeychainService (cache non-interaktif), FileHostTrustBackingStore (0600 JSON), SecTrust, PathValidator, KeyParser, UpdateValidator
-│       ├── Synchronization/       # DirectoryScanner, SyncPlanner (Satu Arah & Dua Arah, TTL 60 detik), SyncExecutor
-│       ├── Terminal/              # SwiftTerm TerminalViewRepresentable, StandaloneTerminalManager (multi-tab/split LocalProcessTerminalView), ExternalTerminalLauncher, PortForwardingManager
-│       └── TransferEngine/        # TransferQueue actor + BatchActions, TransferScheduler, ConflictResolver Unggah/Unduh, ResumeValidator, SHA256Verifier
-├── Tests/                         # 8 target uji / 30 berkas Swift (121 test di 33 suite Swift Testing)
-├── Tools/
-│   ├── Release/                   # Skrip Universal 2 build-universal.sh, create-dmg.sh, notarize.sh
-│   └── TestServers/               # Fixture Docker Compose (OpenSSH, vsftpd, ProFTPD) & skrip smoke test
-├── .github/workflows/             # ci.yml, release.yml, mega-linter.yml, codeql.yml, jekyll-gh-pages.yml
-└── docs/                          # Arsitektur, Spesifikasi Teknis, Model Keamanan, Workground, Review 14 Pilar, Review Jangka Panjang, ADR 0001–0008
+adaa39e203c6ae0e90d821e76b6fce1e7bbeb87720c5d18117e3502cf7d58a3d  SparkleSFTP-0.3.0-universal.dmg
 ```
 
----
-
-## Ringkasan Roadmap
-
-| Fase           | Tonggak                 | Fokus Utama & Status                                                                                                                                                                                                                                                                                                                                                                                                 |
-| :------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Fase 00**    | Bootstrap Repositori    | Tata kelola, spesifikasi, perbaikan 14 pilar, ADR, pagar CI & lint _(Selesai)_                                                                                                                                                                                                                                                                                                                                       |
-| **Fase 01–02** | Riset & Fondasi         | Audit graf SPM ([ADR-004](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md), [ADR-005](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)), `Package.swift`, `Core`, `DesignSystem` _(Selesai)_                                                                                                                                                                                                     |
-| **Fase 03**    | Koneksi & Keamanan      | `ConnectionStore`, `KeychainService`, TOFU `HostTrustStore`, `SecTrust`, Touch ID _(Selesai)_                                                                                                                                                                                                                                                                                                                        |
-| **Fase 04**    | Mesin Protokol          | `SSHClientService` (`swift-nio-ssh 0.15.1`), codec SFTP v3 pipelined, SCP, `Clibcurl` `-lcurl`/`-lz` FTP/FTPS _(Selesai)_                                                                                                                                                                                                                                                                                            |
-| **Fase 05**    | Antarmuka Commander     | `NSTableView` dual-pane, pintasan F5–F8, Quick Look, seret-lepas Finder _(Selesai)_                                                                                                                                                                                                                                                                                                                                  |
-| **Fase 06**    | Mesin Transfer          | `TransferQueue` actor, transfer multi-thread pipelined, `SQLite3` `TransferJournal`, dialog konflik FileZilla _(Selesai)_                                                                                                                                                                                                                                                                                            |
-| **Fase 07**    | Terminal & Sinkronisasi | PTY `SwiftTerm` 1-Tab = 1-Shell (`terminal.fill`), peluncur eksternal iTerm2/Terminal, port forwarding `-L`/`-R`, dry-run sync, `76` tema, EN/ID (`365` kunci) _(Selesai)_                                                                                                                                                                                                                                           |
-| **Fase 08**    | QA & Rilis              | `121 test di 33 suite` (`183` berkas Swift), Terminal Mandiri Bergaya iTerm2, Zero-Prompt Keychain/Trust Store, Transfer Batch Non-Pemblokir & Pengaman Menu Kanan, Tab Filter Antrean + `Retry`/`Clear`/`Abort All`, 8 Kebijakan Konflik Unggah/Unduh Terpisah, `IniSessionImporter` `0xA3` Bebas Hak Cipta, Trunk/SonarQube/MegaLinter/CodeQL hijau, DMG Universal 2 v0.3.0 _(notarization menunggu Developer ID)_ |
-
----
-
-## Dokumentasi & ADR
-
-- **[Rencana Implementasi (`docs/IMPLEMENTATION_PLAN.md`)](docs/IMPLEMENTATION_PLAN.md)** — Cetak biru lengkap, kontrak protokol, workground, 125 tugas, dan matriks pengujian Docker.
-- **[Spesifikasi Teknis (`docs/TECHNICAL_SPECIFICATION.md`)](docs/TECHNICAL_SPECIFICATION.md)** — Graf target, kontrak toolchain, dan gerbang penerimaan milestone.
-- **[Model Keamanan (`docs/SECURITY_MODEL.md`)](docs/SECURITY_MODEL.md)** — Kontrol ancaman, state machine TOFU, ACL Keychain, dan aturan TLS.
-- **[Workground Breakdown (`docs/WORKGROUND.md`)](docs/WORKGROUND.md)** — Alur kerja domain (`WG-1`–`WG-9`) dan graf dependensi modul.
-- **[Daftar Tugas (`docs/TASK_LIST.md`)](docs/TASK_LIST.md)** — Daftar tugas eksekusi di seluruh Milestone M1–M8.
-- **[Catatan Teknis (`DOCNOTE.md`)](DOCNOTE.md)** — Temuan dependensi terverifikasi dan solusi kompatibilitas SDK.
-- **[Review Kode 14 Pilar (`docs/CODE_REVIEW_14_PILLARS.md`)](docs/CODE_REVIEW_14_PILLARS.md)** — 55 temuan berbasis bukti di 14 pilar (bug, concurrency, memori, CVE keamanan, skalabilitas, dan linter).
-- **[Review Jangka Panjang Pasca-Rilis (`docs/LONG_TERM_REVIEW_2026_11.md`)](docs/LONG_TERM_REVIEW_2026_11.md)** — Laporan kesehatan arsitektur 14 pilar, daftar utang teknis, pemetaan CVE/CWE, audit SwiftUI/Swift 6, dan peta jalan 90 hari / 12 bulan.
-- **[Arsitektur Sistem (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)** — Batasan dependensi modul dan aturan concurrency.
-- **[Roadmap & Gerbang Rilis (`docs/ROADMAP.md`)](docs/ROADMAP.md)** — Jadwal fase dan syarat mutlak gerbang rilis MVP.
-- **[ADR-001: Tech Stack & Protokol](docs/ADR/0001-tech-stack-and-protocols.md)**
-- **[ADR-002: Isolasi Keychain & Host Trust](docs/ADR/0002-security-keychain-and-host-trust.md)**
-- **[ADR-003: Strategi Persistensi (JSON vs SwiftData)](docs/ADR/0003-metadata-persistence-swiftdata-vs-json.md)**
-- **[ADR-004: Direct `swift-nio-ssh` & Engine SFTP v3 Native](docs/ADR/0004-direct-swift-nio-ssh-and-sftp-codec.md)**
-- **[ADR-005: Jurnal SQLite3 & `ObservableObject` macOS 13+](docs/ADR/0005-macos13-sqlite3-journal-and-observable-object.md)**
-- **[ADR-006: Multi-Tema, i18n JSON, Editor Notepad2 & Fallback Auto-Update](docs/ADR/0006-post-mvp-theming-i18n-notepad2-and-updater.md)**
-- **[ADR-007: Pustaka Pihak Ketiga, Transfer Pipelined Multi-Thread & Konflik FileZilla](docs/ADR/0007-third-party-toolchain-pipelined-transfers-and-filezilla-conflicts.md)**
-- **[ADR-008: Isolasi Multi-Jendela, Tab AppKit, Katalog 76 Tema & Transfer Berpelestarian Izin POSIX](docs/ADR/0008-multi-window-isolation-appkit-tab-chrome-76-themes-and-transfer-pipeline.md)**
-
----
-
-## Kontribusi & Gerbang Kualitas
-
-Kontribusi sangat terbuka! Harap baca [`CONTRIBUTING.md`](CONTRIBUTING.md) dan [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) sebelum mengirim pull request.
-
-Pemeriksaan build, pengujian, dan linter lokal repositori dapat dijalankan dengan:
+Verifikasi di Terminal Mac:
 
 ```bash
-swiftlint lint --strict
-swiftformat --lint .
-swift build -j 2
-swift test -j 2
-markdownlint-cli2 "**/*.md" "#.build" "#DerivedData" "#.trunk"
-yamllint -c .yamllint.yml .
-shellcheck -s bash Tools/**/*.sh
-actionlint
+shasum -a 256 SparkleSFTP-0.3.0-universal.dmg
 ```
 
 ---
 
-## Lisensi
+## 🛠️ Kompilasi Mandiri Secara Lokal
 
-Didistribusikan di bawah **Lisensi MIT**. Lihat berkas [`LICENSE`](LICENSE) untuk teks lengkapnya.
+Kompilasi dan bangun paket menggunakan Swift 6 di macOS 13+:
+
+```bash
+swift build -j 2
+Tools/Release/build-universal.sh
+Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.3.0
+```
 
 ---
 
 <p align="center">
-  Dibuat untuk engineer macOS oleh <a href="https://github.com/alsyundawy"><b>@alsyundawy</b></a>
+  Didistribusikan di bawah <b>Lisensi MIT</b>. Dibuat dengan ❤️ untuk pengguna setia Mac oleh <a href="https://github.com/alsyundawy"><b>@alsyundawy</b></a>
 </p>
