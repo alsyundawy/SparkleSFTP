@@ -3,8 +3,9 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// Dashboard overview and quick launch mockup showcasing system status, favorite connections, and transfer statistics.
-public struct DashboardMockup: View {
+/// Dashboard overview and quick launch showcase highlighting system status,
+/// favorite connections, and transfer statistics.
+public struct DashboardShowcase: View {
     @Environment(\.sparklePalette) private var palette
 
     public init() {}
@@ -300,19 +301,21 @@ public struct DashboardMockup: View {
     }
 }
 
+public typealias DashboardMockup = DashboardShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct DashboardMockup_Previews: PreviewProvider {
+    struct DashboardShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                DashboardMockup()
+                DashboardShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Dashboard Dark (1280×800)")
 
-                DashboardMockup()
+                DashboardShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Dashboard Light (1280×800)")

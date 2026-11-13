@@ -8,15 +8,15 @@ public struct FilePaneConfig: Sendable {
     public let title: String
     public let iconName: String
     public let path: String
-    public let diskSpace: MockDiskSpace
-    public let items: [MockFileItem]
+    public let diskSpace: ShowcaseDiskSpace
+    public let items: [ShowcaseFileItem]
 
     public init(
         title: String,
         iconName: String,
         path: String,
-        diskSpace: MockDiskSpace,
-        items: [MockFileItem]
+        diskSpace: ShowcaseDiskSpace,
+        items: [ShowcaseFileItem]
     ) {
         self.title = title
         self.iconName = iconName
@@ -107,7 +107,7 @@ public struct MainWorkspacePaneView: View {
         }
     }
 
-    private func rowButton(for item: MockFileItem) -> some View {
+    private func rowButton(for item: ShowcaseFileItem) -> some View {
         let isSelected = (selectedID == item.id)
         return Button {
             selectedID = item.id

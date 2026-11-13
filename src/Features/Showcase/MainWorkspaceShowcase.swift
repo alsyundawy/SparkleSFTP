@@ -3,8 +3,8 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// High-fidelity native macOS dual-pane commander workspace mockup ("Sparkle Commander" visual refresh).
-public struct MainWorkspaceMockup: View {
+/// High-fidelity native macOS dual-pane commander workspace showcase ("Sparkle Commander" visual refresh).
+public struct MainWorkspaceShowcase: View {
     @State private var activeTabID: Int = 1
     @State private var selectedLeftFileID: String? = "Package.swift"
     @State private var selectedRightFileID: String? = "access.log"
@@ -315,19 +315,21 @@ public struct MainWorkspaceMockup: View {
     }
 }
 
+public typealias MainWorkspaceMockup = MainWorkspaceShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct MainWorkspaceMockup_Previews: PreviewProvider {
+    struct MainWorkspaceShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                MainWorkspaceMockup()
+                MainWorkspaceShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Sparkle Commander Dark (1280×800)")
 
-                MainWorkspaceMockup()
+                MainWorkspaceShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Sparkle Commander Light (1280×800)")

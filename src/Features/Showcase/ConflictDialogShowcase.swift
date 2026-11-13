@@ -3,8 +3,8 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// High-fidelity File Conflict Resolution dialog mockup supporting Overwrite, Resume, Skip, and Rename comparison.
-public struct ConflictDialogMockup: View {
+/// High-fidelity File Conflict Resolution dialog showcase supporting Overwrite, Resume, Skip, and Rename comparison.
+public struct ConflictDialogShowcase: View {
     @State private var selectedAction: ConflictAction = .overwriteIfNewer
     @State private var applyToAllInBatch: Bool = false
     @State private var customRenameText: String = "nginx_access (2).log"
@@ -259,19 +259,21 @@ public struct ConflictDialogMockup: View {
     }
 }
 
+public typealias ConflictDialogMockup = ConflictDialogShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct ConflictDialogMockup_Previews: PreviewProvider {
+    struct ConflictDialogShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                ConflictDialogMockup()
+                ConflictDialogShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Conflict Dialog Dark (1280×800)")
 
-                ConflictDialogMockup()
+                ConflictDialogShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Conflict Dialog Light (1280×800)")

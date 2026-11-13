@@ -3,8 +3,8 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// Connection Manager mockup screen with grouped profiles sidebar and detailed inspector card.
-public struct ConnectionManagerMockup: View {
+/// Connection Manager showcase screen with grouped profiles sidebar and detailed inspector card.
+public struct ConnectionManagerShowcase: View {
     @State private var selectedProfileID: String? = "profile-1"
     @State private var searchText: String = ""
 
@@ -339,19 +339,21 @@ private struct ConnectionManagerDetailView: View {
     }
 }
 
+public typealias ConnectionManagerMockup = ConnectionManagerShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct ConnectionManagerMockup_Previews: PreviewProvider {
+    struct ConnectionManagerShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                ConnectionManagerMockup()
+                ConnectionManagerShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Connection Manager Dark (1280×800)")
 
-                ConnectionManagerMockup()
+                ConnectionManagerShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Connection Manager Light (1280×800)")

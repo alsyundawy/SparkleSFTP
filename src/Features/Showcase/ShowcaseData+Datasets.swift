@@ -3,15 +3,15 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-// MARK: - Extended Deterministic Mock Datasets
+// MARK: - Extended Deterministic Showcase Datasets
 
-public extension MockData {
+public extension ShowcaseData {
     // MARK: - Local macOS Files (/Users/developer/Projects/SparkleSFTP)
 
-    static let localMacOSFiles: [MockFileItem] = [
-        MockFileItem(name: ".build", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 15:10"),
-        MockFileItem(name: ".github", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-11 18:22"),
-        MockFileItem(
+    static let localMacOSFiles: [ShowcaseFileItem] = [
+        ShowcaseFileItem(name: ".build", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 15:10"),
+        ShowcaseFileItem(name: ".github", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-11 18:22"),
+        ShowcaseFileItem(
             name: "Package.swift",
             isDirectory: false,
             sizeBytes: 8636,
@@ -19,7 +19,7 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-11-12 12:44"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "README.md",
             isDirectory: false,
             sizeBytes: 30047,
@@ -27,19 +27,19 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-11-12 20:52"
         ),
-        MockFileItem(name: "Sources", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 15:40"),
-        MockFileItem(name: "Tests", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 15:35"),
-        MockFileItem(name: "Tools", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 07:47"),
-        MockFileItem(name: "dist", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 22:26"),
-        MockFileItem(name: "docs", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 12:54"),
-        MockFileItem(name: "tasks", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 22:30")
+        ShowcaseFileItem(name: "Sources", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 15:40"),
+        ShowcaseFileItem(name: "Tests", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 15:35"),
+        ShowcaseFileItem(name: "Tools", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 07:47"),
+        ShowcaseFileItem(name: "dist", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 22:26"),
+        ShowcaseFileItem(name: "docs", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 12:54"),
+        ShowcaseFileItem(name: "tasks", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-12 22:30")
     ]
 
     // MARK: - Remote Linux Files (/var/log/nginx)
 
-    static let remoteLinuxFiles: [MockFileItem] = [
-        MockFileItem(name: "..", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-10 00:00"),
-        MockFileItem(
+    static let remoteLinuxFiles: [ShowcaseFileItem] = [
+        ShowcaseFileItem(name: "..", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-10 00:00"),
+        ShowcaseFileItem(
             name: "access.log",
             isDirectory: false,
             sizeBytes: 42_540_112,
@@ -47,7 +47,7 @@ public extension MockData {
             permissions: "-rw-r-----",
             modifiedAt: "2026-11-12 22:28"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "access.log.1",
             isDirectory: false,
             sizeBytes: 104_857_600,
@@ -55,7 +55,7 @@ public extension MockData {
             permissions: "-rw-r-----",
             modifiedAt: "2026-11-12 00:00"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "access.log.2.gz",
             isDirectory: false,
             sizeBytes: 12_451_840,
@@ -63,7 +63,7 @@ public extension MockData {
             permissions: "-rw-r-----",
             modifiedAt: "2026-11-11 00:00"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "error.log",
             isDirectory: false,
             sizeBytes: 1_240_500,
@@ -71,7 +71,7 @@ public extension MockData {
             permissions: "-rw-r-----",
             modifiedAt: "2026-11-12 22:15"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "error.log.1",
             isDirectory: false,
             sizeBytes: 4_194_304,
@@ -79,7 +79,7 @@ public extension MockData {
             permissions: "-rw-r-----",
             modifiedAt: "2026-11-12 00:00"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "nginx.conf.bak",
             isDirectory: false,
             sizeBytes: 4096,
@@ -87,8 +87,13 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-10-30 11:20"
         ),
-        MockFileItem(name: "ssl-certs", isDirectory: true, permissions: "drwx------", modifiedAt: "2026-11-01 09:12"),
-        MockFileItem(
+        ShowcaseFileItem(
+            name: "ssl-certs",
+            isDirectory: true,
+            permissions: "drwx------",
+            modifiedAt: "2026-11-01 09:12"
+        ),
+        ShowcaseFileItem(
             name: "current -> access.log",
             isDirectory: false,
             isSymlink: true,
@@ -101,9 +106,9 @@ public extension MockData {
 
     // MARK: - Remote BSD Files (/usr/ports/security)
 
-    static let remoteBSDFiles: [MockFileItem] = [
-        MockFileItem(name: "..", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-01 00:00"),
-        MockFileItem(
+    static let remoteBSDFiles: [ShowcaseFileItem] = [
+        ShowcaseFileItem(name: "..", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-01 00:00"),
+        ShowcaseFileItem(
             name: "Makefile",
             isDirectory: false,
             sizeBytes: 2450,
@@ -111,7 +116,7 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-11-08 14:15"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "distinfo",
             isDirectory: false,
             sizeBytes: 1024,
@@ -119,14 +124,14 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-11-08 14:15"
         ),
-        MockFileItem(name: "gnupg", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-05 18:00"),
-        MockFileItem(
+        ShowcaseFileItem(name: "gnupg", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-05 18:00"),
+        ShowcaseFileItem(
             name: "openssh-portable",
             isDirectory: true,
             permissions: "drwxr-xr-x",
             modifiedAt: "2026-11-10 12:40"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "pkg-descr",
             isDirectory: false,
             sizeBytes: 312,
@@ -134,7 +139,7 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-10-15 09:00"
         ),
-        MockFileItem(
+        ShowcaseFileItem(
             name: "pkg-plist",
             isDirectory: false,
             sizeBytes: 8920,
@@ -142,13 +147,13 @@ public extension MockData {
             permissions: "-rw-r--r--",
             modifiedAt: "2026-11-08 14:15"
         ),
-        MockFileItem(name: "sudo", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-02 21:30")
+        ShowcaseFileItem(name: "sudo", isDirectory: true, permissions: "drwxr-xr-x", modifiedAt: "2026-11-02 21:30")
     ]
 
     // MARK: - Transfer Queue Jobs
 
-    static let mockTransfers: [MockTransferItem] = [
-        MockTransferItem(
+    static let showcaseTransfers: [ShowcaseTransferItem] = [
+        ShowcaseTransferItem(
             filename: "ubuntu-24.04-live-server-amd64.iso",
             sourcePath: "/Users/developer/Downloads/ubuntu-24.04-live-server-amd64.iso",
             destinationPath: "/var/iso/ubuntu-24.04-live-server-amd64.iso",
@@ -159,7 +164,7 @@ public extension MockData {
             etaString: "00:01:42",
             totalSizeBytes: 2_147_483_648
         ),
-        MockTransferItem(
+        ShowcaseTransferItem(
             filename: "database_backup_20261112.sql.gz",
             sourcePath: "/var/backups/database_backup_20261112.sql.gz",
             destinationPath: "/Users/developer/Backups/database_backup_20261112.sql.gz",
@@ -170,7 +175,7 @@ public extension MockData {
             etaString: "00:03:15",
             totalSizeBytes: 1_048_576_000
         ),
-        MockTransferItem(
+        ShowcaseTransferItem(
             filename: "nginx_access.log",
             sourcePath: "/var/log/nginx/access.log",
             destinationPath: "/Users/developer/Logs/nginx_access.log",
@@ -181,7 +186,7 @@ public extension MockData {
             etaString: "Paused (Conflict)",
             totalSizeBytes: 42_540_112
         ),
-        MockTransferItem(
+        ShowcaseTransferItem(
             filename: "site_assets.tar.zst",
             sourcePath: "/Users/developer/Staging/site_assets.tar.zst",
             destinationPath: "/var/www/static/site_assets.tar.zst",
@@ -192,7 +197,7 @@ public extension MockData {
             etaString: "Queued",
             totalSizeBytes: 524_288_000
         ),
-        MockTransferItem(
+        ShowcaseTransferItem(
             filename: "ssl_certificate.crt",
             sourcePath: "/Users/developer/Certs/wildcard_sparkle.crt",
             destinationPath: "/etc/ssl/certs/wildcard_sparkle.crt",
@@ -205,22 +210,26 @@ public extension MockData {
         )
     ]
 
-    // MARK: - Terminal History Mock
+    static var mockTransfers: [ShowcaseTransferItem] {
+        showcaseTransfers
+    }
 
-    static let mockTerminalLines: [MockTerminalLine] = [
-        MockTerminalLine(
+    // MARK: - Terminal History Showcase
+
+    static let showcaseTerminalLines: [ShowcaseTerminalLine] = [
+        ShowcaseTerminalLine(
             id: 1,
             prompt: "deploy@web-01:~$",
             command: "uname -srmo",
             output: "Linux 6.8.0-45-generic x86_64 GNU/Linux"
         ),
-        MockTerminalLine(
+        ShowcaseTerminalLine(
             id: 2,
             prompt: "deploy@web-01:~$",
             command: "df -h /var",
             output: "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda3       120G   72G   48G  60% /var"
         ),
-        MockTerminalLine(
+        ShowcaseTerminalLine(
             id: 3,
             prompt: "deploy@web-01:~$",
             command: "systemctl status nginx --no-pager",
@@ -229,7 +238,7 @@ public extension MockData {
                 + "   Active: active (running) since Tue 2026-11-10 04:12:00 UTC\n"
                 + " Main PID: 1420 (nginx)"
         ),
-        MockTerminalLine(
+        ShowcaseTerminalLine(
             id: 4,
             prompt: "deploy@web-01:~$",
             command: "tail -n 2 /var/log/nginx/error.log",
@@ -237,4 +246,8 @@ public extension MockData {
                 + "2026/11/12 22:20:10 [notice] 1420#1420: signal process started"
         )
     ]
+
+    static var mockTerminalLines: [ShowcaseTerminalLine] {
+        showcaseTerminalLines
+    }
 }

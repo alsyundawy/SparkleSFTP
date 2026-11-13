@@ -3,9 +3,9 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// Gallery launcher for reviewing all 8 high-fidelity macOS UI/UX mockups ("Sparkle Commander" visual refresh).
-/// Activated at runtime via the `--mockup-gallery` launch argument.
-public struct MockupGalleryView: View {
+/// Gallery launcher for reviewing all 8 high-fidelity macOS UI/UX showcases ("Sparkle Commander" visual refresh).
+/// Activated at runtime via the `--showcase-gallery` or `--mockup-gallery` launch arguments.
+public struct ShowcaseGalleryView: View {
     @State private var selectedScreenID: ScreenID = .mainWorkspace
     @State private var selectedPaletteID: String = SparkleThemeCatalog.defaultDark.id
     @State private var activePalette: SparkleThemePalette = SparkleThemeCatalog.defaultDark
@@ -66,7 +66,7 @@ public struct MockupGalleryView: View {
             gallerySidebar(tokens: tokens)
                 .frame(minWidth: 200, idealWidth: SparkleSemanticTokens.sidebarWidth, maxWidth: 240)
 
-            // MARK: - Selected Mockup View Area
+            // MARK: - Selected Showcase View Area
 
             VStack(spacing: 0) {
                 galleryToolbar(tokens: tokens)
@@ -76,21 +76,21 @@ public struct MockupGalleryView: View {
                 Group {
                     switch selectedScreenID {
                     case .mainWorkspace:
-                        MainWorkspaceMockup()
+                        MainWorkspaceShowcase()
                     case .connectionManager:
-                        ConnectionManagerMockup()
+                        ConnectionManagerShowcase()
                     case .transferQueue:
-                        TransferQueueMockup()
+                        TransferQueueShowcase()
                     case .terminal:
-                        TerminalMockup()
+                        TerminalShowcase()
                     case .preferencesThemes:
-                        PreferencesThemesMockup()
+                        PreferencesThemesShowcase()
                     case .emptyStates:
-                        EmptyStateMockup()
+                        EmptyStateShowcase()
                     case .conflictDialog:
-                        ConflictDialogMockup()
+                        ConflictDialogShowcase()
                     case .dashboard:
-                        DashboardMockup()
+                        DashboardShowcase()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -126,7 +126,7 @@ public struct MockupGalleryView: View {
                 Text("SparkleSFTP")
                     .font(SparkleSemanticTokens.captionSemiboldFont)
                     .foregroundStyle(tokens.primaryText)
-                Text("v0.4.1 Mockup Gallery")
+                Text("v0.4.1 Showcase Gallery")
                     .font(.system(size: 10))
                     .foregroundStyle(tokens.secondaryText)
             }
@@ -223,7 +223,7 @@ public struct MockupGalleryView: View {
                 .font(SparkleSemanticTokens.titleFont)
                 .foregroundStyle(tokens.primaryText)
 
-            StatusBadge(title: "v0.4.1 Mockup Preview", iconName: "eye.fill", tint: .blue)
+            StatusBadge(title: "v0.4.1 Showcase Preview", iconName: "eye.fill", tint: .blue)
 
             Spacer()
 
@@ -258,22 +258,25 @@ public struct MockupGalleryView: View {
     }
 }
 
+/// Backward compatibility alias for ShowcaseGalleryView.
+public typealias MockupGalleryView = ShowcaseGalleryView
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct MockupGalleryView_Previews: PreviewProvider {
+    struct ShowcaseGalleryView_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                MockupGalleryView()
+                ShowcaseGalleryView()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
-                    .previewDisplayName("Mockup Gallery Dark (1280×800)")
+                    .previewDisplayName("Showcase Gallery Dark (1280×800)")
 
-                MockupGalleryView()
+                ShowcaseGalleryView()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
-                    .previewDisplayName("Mockup Gallery Light (1280×800)")
+                    .previewDisplayName("Showcase Gallery Light (1280×800)")
             }
             .frame(width: 1280, height: 800)
         }

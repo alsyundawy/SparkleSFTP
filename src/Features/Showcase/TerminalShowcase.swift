@@ -3,8 +3,8 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// High-fidelity iTerm2-inspired split terminal workspace mockup synchronized with active theme palette.
-public struct TerminalMockup: View {
+/// High-fidelity iTerm2-inspired split terminal workspace showcase synchronized with active theme palette.
+public struct TerminalShowcase: View {
     @State private var activeTabIndex: Int = 0
     @State private var splitLayout: SplitMode = .vertical
     @State private var focusedPaneID: Int = 1
@@ -255,19 +255,21 @@ public struct TerminalMockup: View {
     }
 }
 
+public typealias TerminalMockup = TerminalShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct TerminalMockup_Previews: PreviewProvider {
+    struct TerminalShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                TerminalMockup()
+                TerminalShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Split Terminal Dark (1280×800)")
 
-                TerminalMockup()
+                TerminalShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Split Terminal Light (1280×800)")

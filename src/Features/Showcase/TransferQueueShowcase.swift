@@ -3,8 +3,8 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// High-fidelity Transfer Queue mockup displaying batch transfers, speeds, ETAs, and conflict badges.
-public struct TransferQueueMockup: View {
+/// High-fidelity Transfer Queue showcase displaying batch transfers, speeds, ETAs, and conflict badges.
+public struct TransferQueueShowcase: View {
     @State private var selectedFilter: String = "All"
     @State private var selectedTransferID: UUID? = MockData.mockTransfers.first?.id
 
@@ -179,7 +179,7 @@ public struct TransferQueueMockup: View {
     // MARK: - Transfer Row View
 
     private func transferRowView(item: MockTransferItem, tokens: SparkleSemanticTokens) -> some View {
-        MockTransferQueueRowView(
+        ShowcaseTransferQueueRowView(
             item: item,
             isSelected: selectedTransferID == item.id,
             tokens: tokens,
@@ -228,7 +228,7 @@ public struct TransferQueueMockup: View {
 
 // MARK: - Transfer Queue Row View
 
-private struct MockTransferQueueRowView: View {
+private struct ShowcaseTransferQueueRowView: View {
     let item: MockTransferItem
     let isSelected: Bool
     let tokens: SparkleSemanticTokens
@@ -356,19 +356,21 @@ private struct MockTransferQueueRowView: View {
     }
 }
 
+public typealias TransferQueueMockup = TransferQueueShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct TransferQueueMockup_Previews: PreviewProvider {
+    struct TransferQueueShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                TransferQueueMockup()
+                TransferQueueShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Transfer Queue Dark (1280×800)")
 
-                TransferQueueMockup()
+                TransferQueueShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Transfer Queue Light (1280×800)")

@@ -96,17 +96,18 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.0-universal.dmg` + `.sha256`) (`T-064`)
 - [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.0.md`, `docs/*.md`) (`T-065`)
 
-## Phase J: Sparkle Commander Visual Refresh & Mockup Gallery (`v0.4.1`, `T-066` – `T-074`)
+## Phase J: Sparkle Commander Visual Refresh & Showcase Gallery (`v0.4.1`, `T-066` – `T-074`)
 
 - [x] Create semantic surface tokens resolving dynamically from `SparkleThemePalette` (`src/Packages/DesignSystem/SemanticSurfaceTokens.swift`) (`T-066`)
-- [x] Implement deterministic `Sendable` mock datasets for macOS, Linux, and BSD filesystem listings, transfer queues, connection profiles, and terminals (`src/Features/Mockups/MockData.swift`, `MockData+Datasets.swift`) (`T-067`)
-- [x] Implement reusable macOS HIG mockup components (`StatusBadge`, `ModernProgressBar`, `PathBreadcrumbsBar`, `DiskSpaceBar`, `EmptyStateView`) in `src/Features/Mockups/Components/` (`T-068`)
-- [x] Implement 8 high-fidelity mockup screens (`MainWorkspaceMockup`, `ConnectionManagerMockup`, `TransferQueueMockup`, `TerminalMockup`, `PreferencesThemesMockup`, `EmptyStateMockup`, `ConflictDialogMockup`, `DashboardMockup`) with 1280×800 Previews (`T-069`)
-- [x] Implement isolated mockup gallery launcher (`MockupGalleryView.swift`) and hook via `--mockup-gallery` launch argument in `SparkleSFTPApp.swift` (`T-070`)
-- [x] Add 16 new `mockup.*` keys with 100% key parity across `en.json` and `id.json` (472 keys each) (`T-071`)
-- [x] Verify strict SwiftLint compliance (0 violations across all 21 touched files) and SwiftFormat (`T-072`)
-- [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`) (`T-073`)
-- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.1.md`, `docs/ROADMAP.md`, `docs/TASK_LIST.md`, `tasks/plan.md`, `tasks/todo.md`) (`T-074`)
+- [x] Implement deterministic `Sendable` showcase datasets for macOS, Linux, and BSD filesystem listings, transfer queues, connection profiles, and terminals (`src/Features/Showcase/ShowcaseData.swift`, `ShowcaseData+Datasets.swift` with `Mock*` aliases) (`T-067`)
+- [x] Implement reusable macOS HIG showcase components (`StatusBadge`, `ModernProgressBar`, `PathBreadcrumbsBar`, `DiskSpaceBar`, `EmptyStateView`) in `src/Features/Showcase/Components/` (`T-068`)
+- [x] Implement 8 high-fidelity showcase screens (`MainWorkspaceShowcase`, `ConnectionManagerShowcase`, `TransferQueueShowcase`, `TerminalShowcase`, `PreferencesThemesShowcase`, `EmptyStateShowcase`, `ConflictDialogShowcase`, `DashboardShowcase`) with 1280×800 Previews (`T-069`)
+- [x] Implement isolated showcase gallery launcher (`ShowcaseGalleryView.swift`) and hook via `--showcase-gallery` / `--mockup-gallery` launch arguments in `SparkleSFTPApp.swift` (`T-070`)
+- [x] Add 32 new `showcase.*` and `mockup.*` keys with 100% key parity across `en.json` and `id.json` (488 keys each) (`T-071`)
+- [x] Create maintenance release branches `0.1.0`, `0.2.0`, `0.3.0`, `0.4.0`, and `0.4.1` on `origin` and configure IDE exclusions (`.vscode/settings.json`, `.markdownlint-cli2.jsonc`, `.markdownlintignore`) (`T-072`)
+- [x] Verify strict multi-linter compliance (`trunk check --all`, `swiftlint lint --strict`, `swiftformat --lint .`, MegaLinter toolchain) and full `swift test` suite (`121 tests / 33 suites`, 100% green) (`T-073`)
+- [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`) (`T-074`)
+- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.1.md`, `docs/ROADMAP.md`, `docs/TASK_LIST.md`, `tasks/plan.md`, `tasks/todo.md`) (`T-075`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 

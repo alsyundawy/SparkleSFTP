@@ -11,35 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.1] - 2026-11-13
 
-### Added & Enhanced ("Sparkle Commander" Visual Refresh & Mockup Gallery)
+### Added & Enhanced ("Sparkle Commander" Visual Refresh & Showcase Gallery)
 
 - **Semantic Surface Tokens (`SemanticSurfaceTokens.swift`)**:
   - Implemented dynamic semantic tokens resolving surface backgrounds, card elevations, hairline borders (1 px @ 6–8% opacity), text hierarchies, and row selection states directly from the active `SparkleThemePalette`.
   - Guaranteed zero hardcoded hex colors and verified full WCAG 2.1 AA contrast compliance across both dark and light palette modes.
-- **Deterministic Mock Datasets (`MockData.swift`, `MockData+Datasets.swift`)**:
-  - Implemented pure `Sendable` mock data structures covering local macOS filesystem (`/Users`), remote Linux nginx log tree (`/var/log/nginx`), and FreeBSD ports collection (`/usr/ports/security`).
+- **Deterministic Showcase Datasets (`ShowcaseData.swift`, `ShowcaseData+Datasets.swift`)**:
+  - Implemented pure `Sendable` showcase data structures covering local macOS filesystem (`/Users`), remote Linux nginx log tree (`/var/log/nginx`), and FreeBSD ports collection (`/usr/ports/security`), preserving `Mock*` backward compatibility typealiases.
   - Added simulated batch transfer queue jobs (active, queued, paused, completed, and conflict states), connection profile catalogs (SFTP, SCP, FTPS, FTP), partition disk usage (`statvfs`), and split terminal session outputs.
-- **Reusable macOS HIG Design System Components (`src/Features/Mockups/Components/`)**:
+- **Reusable macOS HIG Design System Components (`src/Features/Showcase/Components/`)**:
   - `StatusBadge`: Compact capsule badge with semantic tints for transfer, connection, and protocol states.
   - `ModernProgressBar`: 4 pt rounded progress bar with smooth accent gradient fills.
   - `PathBreadcrumbsBar`: Interactive segmented breadcrumb path control (`NSPathControl` style) with folder icons and clickable navigation segments.
   - `DiskSpaceBar`: Compact storage usage bar displaying partition capacity, used/free bytes, and percentage.
   - `EmptyStateView`: macOS HIG empty state layout with 48×48 icon container, title, description, and primary action button.
-- **8 High-Fidelity Native macOS Mockup Screens (`src/Features/Mockups/`)**:
-  - `MainWorkspaceMockup` & `MainWorkspacePaneView`: High-fidelity dual-pane commander workspace featuring workspace tab strip, quick connect bar, central transfer actions, path breadcrumbs, disk space gauges, and minimized transfer drawer.
-  - `ConnectionManagerMockup`: Session manager interface with grouped connection profiles, protocol badges, favorite filters, and detail inspector.
-  - `TransferQueueMockup`: Batch transfer queue monitor with live throughput gauges (MB/s), ETA countdowns, conflict state alerts, and batch controls.
-  - `TerminalMockup` & `TerminalMockup+Panes`: iTerm2-inspired split terminal layout featuring simultaneous remote SSH and local shell panes with status badges.
-  - `PreferencesThemesMockup` & `PreferencesThemesMockup+Contrast`: Visual theme palette browser showcasing Core, Extended, Spectrum, and Studio collections, paired with a live WCAG contrast checker inspector panel.
-  - `EmptyStateMockup`: Dedicated empty state showcase for new connections, empty directories, and inactive queues.
-  - `ConflictDialogMockup`: Dual-file comparison dialog with detailed metadata diffs (size, mtime, permissions) and Overwrite, Resume, Skip, and Rename options.
-  - `DashboardMockup`: High-level session analytics dashboard displaying throughput metrics, active connection cards, and recent transfer logs.
-- **Isolated Mockup Gallery Launcher (`MockupGalleryView.swift`, `SparkleSFTPApp.swift`)**:
-  - Built an interactive sidebar gallery launcher allowing rapid previewing and testing of all 8 mockup screens, along with dynamic live palette switching.
-  - Hooked launcher strictly via the `--mockup-gallery` launch argument, ensuring normal application startup flow and core transfer engines remain 100% untouched.
+- **8 High-Fidelity Native macOS Showcase Screens (`src/Features/Showcase/`)**:
+  - `MainWorkspaceShowcase` & `MainWorkspacePaneView`: High-fidelity dual-pane commander workspace featuring workspace tab strip, quick connect bar, central transfer actions, path breadcrumbs, disk space gauges, and minimized transfer drawer.
+  - `ConnectionManagerShowcase`: Session manager interface with grouped connection profiles, protocol badges, favorite filters, and detail inspector.
+  - `TransferQueueShowcase`: Batch transfer queue monitor with live throughput gauges (MB/s), ETA countdowns, conflict state alerts, and batch controls.
+  - `TerminalShowcase` & `TerminalShowcase+Panes`: iTerm2-inspired split terminal layout featuring simultaneous remote SSH and local shell panes with status badges.
+  - `PreferencesThemesShowcase` & `PreferencesThemesShowcase+Contrast`: Visual theme palette browser showcasing Core, Extended, Spectrum, and Studio collections, paired with a live WCAG contrast checker inspector panel.
+  - `EmptyStateShowcase`: Dedicated empty state showcase for new connections, empty directories, and inactive queues.
+  - `ConflictDialogShowcase`: Dual-file comparison dialog with detailed metadata diffs (size, mtime, permissions) and Overwrite, Resume, Skip, and Rename options.
+  - `DashboardShowcase`: High-level session analytics dashboard displaying throughput metrics, active connection cards, and recent transfer logs.
+- **Isolated Showcase Gallery Launcher (`ShowcaseGalleryView.swift`, `SparkleSFTPApp.swift`)**:
+  - Built an interactive sidebar gallery launcher allowing rapid previewing and testing of all 8 showcase screens, along with dynamic live palette switching.
+  - Hooked launcher via `--showcase-gallery` (with `--mockup-gallery` alias), ensuring normal application startup flow and core transfer engines remain 100% untouched.
+- **Maintenance Branches & IDE Diagnostics Hygiene**:
+  - Established dedicated maintenance release branches `0.1.0`, `0.2.0`, `0.3.0`, `0.4.0`, and `0.4.1` on `origin` to streamline multi-version maintenance and cherry-picks.
+  - Configured comprehensive IDE exclusions in `.vscode/settings.json`, `.markdownlint-cli2.jsonc`, and `.markdownlintignore` to eliminate false-positive diagnostics from SwiftPM checkout dependencies while keeping 100% strict verification across repository sources.
 - **Localization Parity & Universal 2 Release Packaging**:
-  - Added 16 new `mockup.*` localization keys to both `en.json` and `id.json` with 100% key parity (472 keys in both locales).
-  - Built Universal 2 fat binary (`x86_64` + `arm64`) and packaged `SparkleSFTP-0.4.1-universal.dmg` with SHA256 checksum.
+  - Added `showcase.*` and `mockup.*` localization keys to both `en.json` and `id.json` with 100% key parity (488 keys in both locales).
+  - Built Universal 2 fat binary (`x86_64` + `arm64`) and packaged `SparkleSFTP-0.4.1-universal.dmg` with SHA256 checksum (`0e0dd7933d68a2782701cdd63b9f2e0c6cd541163421002d852c055dfc29ada9`).
 
 ## [0.4.0] - 2026-11-12
 

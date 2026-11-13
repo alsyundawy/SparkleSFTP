@@ -475,6 +475,22 @@
     "mockup.category.workspace": "WORKSPACE",
     "mockup.category.connections": "CONNECTIONS",
     "mockup.category.transfers": "TRANSFERS",
-    "mockup.category.system": "SYSTEM & UX"
+    "mockup.category.system": "SYSTEM & UX",
+    "showcase.gallery.title": "Sparkle Commander Showcase Gallery",
+    "showcase.gallery.subtitle": "v0.4.1 High-Fidelity UI/UX Refresh",
+    "showcase.gallery.palette": "Palette:",
+    "showcase.gallery.previewBadge": "v0.4.1 Showcase Preview",
+    "showcase.screen.mainWorkspace": "Main Workspace",
+    "showcase.screen.connectionManager": "Connection Manager",
+    "showcase.screen.transferQueue": "Transfer Queue",
+    "showcase.screen.terminal": "Split Terminal",
+    "showcase.screen.preferencesThemes": "Preferences & Themes",
+    "showcase.screen.emptyStates": "Empty States",
+    "showcase.screen.conflictDialog": "Conflict Resolution",
+    "showcase.screen.dashboard": "Overview Dashboard",
+    "showcase.category.workspace": "WORKSPACE",
+    "showcase.category.connections": "CONNECTIONS",
+    "showcase.category.transfers": "TRANSFERS",
+    "showcase.category.system": "SYSTEM & UX"
   }
 }

@@ -43,7 +43,7 @@ struct RemoteSSHPaneView: View {
     private var bufferScrollView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
-                ForEach(MockData.mockTerminalLines) { line in
+                ForEach(ShowcaseData.showcaseTerminalLines) { line in
                     VStack(alignment: .leading, spacing: 2) {
                         if let prompt = line.prompt, let cmd = line.command {
                             HStack(spacing: 6) {
@@ -121,7 +121,7 @@ struct LocalShellPaneView: View {
     private var bufferScrollView: some View {
         let gitStatusOutput = "## main...origin/main\n"
             + " M src/Packages/DesignSystem/SemanticSurfaceTokens.swift\n"
-            + "?? src/Features/Mockups/"
+            + "?? src/Features/Showcase/"
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 8) {

@@ -106,19 +106,19 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-073** Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.0-universal.dmg` + `.sha256`).
 - [x] **T-074** Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.0.md`, `docs/*.md`).
 
-## Milestone 11: Native macOS UI/UX Mockups ("Sparkle Commander" Visual Refresh v0.4.1) (`WG-1`–`WG-9`)
+## Milestone 11: Native macOS UI/UX Showcase ("Sparkle Commander" Visual Refresh v0.4.1) (`WG-1`–`WG-9`)
 
 - [x] **T-075** Implement semantic surface tokens (`src/Packages/DesignSystem/SemanticSurfaceTokens.swift`) resolved dynamically from active `SparkleThemePalette` with WCAG 2.1 AA compliance.
-- [x] **T-076** Implement deterministic `Sendable` mock data models (`src/Features/Mockups/MockData.swift`, `MockData+Datasets.swift`) for sessions, dual-pane file trees, transfers, and terminals.
-- [x] **T-077** Implement shared mockup components (`src/Features/Mockups/Components/`): `StatusBadge`, `ModernProgressBar`, `PathBreadcrumbsBar`, `DiskSpaceBar`, `EmptyStateView`.
-- [x] **T-078** Implement Screen 1: `MainWorkspaceMockup.swift` (MainWindowView + WorkspaceTabBar + QuickConnectBar + Breadcrumbs) with Xcode Previews at 1280×800.
-- [x] **T-079** Implement Screen 2: `ConnectionManagerMockup.swift` (Saved session profiles, protocol badges: SFTP, SCP, FTP) with Xcode Previews at 1280×800.
-- [x] **T-080** Implement Screen 3: `TransferQueueMockup.swift` (Batch queue, speed indicators, conflict state badges) with Xcode Previews at 1280×800.
-- [x] **T-081** Implement Screen 4: `TerminalMockup.swift` (iTerm2-inspired split terminal view with status indicator) with Xcode Previews at 1280×800.
-- [x] **T-082** Implement Screen 5: `PreferencesThemesMockup.swift` (Theme family browser and contrast checker preview) with Xcode Previews at 1280×800.
-- [x] **T-083** Implement Screen 6 (`EmptyStateMockup.swift`), Screen 7 (`ConflictDialogMockup.swift`), and Screen 8 (`DashboardMockup.swift`) with Xcode Previews at 1280×800.
-- [x] **T-084** Implement Gallery Launcher (`src/Features/Mockups/MockupGalleryView.swift`) and hook into `SparkleSFTPApp.swift` via `--mockup-gallery` launch argument.
-- [x] **T-085** Add mock display strings with 100% parity across `en.json` and `id.json` (472 keys each), and run full linter sweeps (SwiftLint strict, SwiftFormat).
+- [x] **T-076** Implement deterministic `Sendable` showcase data models (`src/Features/Showcase/ShowcaseData.swift`, `ShowcaseData+Datasets.swift`) for sessions, dual-pane file trees, transfers, and terminals (with `Mock*` compatibility typealiases).
+- [x] **T-077** Implement shared showcase components (`src/Features/Showcase/Components/`): `StatusBadge`, `ModernProgressBar`, `PathBreadcrumbsBar`, `DiskSpaceBar`, `EmptyStateView`.
+- [x] **T-078** Implement Screen 1: `MainWorkspaceShowcase.swift` (MainWindowView + WorkspaceTabBar + QuickConnectBar + Breadcrumbs) with Xcode Previews at 1280×800.
+- [x] **T-079** Implement Screen 2: `ConnectionManagerShowcase.swift` (Saved session profiles, protocol badges: SFTP, SCP, FTP) with Xcode Previews at 1280×800.
+- [x] **T-080** Implement Screen 3: `TransferQueueShowcase.swift` (Batch queue, speed indicators, conflict state badges) with Xcode Previews at 1280×800.
+- [x] **T-081** Implement Screen 4: `TerminalShowcase.swift` (iTerm2-inspired split terminal view with status indicator) with Xcode Previews at 1280×800.
+- [x] **T-082** Implement Screen 5: `PreferencesThemesShowcase.swift` (Theme family browser and contrast checker preview) with Xcode Previews at 1280×800.
+- [x] **T-083** Implement Screen 6 (`EmptyStateShowcase.swift`), Screen 7 (`ConflictDialogShowcase.swift`), and Screen 8 (`DashboardShowcase.swift`) with Xcode Previews at 1280×800.
+- [x] **T-084** Implement Gallery Launcher (`src/Features/Showcase/ShowcaseGalleryView.swift`) and hook into `SparkleSFTPApp.swift` via `--showcase-gallery` / `--mockup-gallery` launch arguments.
+- [x] **T-085** Add display strings with 100% parity across `en.json` and `id.json` (488 keys each), establish maintenance branches `0.1.0` through `0.4.1`, and configure IDE diagnostic exclusions (`.vscode/settings.json`, `.markdownlint-cli2.jsonc`, `.markdownlintignore`).
 - [x] **T-086** Execute 14-Pillar code audit, build Universal 2 binary `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`), and update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.1.md`, `docs/*.md`).
 
 ## Post-MVP / External Infrastructure Gates (Deferred)

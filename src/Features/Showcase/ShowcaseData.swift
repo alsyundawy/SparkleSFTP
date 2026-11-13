@@ -3,9 +3,9 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-// MARK: - Mock Protocols & Status Types
+// MARK: - Showcase Protocols & Status Types
 
-public enum MockProtocolType: String, Sendable, CaseIterable, Identifiable {
+public enum ShowcaseProtocolType: String, Sendable, CaseIterable, Identifiable {
     case sftp = "SFTP"
     case scp = "SCP"
     case ftps = "FTPS"
@@ -42,7 +42,7 @@ public enum MockProtocolType: String, Sendable, CaseIterable, Identifiable {
     }
 }
 
-public enum MockTransferStatus: String, Sendable, CaseIterable, Identifiable {
+public enum ShowcaseTransferStatus: String, Sendable, CaseIterable, Identifiable {
     case active = "Active"
     case queued = "Queued"
     case paused = "Paused"
@@ -77,7 +77,7 @@ public enum MockTransferStatus: String, Sendable, CaseIterable, Identifiable {
     }
 }
 
-public enum MockTransferDirection: String, Sendable {
+public enum ShowcaseTransferDirection: String, Sendable {
     case upload = "Upload"
     case download = "Download"
 
@@ -89,9 +89,9 @@ public enum MockTransferDirection: String, Sendable {
     }
 }
 
-// MARK: - Core Mock Data Models
+// MARK: - Core Showcase Data Models
 
-public struct MockDiskSpace: Sendable, Equatable {
+public struct ShowcaseDiskSpace: Sendable, Equatable {
     public let totalBytes: Int64
     public let freeBytes: Int64
     public let mountPoint: String
@@ -122,7 +122,7 @@ public struct MockDiskSpace: Sendable, Equatable {
     }
 }
 
-public struct MockFileItem: Identifiable, Sendable, Equatable {
+public struct ShowcaseFileItem: Identifiable, Sendable, Equatable {
     public let id: String
     public let name: String
     public let isDirectory: Bool
@@ -184,13 +184,13 @@ public struct MockFileItem: Identifiable, Sendable, Equatable {
     }
 }
 
-public struct MockTransferItem: Identifiable, Sendable, Equatable {
+public struct ShowcaseTransferItem: Identifiable, Sendable, Equatable {
     public let id: UUID
     public let filename: String
     public let sourcePath: String
     public let destinationPath: String
-    public let direction: MockTransferDirection
-    public let status: MockTransferStatus
+    public let direction: ShowcaseTransferDirection
+    public let status: ShowcaseTransferStatus
     public let fraction: Double
     public let speedMBs: Double
     public let etaString: String
@@ -201,8 +201,8 @@ public struct MockTransferItem: Identifiable, Sendable, Equatable {
         filename: String,
         sourcePath: String,
         destinationPath: String,
-        direction: MockTransferDirection,
-        status: MockTransferStatus,
+        direction: ShowcaseTransferDirection,
+        status: ShowcaseTransferStatus,
         fraction: Double,
         speedMBs: Double,
         etaString: String,
@@ -229,11 +229,11 @@ public struct MockTransferItem: Identifiable, Sendable, Equatable {
     }
 }
 
-public struct MockConnectionProfile: Identifiable, Sendable, Equatable {
+public struct ShowcaseConnectionProfile: Identifiable, Sendable, Equatable {
     public let id: String
     public let name: String
     public let groupName: String
-    public let protocolType: MockProtocolType
+    public let protocolType: ShowcaseProtocolType
     public let host: String
     public let port: Int
     public let username: String
@@ -245,7 +245,7 @@ public struct MockConnectionProfile: Identifiable, Sendable, Equatable {
         id: String,
         name: String,
         groupName: String,
-        protocolType: MockProtocolType,
+        protocolType: ShowcaseProtocolType,
         host: String,
         port: Int,
         username: String,
@@ -266,7 +266,7 @@ public struct MockConnectionProfile: Identifiable, Sendable, Equatable {
     }
 }
 
-public struct MockTerminalLine: Identifiable, Sendable, Equatable {
+public struct ShowcaseTerminalLine: Identifiable, Sendable, Equatable {
     public let id: Int
     public let prompt: String?
     public let command: String?
@@ -282,18 +282,18 @@ public struct MockTerminalLine: Identifiable, Sendable, Equatable {
     }
 }
 
-// MARK: - Deterministic Mock Datasets
+// MARK: - Deterministic Showcase Datasets
 
-public enum MockData {
+public enum ShowcaseData {
     // MARK: - Partitions & Disks
 
-    public static let remoteDiskSpace = MockDiskSpace(
+    public static let remoteDiskSpace = ShowcaseDiskSpace(
         totalBytes: 120 * 1024 * 1024 * 1024,
         freeBytes: Int64(48.2 * 1024 * 1024 * 1024),
         mountPoint: "/var"
     )
 
-    public static let localDiskSpace = MockDiskSpace(
+    public static let localDiskSpace = ShowcaseDiskSpace(
         totalBytes: 1000 * 1024 * 1024 * 1024,
         freeBytes: 642 * 1024 * 1024 * 1024,
         mountPoint: "/System/Volumes/Data"
@@ -301,8 +301,8 @@ public enum MockData {
 
     // MARK: - Saved Connection Profiles
 
-    public static let mockProfiles: [MockConnectionProfile] = [
-        MockConnectionProfile(
+    public static let showcaseProfiles: [ShowcaseConnectionProfile] = [
+        ShowcaseConnectionProfile(
             id: "profile-1",
             name: "Production Web (EU-West)",
             groupName: "Production",
@@ -314,7 +314,7 @@ public enum MockData {
             lastConnected: "10 mins ago",
             isFavorite: true
         ),
-        MockConnectionProfile(
+        ShowcaseConnectionProfile(
             id: "profile-2",
             name: "Staging Cluster (US-East)",
             groupName: "Staging",
@@ -326,7 +326,7 @@ public enum MockData {
             lastConnected: "Yesterday at 18:24",
             isFavorite: true
         ),
-        MockConnectionProfile(
+        ShowcaseConnectionProfile(
             id: "profile-3",
             name: "FreeBSD Ports Mirror",
             groupName: "Mirrors",
@@ -336,7 +336,7 @@ public enum MockData {
             username: "freebsd",
             lastConnected: "3 days ago"
         ),
-        MockConnectionProfile(
+        ShowcaseConnectionProfile(
             id: "profile-4",
             name: "Cold Storage Archive NAS",
             groupName: "Storage",
@@ -346,7 +346,7 @@ public enum MockData {
             username: "backup_agent",
             lastConnected: "1 week ago"
         ),
-        MockConnectionProfile(
+        ShowcaseConnectionProfile(
             id: "profile-5",
             name: "Legacy Testbed Insecure",
             groupName: "Legacy",
@@ -357,4 +357,20 @@ public enum MockData {
             lastConnected: "2 weeks ago"
         )
     ]
+
+    public static var mockProfiles: [ShowcaseConnectionProfile] {
+        showcaseProfiles
+    }
 }
+
+// MARK: - Backward Compatibility Aliases
+
+public typealias MockProtocolType = ShowcaseProtocolType
+public typealias MockTransferStatus = ShowcaseTransferStatus
+public typealias MockTransferDirection = ShowcaseTransferDirection
+public typealias MockDiskSpace = ShowcaseDiskSpace
+public typealias MockFileItem = ShowcaseFileItem
+public typealias MockTransferItem = ShowcaseTransferItem
+public typealias MockConnectionProfile = ShowcaseConnectionProfile
+public typealias MockTerminalLine = ShowcaseTerminalLine
+public typealias MockData = ShowcaseData

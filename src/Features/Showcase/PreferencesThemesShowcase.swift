@@ -10,8 +10,8 @@ private struct PrefCategory: Identifiable {
     let tint: Color
 }
 
-/// High-fidelity Preferences & Themes browser mockup featuring dynamic WCAG 2.1 AA contrast checking.
-public struct PreferencesThemesMockup: View {
+/// High-fidelity Preferences & Themes browser showcase featuring dynamic WCAG 2.1 AA contrast checking.
+public struct PreferencesThemesShowcase: View {
     @State private var selectedCategory: String = "Themes"
     @State private var toneFilter: ToneFilter = .all
     @State private var selectedThemeID: String = SparkleThemeCatalog.defaultDark.id
@@ -275,19 +275,21 @@ private struct ThemeCardView: View {
     }
 }
 
+public typealias PreferencesThemesMockup = PreferencesThemesShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct PreferencesThemesMockup_Previews: PreviewProvider {
+    struct PreferencesThemesShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                PreferencesThemesMockup()
+                PreferencesThemesShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Preferences & Themes Dark (1280×800)")
 
-                PreferencesThemesMockup()
+                PreferencesThemesShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Preferences & Themes Light (1280×800)")

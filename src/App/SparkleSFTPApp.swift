@@ -235,14 +235,15 @@ struct SparkleSFTPApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let environment = AppEnvironment()
 
-    private var isMockupGalleryRequested: Bool {
-        ProcessInfo.processInfo.arguments.contains("--mockup-gallery")
+    private var isShowcaseGalleryRequested: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("--showcase-gallery") || arguments.contains("--mockup-gallery")
     }
 
     var body: some Scene {
         WindowGroup("SparkleSFTP", id: "main") {
-            if isMockupGalleryRequested {
-                MockupGalleryView()
+            if isShowcaseGalleryRequested {
+                ShowcaseGalleryView()
             } else {
                 SparkleWindowRootView(environment: environment)
                     .onAppear {

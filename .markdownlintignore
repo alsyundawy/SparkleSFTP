@@ -1,0 +1,6 @@
+.build/**
+.trunk/**
+dist/**
+megalinter-reports/**
+reports/**
+DerivedData/**

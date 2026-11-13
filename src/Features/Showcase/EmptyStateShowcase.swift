@@ -3,8 +3,8 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// Mockup showcasing clean, macOS 13-compatible empty states across workspace scenarios.
-public struct EmptyStateMockup: View {
+/// Showcase highlighting clean, macOS 13-compatible empty states across workspace scenarios.
+public struct EmptyStateShowcase: View {
     @State private var selectedScenario: Scenario = .noSession
 
     @Environment(\.sparklePalette) private var palette
@@ -97,19 +97,21 @@ public struct EmptyStateMockup: View {
     }
 }
 
+public typealias EmptyStateMockup = EmptyStateShowcase
+
 // MARK: - Xcode Previews (1280×800)
 
 #if DEBUG
-    struct EmptyStateMockup_Previews: PreviewProvider {
+    struct EmptyStateShowcase_Previews: PreviewProvider {
         @MainActor
         static var previews: some View {
             Group {
-                EmptyStateMockup()
+                EmptyStateShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultDark)
                     .preferredColorScheme(.dark)
                     .previewDisplayName("Empty States Dark (1280×800)")
 
-                EmptyStateMockup()
+                EmptyStateShowcase()
                     .environment(\.sparklePalette, SparkleThemeCatalog.defaultLight)
                     .preferredColorScheme(.light)
                     .previewDisplayName("Empty States Light (1280×800)")

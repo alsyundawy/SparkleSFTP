@@ -475,6 +475,22 @@
     "mockup.category.workspace": "RUANG KERJA",
     "mockup.category.connections": "SAMBUNGAN",
     "mockup.category.transfers": "TRANSFER",
-    "mockup.category.system": "SISTEM & UX"
+    "mockup.category.system": "SISTEM & UX",
+    "showcase.gallery.title": "Galeri Showcase Sparkle Commander",
+    "showcase.gallery.subtitle": "Penyegaran UI/UX Resolusi Tinggi v0.4.1",
+    "showcase.gallery.palette": "Palet:",
+    "showcase.gallery.previewBadge": "Pratinjau Showcase v0.4.1",
+    "showcase.screen.mainWorkspace": "Ruang Kerja Utama",
+    "showcase.screen.connectionManager": "Pengelola Sambungan",
+    "showcase.screen.transferQueue": "Antrean Transfer",
+    "showcase.screen.terminal": "Terminal Terbagi",
+    "showcase.screen.preferencesThemes": "Preferensi & Tema",
+    "showcase.screen.emptyStates": "Kondisi Kosong",
+    "showcase.screen.conflictDialog": "Resolusi Konflik",
+    "showcase.screen.dashboard": "Dasbor Ikhtisar",
+    "showcase.category.workspace": "RUANG KERJA",
+    "showcase.category.connections": "SAMBUNGAN",
+    "showcase.category.transfers": "TRANSFER",
+    "showcase.category.system": "SISTEM & UX"
   }
 }
