@@ -111,7 +111,7 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
             readingFolderName = false
             fields = [:]
             passEncoding = nil
-        } else if inServer, elementName == "Pass" {
+        } else if inServer, elementName.lowercased() == "pass" || elementName.lowercased() == "password" {
             passEncoding = attributeDict["encoding"]?.lowercased()
         }
     }
@@ -153,7 +153,9 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
             passEncoding = nil
             return
         }
-        if elementName == currentElement {
+        if elementName.lowercased() == "pass" || elementName.lowercased() == "password" {
+            fields["Pass"] = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if elementName == currentElement {
             fields[elementName] = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
@@ -224,16 +226,23 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
         rawPass: String?,
         encoding: String?
     ) -> (data: Data?, status: ImportedSecretStatus) {
-        guard let pass = rawPass, !pass.isEmpty else {
+        guard let pass = rawPass?.trimmingCharacters(in: .whitespacesAndNewlines), !pass.isEmpty else {
             return (nil, .none)
         }
-        if encoding == "base64" {
-            guard let decoded = Data(base64Encoded: pass) else {
+        let enc = encoding?.lowercased()
+        if enc == "base64" {
+            guard let decoded = Data(base64Encoded: pass, options: [.ignoreUnknownCharacters]) else {
                 return (nil, .encryptedUnavailable)
             }
             return (decoded, .plaintextReady)
         }
-        if encoding == nil || encoding == "plain" {
+        if enc == nil || enc == "plain" {
+            if let decoded = Data(base64Encoded: pass, options: [.ignoreUnknownCharacters]),
+               let utf8 = String(data: decoded, encoding: .utf8),
+               !utf8.isEmpty,
+               utf8.allSatisfy({ !$0.isASCII || ($0 >= " " || $0 == "\t" || $0 == "\n" || $0 == "\r") }) {
+                return (decoded, .plaintextReady)
+            }
             return (pass.data(using: .utf8), .plaintextReady)
         }
         return (nil, .encryptedUnavailable)

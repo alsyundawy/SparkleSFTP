@@ -343,8 +343,16 @@ public enum ExternalConnectionFileReader {
     ) -> [URL] {
         let candidates = [
             homeDirectory.appendingPathComponent(".config/filezilla/sitemanager.xml"),
+            homeDirectory.appendingPathComponent(".config/filezilla/filezilla.xml"),
+            homeDirectory.appendingPathComponent(".config/filezilla/recentservers.xml"),
             homeDirectory.appendingPathComponent(".filezilla/sitemanager.xml"),
-            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/sitemanager.xml")
+            homeDirectory.appendingPathComponent(".filezilla/filezilla.xml"),
+            homeDirectory.appendingPathComponent(".filezilla/recentservers.xml"),
+            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/sitemanager.xml"),
+            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/filezilla.xml"),
+            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/recentservers.xml"),
+            homeDirectory.appendingPathComponent("Library/Application Support/filezilla/sitemanager.xml"),
+            homeDirectory.appendingPathComponent("Library/Application Support/filezilla/filezilla.xml")
         ]
         return candidates.filter { FileManager.default.fileExists(atPath: $0.path) }
     }

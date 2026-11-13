@@ -87,7 +87,7 @@ public extension AppState {
             title: initialStrings.t("tabs.newTab"),
             localPath: FileManager.default.homeDirectoryForCurrentUser
         )
-        let targetThemeID = activeThemeID ?? SparkleThemeCatalog.defaultLight.id
+        let targetThemeID = activeThemeID ?? SparkleThemeCatalog.defaultDark.id
         let rawMode = UserDefaults.standard.string(forKey: "sparklesftp.appearanceMode")
         let mode = rawMode.flatMap { ThemeAppearanceMode(rawValue: $0) } ?? .auto
         let palette = SparkleThemeCatalog.palette(

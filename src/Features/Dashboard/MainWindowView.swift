@@ -15,21 +15,11 @@ public struct MainWindowView: View {
     public var body: some View {
         let palette = appState.activePalette
         NavigationSplitView {
-            VStack(spacing: 0) {
-                if appState.isActivityLogVisible {
-                    ActivityLogView(appState: appState)
-                        .frame(minHeight: 110, idealHeight: 160, maxHeight: 280)
-                    Divider().overlay(palette.borderColor)
-                } else {
-                    minimizedActivityLogBar
-                }
-
-                ConnectionManagerView(
-                    appState: appState,
-                    editorMode: $editorMode
-                )
-            }
-            .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 420)
+            ConnectionManagerView(
+                appState: appState,
+                editorMode: $editorMode
+            )
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
         } detail: {
             detailContentView(palette: palette)
         }

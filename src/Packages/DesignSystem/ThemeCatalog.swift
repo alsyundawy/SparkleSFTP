@@ -1,13 +1,15 @@
 import Foundation
 
-/// Curated SparkNotePad & NotepadNext theme catalog (76 built-in themes across 26 families with WCAG AA contrast).
+/// Curated SparkNotePad theme catalog (76 built-in themes across 26 families with WCAG AA contrast).
 public enum SparkleThemeCatalog {
     public static var defaultLight: SparkleThemePalette {
         corePalettes[0]
     }
 
     public static var defaultDark: SparkleThemePalette {
-        corePalettes.first { $0.id == "dracula" } ?? corePalettes[1]
+        corePalettes.first { $0.id == "tokyoNightStorm" }
+            ?? corePalettes.first { $0.id == "dracula" }
+            ?? corePalettes[1]
     }
 
     public static var builtInFamilies: [String] {

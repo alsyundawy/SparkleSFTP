@@ -241,7 +241,16 @@ extension MainWindowView {
                     .accessibilityIdentifier("quickConnectBar")
             }
 
+            if !appState.isActivityLogVisible {
+                minimizedActivityLogBar
+            }
+
             VSplitView {
+                if appState.isActivityLogVisible {
+                    ActivityLogView(appState: appState)
+                        .frame(minHeight: 70, idealHeight: 130)
+                }
+
                 DualPaneCommanderView(appState: appState)
                     .frame(minHeight: 180, idealHeight: 420)
 

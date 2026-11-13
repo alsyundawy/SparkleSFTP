@@ -30,13 +30,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OSC 7 Directory Synchronization (`TerminalSessionManager`, `DualPaneCommanderView`)**:
   - Implemented OSC 7 escape sequence detection (`\033]7;file://...`) emitted by active terminal shells (bash, zsh, fish) in SwiftTerm.
   - Synchronizes remote commander pane path in real time when navigating directories via shell `cd`.
-- **Activity Log Relocation to Left Sidebar (`MainWindowView`, `MainWindowView+Subviews`)**:
-  - Relocated `ActivityLogView` above `ConnectionManagerView` in the left sidebar, maximizing vertical real estate for dual commander panes and terminal workspace.
-  - Retained symmetrical minimize/restore arrows (`chevron.down` on restore pill bar, `chevron.up` on active header).
+- **FileZilla-Style Transfer Queue Redesign (`TransferQueueView`, `TransferQueueRowView`, `TransferQueueView+Subviews`)**:
+  - Re-architected bottom transfer queue drawer to replicate FileZilla's multi-tab tabular layout:
+    - 3 bottom tabs: `[ Queued files ]`, `[ Failed transfers ]`, and `[ Successful transfers ]` with live item counts.
+    - Dynamic column headers per active tab:
+      - Queued: `Server/Local file` | `Direction` | `Remote file` | `Size` | `Priority` | `Status`.
+      - Failed: `Server/Local file` | `Direction` | `Remote file` | `Size` | `Priority` | `Time` | `Reason`.
+      - Successful: `Server/Local file` | `Direction` | `Remote file` | `Size` | `Priority`.
+    - Retained top action bar (Pause All, Abort All, Resume All, Retry All Failed, Clear Finished, conflict policy selector) and `chevron.down` minimize toggle paired with `chevron.up` restore indicator.
+- **Activity Log Workspace Location Revert (`MainWindowView`, `MainWindowView+Subviews`, `ActivityLogView`)**:
+  - Reverted `ActivityLogView` from the left sidebar back to its original horizontal position above `DualPaneCommanderView` in the main workspace `VSplitView` (from v0.4.1), eliminating sidebar cramping while preserving full horizontal width.
+  - Symmetrical minimize/restore indicators: `chevron.up` to collapse activity log, `chevron.down` restore button on `MainWindowMinimizedActivityLogBar`.
+- **FileZilla XML Import & Password Decryption (`ExternalImporters`, `ExternalSessionFileReader`)**:
+  - Implemented base64 password decoding from both `<Pass>` and `<Password>` tags (case-insensitive, whitespace/newline-tolerant).
+  - Added automatic file detection for `.config/filezilla/filezilla.xml`, `.filezilla/filezilla.xml`, `Library/Preferences/FileZilla/filezilla.xml`, and `recentservers.xml`.
+- **Tokyo Night Storm Default Theme & SparkNotePad Naming (`ThemeCatalog`, `ThemeCatalogCore`, `AppState`)**:
+  - Anchored default dark theme across bootstrap and catalog to Tokyo Night Storm (`tokyoNightStorm`).
+  - Standardized all references from legacy `NotepadNext` to `SparkNotePad` across the entire codebase and theme catalog.
+- **Internal Terminal Integration (`ExternalTerminalApp`, `AppState+Operations`, `InternalEditorToolbar`)**:
+  - Added `case internalTerminal = "internal"` ("SparkleSFTP Internal Terminal (iTerm2-Style)") to `ExternalTerminalApp`.
+  - Added dedicated Internal Terminal launcher button (`⌘⌥T`) in SparkNotePad toolbar for seamless access to the built-in iTerm2-style terminal.
+- **Expanded About / Credits & Toolchain Libraries (`AboutView+Tabs`, `ZlibAndLibraryProbes`)**:
+  - Expanded About/Credits to accurately acknowledge Google Antigravity IDE, Google Gemini 3.8 Flash AI model, SparkNotePad, SubnetCalc, SwiftTerm (1.20.0), Sparkle (2.10.1), SQLite3 WAL, and Apple Security & CryptoKit.
+  - Updated toolchain libraries inspector to report linked statuses for SwiftTerm, Sparkle, SQLite3 WAL, and Apple Security & CryptoKit.
 - **Comprehensive Localization & Quality Gates**:
-  - Added 27 new localization keys across `en.json` and `id.json` achieving 100% key parity across 517 strings.
-  - Created comprehensive unit tests in `BookmarkManagerTests` and `RemoteCommandSanitizerTests`, bringing test suite to 129 tests across 35 test suites passing with 100% green status.
-  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg`.
+  - Added 11 new localization keys across `en.json` and `id.json` achieving 100% key parity across 528 strings.
+  - Expanded unit test suite to 130 tests across 35 test suites passing with 100% green status; verified 0 SwiftLint violations and 0 SwiftFormat warnings.
+  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg` (SHA-256: `592fa80a87eb5af83314ef5da195375677e3c95bd183e24e8f34035171e030ae`).
 
 ## [0.4.1] - 2026-11-13
 

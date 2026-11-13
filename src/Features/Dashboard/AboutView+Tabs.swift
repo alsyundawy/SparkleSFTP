@@ -61,8 +61,8 @@ extension AboutView {
                     .font(SparkleTheme.Typography.headline)
                 Text(
                     "SparkleSFTP is built cleanly in Swift 6 with native macOS Security.framework, Keychain, "
-                        + "Touch ID, and SecTrust isolation — inspired by SparkNotePad and dual-pane Commander "
-                        + "workflows."
+                        + "Touch ID, and SecTrust isolation — inspired by SparkNotePad, SubnetCalc, and orthodox "
+                        + "dual-pane Commander workflows across versions 0.1.0 through 0.5.0."
                 )
                 .font(SparkleTheme.Typography.caption)
                 .foregroundStyle(palette.secondaryTextColor)
@@ -98,16 +98,49 @@ extension AboutView {
                 .font(SparkleTheme.Typography.title)
             accentCard(palette: palette) {
                 creditRow(
-                    "apple/swift-nio & swift-nio-ssh (0.15.1)",
-                    detail: "SSH transport, PTY & DirectTCPIP forwarding"
+                    "Google Gemini 3.8 Flash & Google Antigravity IDE",
+                    detail: "Advanced AI-assisted architecture, multi-skill orchestration "
+                        + "& 14-pillar empirical review"
                 )
-                creditRow("apple/swift-crypto", detail: "Streaming SHA-256 verification & Ed25519 keys")
-                creditRow("migueldeicaza/SwiftTerm", detail: "Native xterm/VT100 terminal emulation")
-                creditRow("sparkle-project/Sparkle", detail: "Signed macOS application updates")
-                creditRow("Apple macOS SDK Frameworks", detail: "libcurl, SQLite3 WAL, Security, LocalAuthentication")
                 creditRow(
                     "SparkNotePad & Notepad2 Inspiration",
-                    detail: "Developer color palettes, toolbar & editor ergonomics"
+                    detail: "macOS code editor ergonomics, 76 developer color palettes "
+                        + "& typography tokens (v0.1.0–v0.5.0)"
+                )
+                creditRow(
+                    "SubnetCalc",
+                    detail: "Network IP calculation algorithms, CIDR subnetting "
+                        + "& protocol port engineering foundations"
+                )
+                creditRow(
+                    "apple/swift-nio & swift-nio-ssh (0.15.1)",
+                    detail: "Async EventLoop SSH transport, RFC SFTP v3 framing "
+                        + "& DirectTCPIP forwarding (v0.1.0–v0.5.0)"
+                )
+                creditRow(
+                    "apple/swift-crypto",
+                    detail: "Streaming off-MainActor SHA-256 verification "
+                        + "& OpenSSH Ed25519/ECDSA key parsing (v0.1.0–v0.5.0)"
+                )
+                creditRow(
+                    "migueldeicaza/SwiftTerm (1.20.0)",
+                    detail: "Native xterm/VT100 terminal emulation, standalone workspace "
+                        + "& OSC 7 directory sync (v0.1.0–v0.5.0)"
+                )
+                creditRow(
+                    "sparkle-project/Sparkle (2.10.1)",
+                    detail: "Ed25519-signed automated software update delivery "
+                        + "& appcast validation (v0.2.0–v0.5.0)"
+                )
+                creditRow(
+                    "Apple macOS SDK Frameworks",
+                    detail: "libcurl FTPS with C11 wrapper, SQLite3 WAL journal, "
+                        + "Security.framework Keychain with Touch ID"
+                )
+                creditRow(
+                    "FileZilla & WinSCP Workflows",
+                    detail: "Orthodox commander layout, 8 transfer conflict policies, "
+                        + "XML/INI importers & command sanitization"
                 )
             }
         }

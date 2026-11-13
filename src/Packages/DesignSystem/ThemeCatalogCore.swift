@@ -4,8 +4,8 @@ extension SparkleThemeCatalog {
     static let corePalettes: [SparkleThemePalette] = [
         SparkleThemePalette(
             id: "notepadNext",
-            displayName: "NotepadNext Default",
-            family: "NotepadNext",
+            displayName: "SparkNotePad Default",
+            family: "SparkNotePad",
             isDark: false,
             windowHex: "#F0F2F5",
             canvasHex: "#FAFBFC",

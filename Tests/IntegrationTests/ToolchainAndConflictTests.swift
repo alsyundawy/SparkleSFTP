@@ -37,7 +37,13 @@ struct ToolchainAndConflictTests {
 
         let report = await ToolchainInspector.inspectHostToolchain(runSubprocesses: false)
         let ids = Set(report.libraries.map(\.id))
-        #expect(ids == ["niossh", "libcurl", "zlib", "libssh2", "openssl", "openssh", "shell", "iterm"])
+        #expect(
+            ids == [
+                "niossh", "libcurl", "zlib", "libssh2", "openssl",
+                "openssh", "shell", "iterm", "sparkle", "swiftterm",
+                "sqlite", "security"
+            ]
+        )
         #expect(report.libraries.first { $0.id == "zlib" }?.isAvailable == true)
     }
 

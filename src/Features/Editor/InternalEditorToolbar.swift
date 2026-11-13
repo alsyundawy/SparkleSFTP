@@ -158,6 +158,11 @@ struct InternalEditorToolbar: View {
             isOn: readOnlyBinding,
             help: strings.t("editor.readOnly")
         )
+
+        iconButton("terminal", help: strings.t("nav.standaloneTerminal")) {
+            appState.openStandaloneTerminal()
+        }
+        .keyboardShortcut("t", modifiers: [.command, .option])
     }
 
     @ViewBuilder

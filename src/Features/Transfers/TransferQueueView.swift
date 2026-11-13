@@ -4,10 +4,9 @@ import SparkleTransferEngine
 import SwiftUI
 
 public enum TransferQueueFilter: String, CaseIterable, Identifiable {
-    case active
-    case completed
+    case queued
     case failed
-    case all
+    case successful
 
     public var id: String {
         rawValue
@@ -15,31 +14,40 @@ public enum TransferQueueFilter: String, CaseIterable, Identifiable {
 
     func title(strings: AppStrings) -> String {
         switch self {
-        case .active: return strings.t("transfers.filterActive")
-        case .completed: return strings.t("transfers.filterCompleted")
-        case .failed: return strings.t("transfers.filterFailed")
-        case .all: return strings.t("transfers.filterAll")
+        case .queued: return strings.t("transfers.queuedFiles")
+        case .failed: return strings.t("transfers.failedTransfers")
+        case .successful: return strings.t("transfers.successfulTransfers")
         }
     }
 
     func matches(_ status: TransferStatus) -> Bool {
         switch self {
-        case .active:
+        case .queued:
             return !status.isTerminal
-        case .completed:
-            return status == .completed
         case .failed:
             return status.isFailed || status == .cancelled
-        case .all:
-            return true
+        case .successful:
+            return status == .completed
         }
+    }
+
+    public static var active: TransferQueueFilter {
+        .queued
+    }
+
+    public static var completed: TransferQueueFilter {
+        .successful
+    }
+
+    public static var all: TransferQueueFilter {
+        .queued
     }
 }
 
 public struct TransferQueueView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var monitor: TransferMonitor
-    @State var selectedFilter: TransferQueueFilter = .all
+    @State var selectedFilter: TransferQueueFilter = .queued
     @State var visibleLimit: Int = 150
 
     public init(appState: AppState) {
@@ -79,8 +87,11 @@ public struct TransferQueueView: View {
         VStack(alignment: .leading, spacing: 0) {
             headerBar
             Divider().overlay(palette.borderColor)
-            filterBar
+            tableHeader
+            Divider().overlay(palette.borderColor)
             queueContent
+            Divider().overlay(palette.borderColor)
+            bottomTabBar
         }
         .sparkleWorkspaceSurface(palette, useCanvas: true)
     }

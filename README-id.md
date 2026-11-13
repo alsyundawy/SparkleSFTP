@@ -141,7 +141,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 - **Verifikasi Integritas SHA-256**:
 
 ```text
-a70c83d39c3901d0fa9541811bc695b167bad374fa0a89ccd83962e736d446eb  SparkleSFTP-0.5.0-universal.dmg
+592fa80a87eb5af83314ef5da195375677e3c95bd183e24e8f34035171e030ae  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verifikasi di Terminal Mac:

@@ -207,6 +207,10 @@ public enum ToolchainInspector {
     }
 
     private static func assembleLibraryStatuses(_ ctx: ToolchainProbeContext) -> [ToolchainLibraryStatus] {
+        coreLibraryStatuses(ctx) + systemLibraryStatuses(ctx)
+    }
+
+    private static func coreLibraryStatuses(_ ctx: ToolchainProbeContext) -> [ToolchainLibraryStatus] {
         [
             ToolchainLibraryStatus(
                 id: "niossh", name: "swift-nio-ssh", category: "SSH / SFTP", version: "0.15.1",
@@ -214,11 +218,36 @@ public enum ToolchainInspector {
                 detail: "Async EventLoop SSH, SFTP v3 pipelining & DirectTCPIP (CVE-2026-43798 patched)"
             ),
             ToolchainLibraryStatus(
+                id: "swiftterm", name: "SwiftTerm", category: "Terminal / PTY", version: "1.20.0",
+                isAvailable: true, role: "xterm/VT100 PTY & OSC 7 sync",
+                detail: "Embedded & standalone iTerm2-style terminal emulator with palette integration"
+            ),
+            ToolchainLibraryStatus(
+                id: "sparkle", name: "Sparkle", category: "Updates", version: "2.10.1",
+                isAvailable: true, role: "Automated software updates",
+                detail: "Ed25519-signed update delivery & secure appcast validation"
+            ),
+            ToolchainLibraryStatus(
+                id: "sqlite", name: "SQLite3", category: "Persistence", version: "macOS WAL",
+                isAvailable: true, role: "ACID crash-safe transfer journal",
+                detail: "System SQLite3 WAL engine with automatic pruning and transaction isolation"
+            ),
+            ToolchainLibraryStatus(
+                id: "security", name: "Apple Security & CryptoKit", category: "Security", version: "macOS Native",
+                isAvailable: true, role: "Keychain & biometric gating",
+                detail: "Hardware Secure Enclave, Touch ID authentication & streaming SHA-256 validation"
+            ),
+            ToolchainLibraryStatus(
                 id: "libcurl", name: "libcurl", category: "FTP / FTPS / TLS",
                 version: ctx.curlInfo.isEmpty ? "Linked" : ctx.curlInfo, isAvailable: !ctx.curlInfo.isEmpty,
                 role: "Concurrent FTP/FTPS transfer worker engine",
                 detail: "256KB TCP keepalive buffers, locked to ftp,ftps (CVE-2025-15224 mitigated)"
-            ),
+            )
+        ]
+    }
+
+    private static func systemLibraryStatuses(_ ctx: ToolchainProbeContext) -> [ToolchainLibraryStatus] {
+        [
             ToolchainLibraryStatus(
                 id: "zlib", name: "zlib", category: "Compression", version: ctx.zlibVer,
                 isAvailable: !ctx.zlibVer.isEmpty, role: "Streaming deflate/gzip codec (-lz)",

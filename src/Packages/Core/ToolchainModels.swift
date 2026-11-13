@@ -29,14 +29,16 @@ public struct ToolchainLibraryStatus: Identifiable, Sendable, Equatable {
     }
 }
 
-/// Supported external terminal emulators for opening interactive OpenSSH sessions cleanly.
+/// Supported terminal options for opening interactive OpenSSH sessions cleanly.
 public enum ExternalTerminalApp: String, Sendable, Codable, CaseIterable {
+    case internalTerminal = "internal"
     case auto
     case iTerm2
     case appleTerminal
 
     public var displayName: String {
         switch self {
+        case .internalTerminal: return "SparkleSFTP Internal Terminal (iTerm2-Style)"
         case .auto: return "Auto (Prefer iTerm2)"
         case .iTerm2: return "iTerm2"
         case .appleTerminal: return "Terminal.app"

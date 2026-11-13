@@ -53,6 +53,46 @@ struct ExternalImportersTests {
         #expect(second.transientSecret == nil)
     }
 
+    @Test("FileZillaImporter decodes alternate <Password> tags and whitespace-padded base64 passwords")
+    func fileZillaAlternatePasswordTagsAndWhitespaceDecoding() throws {
+        let b64Secret = Data("my-super-secret".utf8).base64EncodedString()
+        let xml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <FileZilla3 version="3.67.0" platform="mac">
+          <Servers>
+            <Server>
+              <Host>alt.example.com</Host>
+              <Port>22</Port>
+              <Protocol>1</Protocol>
+              <User>root</User>
+              <Password encoding="base64">
+                \(b64Secret)
+              </Password>
+              <Name>Alternate Tag Server</Name>
+            </Server>
+            <Server>
+              <Host>fallback.example.com</Host>
+              <Port>22</Port>
+              <Protocol>1</Protocol>
+              <User>admin</User>
+              <Pass>\(b64Secret)</Pass>
+              <Name>Fallback Auto-Decode Server</Name>
+            </Server>
+          </Servers>
+        </FileZilla3>
+        """
+        let report = try FileZillaImporter.parseWithReport(xmlData: Data(xml.utf8))
+        #expect(report.connections.count == 2)
+
+        let first = try #require(report.connections.first)
+        #expect(first.secretStatus == .plaintextReady)
+        #expect(first.transientSecret == Data("my-super-secret".utf8))
+
+        let second = try #require(report.connections.dropFirst().first)
+        #expect(second.secretStatus == .plaintextReady)
+        #expect(second.transientSecret == Data("my-super-secret".utf8))
+    }
+
     @Test("IniSessionImporter decodes UTF-16LE BOM, nested groups, FSProtocol, proxies, and unsupported counts")
     func commanderIniAndUTF16Decoding() throws {
         let ini = """

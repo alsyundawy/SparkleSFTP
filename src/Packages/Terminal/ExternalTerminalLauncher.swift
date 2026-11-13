@@ -104,7 +104,7 @@ public enum ExternalTerminalLauncher {
         report: HostToolchainReport
     ) -> URL? {
         switch preferredApp {
-        case .auto:
+        case .auto, .internalTerminal:
             return report.iTermAppURL ?? report.appleTerminalURL
         case .iTerm2:
             return report.iTermAppURL ?? report.appleTerminalURL
