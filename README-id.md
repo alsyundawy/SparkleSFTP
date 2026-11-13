@@ -128,7 +128,7 @@ Karena rilis komunitas ini menggunakan sertifikat mandiri, Anda dapat membukanya
 - **Verifikasi Integritas SHA-256**:
 
 ```text
-adaa39e203c6ae0e90d821e76b6fce1e7bbeb87720c5d18117e3502cf7d58a3d  SparkleSFTP-0.3.0-universal.dmg
+c266002fe5c7b57c855be41d708e758c743fd2ed82e1eaef1cbec90de738747b  SparkleSFTP-0.3.0-universal.dmg
 ```
 
 Verifikasi di Terminal Mac:
