@@ -96,6 +96,18 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.0-universal.dmg` + `.sha256`) (`T-064`)
 - [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.0.md`, `docs/*.md`) (`T-065`)
 
+## Phase J: Sparkle Commander Visual Refresh & Mockup Gallery (`v0.4.1`, `T-066` – `T-074`)
+
+- [x] Create semantic surface tokens resolving dynamically from `SparkleThemePalette` (`src/Packages/DesignSystem/SemanticSurfaceTokens.swift`) (`T-066`)
+- [x] Implement deterministic `Sendable` mock datasets for macOS, Linux, and BSD filesystem listings, transfer queues, connection profiles, and terminals (`src/Features/Mockups/MockData.swift`, `MockData+Datasets.swift`) (`T-067`)
+- [x] Implement reusable macOS HIG mockup components (`StatusBadge`, `ModernProgressBar`, `PathBreadcrumbsBar`, `DiskSpaceBar`, `EmptyStateView`) in `src/Features/Mockups/Components/` (`T-068`)
+- [x] Implement 8 high-fidelity mockup screens (`MainWorkspaceMockup`, `ConnectionManagerMockup`, `TransferQueueMockup`, `TerminalMockup`, `PreferencesThemesMockup`, `EmptyStateMockup`, `ConflictDialogMockup`, `DashboardMockup`) with 1280×800 Previews (`T-069`)
+- [x] Implement isolated mockup gallery launcher (`MockupGalleryView.swift`) and hook via `--mockup-gallery` launch argument in `SparkleSFTPApp.swift` (`T-070`)
+- [x] Add 16 new `mockup.*` keys with 100% key parity across `en.json` and `id.json` (472 keys each) (`T-071`)
+- [x] Verify strict SwiftLint compliance (0 violations across all 21 touched files) and SwiftFormat (`T-072`)
+- [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`) (`T-073`)
+- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.1.md`, `docs/ROADMAP.md`, `docs/TASK_LIST.md`, `tasks/plan.md`, `tasks/todo.md`) (`T-074`)
+
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 
 - [ ] Run live Docker multi-server interop smoke suite (`Tools/TestServers/run-integration-tests.sh` against SFTP/FTP/FTPS containers; requires Docker Engine)

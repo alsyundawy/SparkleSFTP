@@ -235,12 +235,20 @@ struct SparkleSFTPApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let environment = AppEnvironment()
 
+    private var isMockupGalleryRequested: Bool {
+        ProcessInfo.processInfo.arguments.contains("--mockup-gallery")
+    }
+
     var body: some Scene {
         WindowGroup("SparkleSFTP", id: "main") {
-            SparkleWindowRootView(environment: environment)
-                .onAppear {
-                    wireDelegateShutdownHooks()
-                }
+            if isMockupGalleryRequested {
+                MockupGalleryView()
+            } else {
+                SparkleWindowRootView(environment: environment)
+                    .onAppear {
+                        wireDelegateShutdownHooks()
+                    }
+            }
         }
         .defaultSize(width: 1280, height: 820)
         .commands {

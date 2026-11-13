@@ -459,6 +459,22 @@
     "common.editTooltip": "Open in Notepad2 internal text editor (F4 / ⌘E)",
     "pane.chmodTooltip": "Change remote POSIX file permissions",
     "conn.selectAllTooltip": "Select all items in active pane (⌘A)",
-    "common.deleteTooltip": "Delete selected items (F8 / ⌘⌫)"
+    "common.deleteTooltip": "Delete selected items (F8 / ⌘⌫)",
+    "mockup.gallery.title": "Sparkle Commander Mockup Gallery",
+    "mockup.gallery.subtitle": "v0.4.1 High-Fidelity UI/UX Refresh",
+    "mockup.gallery.palette": "Palette:",
+    "mockup.gallery.previewBadge": "v0.4.1 Mockup Preview",
+    "mockup.screen.mainWorkspace": "Main Workspace",
+    "mockup.screen.connectionManager": "Connection Manager",
+    "mockup.screen.transferQueue": "Transfer Queue",
+    "mockup.screen.terminal": "Split Terminal",
+    "mockup.screen.preferencesThemes": "Preferences & Themes",
+    "mockup.screen.emptyStates": "Empty States",
+    "mockup.screen.conflictDialog": "Conflict Resolution",
+    "mockup.screen.dashboard": "Overview Dashboard",
+    "mockup.category.workspace": "WORKSPACE",
+    "mockup.category.connections": "CONNECTIONS",
+    "mockup.category.transfers": "TRANSFERS",
+    "mockup.category.system": "SYSTEM & UX"
   }
 }

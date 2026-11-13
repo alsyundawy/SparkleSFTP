@@ -105,6 +105,21 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 - [x] `T-073` Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.4.0-universal.dmg` + `.sha256`)
 - [x] `T-074` Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.4.0.md`, `docs/*.md`)
 
+## Milestone 11: Native macOS UI/UX Mockups ("Sparkle Commander" Visual Refresh v0.4.1) (`T-075` – `T-086`)
+
+- [x] `T-075` Implement semantic surface tokens (`src/Packages/DesignSystem/SemanticSurfaceTokens.swift`) resolved dynamically from active `SparkleThemePalette` with WCAG 2.1 AA compliance
+- [x] `T-076` Implement deterministic `Sendable` mock data models (`src/Features/Mockups/MockData.swift`) for sessions, dual-pane file trees, transfers, and terminals
+- [x] `T-077` Implement shared mockup components (`src/Features/Mockups/Components/`): `StatusBadge`, `ModernProgressBar`, `PathBreadcrumbsBar`, `DiskSpaceBar`, `EmptyStateView`
+- [x] `T-078` Implement Screen 1: `MainWorkspaceMockup.swift` (MainWindowView + WorkspaceTabBar + QuickConnectBar + Breadcrumbs) with Xcode Previews at 1280×800
+- [x] `T-079` Implement Screen 2: `ConnectionManagerMockup.swift` (Saved session profiles, protocol badges: SFTP, SCP, FTP) with Xcode Previews at 1280×800
+- [x] `T-080` Implement Screen 3: `TransferQueueMockup.swift` (Batch queue, speed indicators, conflict state badges) with Xcode Previews at 1280×800
+- [x] `T-081` Implement Screen 4: `TerminalMockup.swift` (iTerm2-inspired split terminal view with status indicator) with Xcode Previews at 1280×800
+- [x] `T-082` Implement Screen 5: `PreferencesThemesMockup.swift` (Theme family browser and contrast checker preview) with Xcode Previews at 1280×800
+- [x] `T-083` Implement Screen 6 (`EmptyStateMockup.swift`), Screen 7 (`ConflictDialogMockup.swift`), and Screen 8 (`DashboardMockup.swift`) with Xcode Previews at 1280×800
+- [x] `T-084` Implement Gallery Launcher (`src/Features/Mockups/MockupGalleryView.swift`) and hook into `SparkleSFTPApp.swift` via `--mockup-gallery` launch argument
+- [x] `T-085` Add mock display strings with 100% parity across `en.json` and `id.json`, and run full linter sweeps (SwiftLint, SwiftFormat, Trunk, ShellCheck, Markdownlint, YAMLlint)
+- [x] `T-086` Execute 14-Pillar code audit, build universal binary `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`), update `README.md`, `README-id.md`, `CHANGELOG.md`, `DOCNOTE.md`, `TODO.md`, and docs
+
 ## External Operational & Release Gates (Deferred to Release Environment)
 
 - [ ] Execute live Docker integration test suite (`Tools/TestServers/run-integration-tests.sh`; Docker not installed locally)

@@ -459,6 +459,22 @@
     "common.editTooltip": "Buka di editor teks internal Notepad2 (F4 / ⌘E)",
     "pane.chmodTooltip": "Ubah izin berkas POSIX jarak jauh",
     "conn.selectAllTooltip": "Pilih semua item di panel aktif (⌘A)",
-    "common.deleteTooltip": "Hapus item terpilih (F8 / ⌘⌫)"
+    "common.deleteTooltip": "Hapus item terpilih (F8 / ⌘⌫)",
+    "mockup.gallery.title": "Galeri Mockup Sparkle Commander",
+    "mockup.gallery.subtitle": "Penyegaran UI/UX Resolusi Tinggi v0.4.1",
+    "mockup.gallery.palette": "Palet:",
+    "mockup.gallery.previewBadge": "Pratinjau Mockup v0.4.1",
+    "mockup.screen.mainWorkspace": "Ruang Kerja Utama",
+    "mockup.screen.connectionManager": "Pengelola Sambungan",
+    "mockup.screen.transferQueue": "Antrean Transfer",
+    "mockup.screen.terminal": "Terminal Terbagi",
+    "mockup.screen.preferencesThemes": "Preferensi & Tema",
+    "mockup.screen.emptyStates": "Kondisi Kosong",
+    "mockup.screen.conflictDialog": "Resolusi Konflik",
+    "mockup.screen.dashboard": "Dasbor Ikhtisar",
+    "mockup.category.workspace": "RUANG KERJA",
+    "mockup.category.connections": "SAMBUNGAN",
+    "mockup.category.transfers": "TRANSFER",
+    "mockup.category.system": "SISTEM & UX"
   }
 }
