@@ -87,6 +87,18 @@ private struct SparkleAppCommands: Commands {
             .keyboardShortcut("w", modifiers: [.command])
         }
 
+        CommandGroup(after: .importExport) {
+            Button(activeState.strings.t("nav.importExternal")) {
+                activeState.isShowingImportSheet = true
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
+
+            Button(activeState.strings.t("nav.exportConnections")) {
+                activeState.openExportSheet(selectedOnly: false)
+            }
+            .keyboardShortcut("e", modifiers: [.command, .shift])
+        }
+
         CommandMenu("Commander") {
             Button(activeState.strings.t("tabs.newTab")) {
                 _ = activeState.openNewWorkspaceTab()

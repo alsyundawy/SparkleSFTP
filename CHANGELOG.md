@@ -53,10 +53,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expanded About / Credits & Toolchain Libraries (`AboutView+Tabs`, `ZlibAndLibraryProbes`)**:
   - Expanded About/Credits to accurately acknowledge Google Antigravity IDE, Google Gemini 3.8 Flash AI model, SparkNotePad, SubnetCalc, SwiftTerm (1.20.0), Sparkle (2.10.1), SQLite3 WAL, and Apple Security & CryptoKit.
   - Updated toolchain libraries inspector to report linked statuses for SwiftTerm, Sparkle, SQLite3 WAL, and Apple Security & CryptoKit.
+- **Native Connection Export & Import Engine (`InternalConnectionExporter`, `ExportConnectionsSheet`, `ImportConnectionsSheet`)**:
+  - Implemented comprehensive connection configuration export & import supporting `.sparklesftp` and `.json` formats.
+  - Three robust security tiers:
+    - `sanitizedWithoutSecrets`: Clears all sensitive credentials, passwords, and private key references for safe team sharing.
+    - `passwordProtected`: Encrypts complete configuration archives using AES-256-GCM + PBKDF2-HMAC-SHA256 (100,000 iterations, 16-byte random salt, 12-byte random nonce).
+    - `plaintextSecrets`: Unencrypted local JSON backup with explicit security warning.
+  - Added interactive `ExportConnectionsSheet` with export scope (All vs Selected) and security mode selector.
+  - Enhanced `ImportConnectionsSheet` with password-protected archive unlock UI, `.sparklesftp` file type support, and format badges.
+  - Integrated `File -> Export Connections...` (`⌘⇧E`) and `File -> Import Connections...` (`⌘⇧I`) menu shortcuts and connection list action buttons.
 - **Comprehensive Localization & Quality Gates**:
-  - Added 11 new localization keys across `en.json` and `id.json` achieving 100% key parity across 528 strings.
-  - Expanded unit test suite to 130 tests across 35 test suites passing with 100% green status; verified 0 SwiftLint violations and 0 SwiftFormat warnings.
-  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg` (SHA-256: `592fa80a87eb5af83314ef5da195375677e3c95bd183e24e8f34035171e030ae`).
+  - Added 27 new localization keys across `en.json` and `id.json` achieving 100% key parity across 555 strings.
+  - Expanded unit test suite to 134 tests across 36 test suites passing with 100% green status; verified 0 SwiftLint violations and 0 SwiftFormat warnings across 225 Swift files.
+  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg` (SHA-256: `ea7dd7f6d12547a590ee9766515e87c372f79882b0d6077dabe0f096204c4efb`).
 
 ## [0.4.1] - 2026-11-13
 

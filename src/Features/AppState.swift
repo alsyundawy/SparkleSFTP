@@ -108,7 +108,12 @@ public final class AppState: ObservableObject {
     @Published public var pendingConflict: ConflictContext?
     @Published public var hasActiveConflictQueueRules: Bool = false
     @Published public var pendingImportReport: ExternalImportReport?
+    @Published public var pendingImportURL: URL?
+    @Published public var pendingImportData: Data?
+    @Published public var archivePassphraseError: String?
     @Published public var isShowingImportSheet: Bool = false
+    @Published public var isShowingExportSheet: Bool = false
+    @Published public var exportSelectedOnly: Bool = false
     @Published public var syncPlan: SyncPlan?
     @Published public var isShowingSyncSheet: Bool = false
     @Published public var statusBannerMessage: String?
@@ -197,14 +202,6 @@ public final class AppState: ObservableObject {
 
     @Published public var defaultDownloadConflictPolicy: TransferConflictPolicy = .ask {
         didSet { savePreferencesIfLoaded() }
-    }
-
-    public var defaultConflictPolicy: TransferConflictPolicy {
-        get { defaultUploadConflictPolicy }
-        set {
-            defaultUploadConflictPolicy = newValue
-            defaultDownloadConflictPolicy = newValue
-        }
     }
 
     @Published public var syncComparisonMode: SyncComparisonMode = .sizeAndMtime
@@ -336,6 +333,14 @@ public final class AppState: ObservableObject {
 }
 
 extension AppState {
+    public var defaultConflictPolicy: TransferConflictPolicy {
+        get { defaultUploadConflictPolicy }
+        set {
+            defaultUploadConflictPolicy = newValue
+            defaultDownloadConflictPolicy = newValue
+        }
+    }
+
     func resolveRemoteFileSystem(for profileID: UUID) throws -> any RemoteFileSystem {
         if let current = currentSession, current.profile.id == profileID {
             return current.service.fileSystem

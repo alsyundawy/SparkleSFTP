@@ -121,6 +121,9 @@ extension ConnectionListCoordinator: NSMenuDelegate {
         addMenuItem(parent.strings.newConnection, action: #selector(handleNewConnectionMenu), obj: nil, to: menu)
         addMenuItem(parent.strings.t("nav.newGroup"), action: #selector(handleNewGroupMenu), obj: nil, to: menu)
         addMenuItem(parent.strings.t("conn.selectAll"), action: #selector(handleSelectAllMenu), obj: nil, to: menu)
+        menu.addItem(.separator())
+        addMenuItem(parent.strings.t("nav.exportAll"), action: #selector(handleExportAllMenu), obj: nil, to: menu)
+        addMenuItem(parent.strings.t("nav.importExternal"), action: #selector(handleImportMenu), obj: nil, to: menu)
         if !parent.selectedIDs.isEmpty {
             menu.addItem(.separator())
             let delTitle = "\(parent.strings.t("conn.deleteSelected")) (\(parent.selectedIDs.count))"
@@ -171,6 +174,12 @@ extension ConnectionListCoordinator: NSMenuDelegate {
         addMenuItem(
             strings.t("conn.copyHostAddress"),
             action: #selector(handleCopyAddressMenu(_:)),
+            obj: profile,
+            to: menu
+        )
+        addMenuItem(
+            strings.t("conn.exportConnection"),
+            action: #selector(handleExportSingleMenu(_:)),
             obj: profile,
             to: menu
         )
@@ -264,6 +273,21 @@ extension ConnectionListCoordinator: NSMenuDelegate {
     @objc private func handleDeleteGroup(_ sender: NSMenuItem) {
         if let groupID = sender.representedObject as? UUID {
             parent.onDeleteGroup(groupID)
+        }
+    }
+
+    @objc private func handleExportAllMenu() {
+        parent.onExportRequested?(false)
+    }
+
+    @objc private func handleImportMenu() {
+        parent.onImportRequested?()
+    }
+
+    @objc private func handleExportSingleMenu(_ sender: NSMenuItem) {
+        if let profile = sender.representedObject as? ConnectionProfile {
+            parent.selectedIDs = [profile.id]
+            parent.onExportRequested?(true)
         }
     }
 }

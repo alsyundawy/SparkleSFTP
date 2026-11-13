@@ -148,12 +148,60 @@ public extension AppState {
 
     func inspectExternalConnections(from url: URL) {
         do {
-            let report = try ExternalConnectionFileReader.inspect(url: url)
+            let didScope = url.startAccessingSecurityScopedResource()
+            defer {
+                if didScope {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            let data = try Data(contentsOf: url)
+            pendingImportURL = url
+            pendingImportData = data
+            archivePassphraseError = nil
+            let ext = url.pathExtension.lowercased()
+            let report = try ExternalConnectionFileReader.inspect(data: data, fileExtension: ext)
             pendingImportReport = report
             isShowingImportSheet = true
         } catch {
             reportNonCancellationError(error) { .persistenceFailure(reason: $0) }
         }
+    }
+
+    func unlockEncryptedImport(passphrase: String) {
+        guard let data = pendingImportData else { return }
+        do {
+            let report = try InternalConnectionExporter.parseToReport(data: data, passphrase: passphrase)
+            pendingImportReport = report
+            archivePassphraseError = nil
+        } catch {
+            archivePassphraseError = error.localizedDescription
+        }
+    }
+
+    func openExportSheet(selectedOnly: Bool) {
+        exportSelectedOnly = selectedOnly
+        isShowingExportSheet = true
+    }
+
+    func exportConnections(
+        mode: ConnectionExportSecurityMode,
+        passphrase: String?,
+        selectedOnly: Bool
+    ) async throws -> Data {
+        let targets: [ConnectionProfile]
+        if selectedOnly {
+            let ids = selectedProfileIDs
+            targets = profiles.filter { ids.contains($0.id) }
+        } else {
+            targets = profiles
+        }
+        return try await InternalConnectionExporter.exportData(
+            profiles: targets,
+            groups: groups,
+            credentialStore: credentialStore,
+            mode: mode,
+            passphrase: passphrase
+        )
     }
 
     func importExternalConnections(from url: URL) async {

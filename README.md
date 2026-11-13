@@ -70,6 +70,7 @@
 
 ## 🌟 Key Highlights & What Makes SparkleSFTP Special
 
+- 🔒 **Native Connection Export & Import (`.sparklesftp` / `.json`)**: Export and import complete connection configurations and server groups with three security tiers: Sanitized (credentials stripped for team sharing), Password-Protected Encrypted Backup (AES-256-GCM + PBKDF2-HMAC-SHA256 with 100,000 iterations), and Plaintext Secrets for trusted local backups.
 - 📌 **Bookmarks & Path History Manager**: Save local and remote directory bookmarks with custom icons and host scoping. Includes a 20-item ring buffer history per pane with quick-jump menus and optional **Synchronized Browsing** across matching folder hierarchies.
 - 🌲 **Directory Tree Navigation Sidebar**: Collapsible tree navigation for both local and remote panes with on-demand lazy subdirectory loading and cycle-safe symlink detection to prevent UI freezes.
 - ⚡ **Quick Remote Commands Runner**: Bottom-docked retractable remote command bar with pre-configured cross-platform presets (Linux, BSD, macOS) and rigorous WinSCP-style placeholder substitution (`!`, `!/`, `!?prompt?!`) protected by shell metacharacter sanitization (CWE-78).
@@ -141,7 +142,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 - **SHA-256 Checksum Verification**:
 
 ```text
-592fa80a87eb5af83314ef5da195375677e3c95bd183e24e8f34035171e030ae  SparkleSFTP-0.5.0-universal.dmg
+ea7dd7f6d12547a590ee9766515e87c372f79882b0d6077dabe0f096204c4efb  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verify in Terminal:

@@ -4,7 +4,7 @@ import SparklePersistence
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Dedicated preview and selective importer for FileZilla XML and Commander INI connection files.
+/// Dedicated preview and selective importer for FileZilla XML, WinSCP INI, and native SparkleSFTP connection files.
 public struct ImportConnectionsSheet: View {
     @ObservedObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -12,6 +12,7 @@ public struct ImportConnectionsSheet: View {
     @State private var createFoldersAsGroups = true
     @State private var skipDuplicates = true
     @State private var isPickingFile = false
+    @State private var archivePassphrase = ""
 
     public init(appState: AppState) {
         self.appState = appState
@@ -23,6 +24,16 @@ public struct ImportConnectionsSheet: View {
 
     private var report: ExternalImportReport? {
         appState.pendingImportReport
+    }
+
+    private var formatBadgeTitle: String {
+        guard let report else { return "" }
+        switch report.format {
+        case .fileZillaXML: return strings.t("import.fileZillaFormat")
+        case .commanderINI: return strings.t("import.iniFormat")
+        case .nativeJSON: return strings.t("import.nativeJSONFormat")
+        case .encryptedArchive: return strings.t("import.encryptedArchiveFormat")
+        }
     }
 
     public var body: some View {
@@ -51,15 +62,18 @@ public struct ImportConnectionsSheet: View {
                 }
 
                 Spacer()
-                if let report {
-                    let formatLabel = report.format == .fileZillaXML
-                        ? strings.t("import.fileZillaFormat")
-                        : strings.t("import.iniFormat")
-                    StatusPill(title: formatLabel, systemImage: "doc.text", tint: SparkleTheme.Colors.accent)
+                if report != nil {
+                    StatusPill(
+                        title: formatBadgeTitle,
+                        systemImage: "doc.text",
+                        tint: SparkleTheme.Colors.accent
+                    )
                 }
             }
 
-            if let report, !report.connections.isEmpty {
+            if let report, report.format == .encryptedArchive {
+                encryptedUnlockView
+            } else if let report, !report.connections.isEmpty {
                 Toggle(strings.t("import.createFoldersAsGroups"), isOn: $createFoldersAsGroups)
                 Toggle(strings.t("import.skipDuplicates"), isOn: $skipDuplicates)
 
@@ -95,23 +109,13 @@ public struct ImportConnectionsSheet: View {
                     appState.pendingImportReport = nil
                     dismiss()
                 }
-                Button("\(strings.t("import.importSelected")) (\(selectedIndices.count))") {
-                    guard let report else { return }
-                    let chosen = report.connections.enumerated()
-                        .filter { selectedIndices.contains($0.offset) }
-                        .map(\.element)
-                    Task {
-                        await appState.commitImportedConnections(
-                            chosen,
-                            createGroups: createFoldersAsGroups,
-                            skipDuplicates: skipDuplicates
-                        )
-                        appState.pendingImportReport = nil
-                        dismiss()
+                if report?.format != .encryptedArchive {
+                    Button("\(strings.t("import.importSelected")) (\(selectedIndices.count))") {
+                        commitSelected()
                     }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(selectedIndices.isEmpty)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedIndices.isEmpty)
             }
         }
         .padding(SparkleTheme.Spacing.large)
@@ -126,6 +130,8 @@ public struct ImportConnectionsSheet: View {
         .fileImporter(
             isPresented: $isPickingFile,
             allowedContentTypes: [
+                UTType(filenameExtension: "sparklesftp") ?? .data,
+                .json,
                 .xml,
                 .plainText,
                 UTType(filenameExtension: "ini") ?? .data,
@@ -136,6 +142,60 @@ public struct ImportConnectionsSheet: View {
             if case let .success(urls) = result, let url = urls.first {
                 appState.inspectExternalConnections(from: url)
             }
+        }
+    }
+
+    private var encryptedUnlockView: some View {
+        VStack(spacing: SparkleTheme.Spacing.medium) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 42))
+                .foregroundStyle(SparkleTheme.Colors.accent)
+
+            Text(strings.t("import.encryptedArchiveTitle"))
+                .font(SparkleTheme.Typography.headline)
+
+            Text(strings.t("import.encryptedArchiveSubtitle"))
+                .font(SparkleTheme.Typography.caption)
+                .foregroundStyle(appState.activePalette.secondaryTextColor)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 8) {
+                SecureField(strings.t("import.archivePassphrasePlaceholder"), text: $archivePassphrase)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 300)
+
+                Button(strings.t("import.unlockArchive")) {
+                    appState.unlockEncryptedImport(passphrase: archivePassphrase)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(archivePassphrase.isEmpty)
+            }
+
+            if let err = appState.archivePassphraseError {
+                Text(err)
+                    .font(SparkleTheme.Typography.caption)
+                    .foregroundStyle(SparkleTheme.Colors.danger)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(SparkleTheme.Spacing.large)
+        .background(appState.activePalette.canvasColor)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func commitSelected() {
+        guard let report else { return }
+        let chosen = report.connections.enumerated()
+            .filter { selectedIndices.contains($0.offset) }
+            .map(\.element)
+        Task {
+            await appState.commitImportedConnections(
+                chosen,
+                createGroups: createFoldersAsGroups,
+                skipDuplicates: skipDuplicates
+            )
+            appState.pendingImportReport = nil
+            dismiss()
         }
     }
 
@@ -200,7 +260,7 @@ public struct ImportConnectionsSheet: View {
     }
 
     private func selectAllCurrent() {
-        if let report {
+        if let report, report.format != .encryptedArchive {
             selectedIndices = Set(report.connections.indices)
         } else {
             selectedIndices = []

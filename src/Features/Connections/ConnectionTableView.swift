@@ -77,6 +77,8 @@ struct ConnectionListTableView: NSViewRepresentable {
     let onClone: (ConnectionProfile) -> Void
     let onRequestDelete: (Set<UUID>) -> Void
     let onDeleteGroup: (UUID) -> Void
+    var onExportRequested: ((Bool) -> Void)?
+    var onImportRequested: (() -> Void)?
 
     func makeCoordinator() -> ConnectionListCoordinator {
         ConnectionListCoordinator(parent: self)

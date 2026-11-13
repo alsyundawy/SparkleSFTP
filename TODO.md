@@ -125,10 +125,12 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Implement FileZilla XML base64 password decoding for `<Pass>` and `<Password>` tags and automatic XML location discovery (`T-087`)
 - [x] Add internal terminal selection to `ExternalTerminalApp` and quick launcher button in SparkNotePad toolbar (`T-088`)
 - [x] Set default theme to Tokyo Night Storm, standardize all names to SparkNotePad, and expand About/Credits with Google Antigravity IDE and Gemini 3.8 Flash (`T-089`)
-- [x] Add 11 new strings across `en.json` and `id.json` achieving 100% key parity (528 keys total) (`T-090`)
-- [x] Pass all 130 unit tests across 35 test suites, 0 SwiftLint violations, and 0 SwiftFormat warnings (`T-091`)
+- [x] Add 27 new strings across `en.json` and `id.json` achieving 100% key parity (555 keys total) (`T-090`)
+- [x] Pass all 134 unit tests across 36 test suites, 0 SwiftLint violations, and 0 SwiftFormat warnings across 225 Swift files (`T-091`)
+- [x] Implement Native Connection Export & Import (`InternalConnectionExportModels`, `InternalConnectionExporter`, PBKDF2-HMAC-SHA256 with 100,000 iterations, AES-256-GCM, sanitized & plaintext modes) (`T-094`)
+- [x] Create `ExportConnectionsSheet` and enhance `ImportConnectionsSheet` with encrypted archive unlock UI, `.sparklesftp` UTType, and menu integration (`⌘⇧E` / `⌘⇧I`) (`T-095`)
 - [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.5.0-universal.dmg` + `.sha256`) (`T-092`)
-- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.5.0.md`) (`T-093`)
+- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.5.0.md`) across branches (`T-093`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 

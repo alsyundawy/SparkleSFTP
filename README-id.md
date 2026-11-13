@@ -70,6 +70,7 @@
 
 ## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.5.0
 
+- 🔒 **Ekspor & Impor Konfigurasi Koneksi Native (`.sparklesftp` / `.json`)**: Ekspor dan impor seluruh konfigurasi koneksi serta grup server dengan tiga opsi keamanan: Bersih/Sanitized (tanpa rahasia, aman dibagikan ke tim), Cadangan Terenkripsi Kata Sandi (AES-256-GCM + PBKDF2-HMAC-SHA256 dengan 100.000 iterasi), serta Rahasia Teks Terbuka untuk cadangan lokal tepercaya.
 - 📌 **Manajer Markah & Riwayat Jalur**: Menyimpan markah jalur direktori lokal dan remote dengan ikon kustom dan isolasi per sesi host. Dilengkapi 20 riwayat jalur putar (*ring buffer*) per panel dengan menu lompat cepat (*quick jump*) dan opsi **Penelusuran Tersinkronisasi (*Synchronized Browsing*)**.
 - 🌲 **Bilah Sisi Pohon Direktori (*Directory Tree Sidebar*)**: Penjelajah pohon folder berhierarki untuk panel lokal dan remote dengan pemuatan subdirektori malas (*lazy evaluation*) dan pencegahan siklus rekursif symlink agar antarmuka tidak macet.
 - ⚡ **Peluncur Perintah Remote Cepat (*Quick Remote Commands Runner*)**: Bilah eksekusi perintah di bawah panel remote dengan prasetel perintah bawaan (Linux, BSD, macOS), penggantian placeholder cerdas (`!`, `!/`, `!?prompt?!`), serta penyaringan metakarakter shell berbahaya (CWE-78).
@@ -141,7 +142,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 - **Verifikasi Integritas SHA-256**:
 
 ```text
-592fa80a87eb5af83314ef5da195375677e3c95bd183e24e8f34035171e030ae  SparkleSFTP-0.5.0-universal.dmg
+ea7dd7f6d12547a590ee9766515e87c372f79882b0d6077dabe0f096204c4efb  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verifikasi di Terminal Mac:

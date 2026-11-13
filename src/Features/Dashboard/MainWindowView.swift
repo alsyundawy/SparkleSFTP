@@ -160,6 +160,9 @@ public struct MainWindowView: View {
         .sheet(isPresented: $appState.isShowingImportSheet) {
             ImportConnectionsSheet(appState: appState)
         }
+        .sheet(isPresented: $appState.isShowingExportSheet) {
+            ExportConnectionsSheet(appState: appState)
+        }
         .sheet(isPresented: $isShowingSecurityDiagnostics) {
             SecurityDiagnosticsView(appState: appState)
         }

@@ -50,7 +50,9 @@ public struct ConnectionManagerView: View {
                 onEdit: { profile in editorMode = .edit(profile) },
                 onClone: { profile in Task { _ = await appState.cloneProfile(profile) } },
                 onRequestDelete: { ids in requestDelete(ids: ids) },
-                onDeleteGroup: { groupID in Task { await appState.deleteGroup(id: groupID) } }
+                onDeleteGroup: { groupID in Task { await appState.deleteGroup(id: groupID) } },
+                onExportRequested: { selectedOnly in appState.openExportSheet(selectedOnly: selectedOnly) },
+                onImportRequested: { appState.isShowingImportSheet = true }
             )
 
             bottomControls(palette: palette)
@@ -224,15 +226,7 @@ private extension ConnectionManagerView {
 
                 Spacer(minLength: 4)
 
-                Menu(appState.strings.t("nav.importMenu")) {
-                    Button(appState.strings.t("nav.importSSHConfig")) {
-                        Task { await appState.importFromSSHConfig() }
-                    }
-                    Button(appState.strings.t("nav.importExternal")) {
-                        appState.isShowingImportSheet = true
-                    }
-                }
-                .controlSize(.small)
+                importExportMenus()
             }
         }
         .padding(SparkleTheme.Spacing.small)
@@ -240,6 +234,31 @@ private extension ConnectionManagerView {
         .background(palette.windowColor, ignoresSafeAreaEdges: [])
         .overlay(alignment: .top) {
             palette.borderColor.frame(height: 1)
+        }
+    }
+
+    private func importExportMenus() -> some View {
+        HStack(spacing: SparkleTheme.Spacing.tiny) {
+            Menu(appState.strings.t("nav.importMenu")) {
+                Button(appState.strings.t("nav.importSSHConfig")) {
+                    Task { await appState.importFromSSHConfig() }
+                }
+                Button(appState.strings.t("nav.importExternal")) {
+                    appState.isShowingImportSheet = true
+                }
+            }
+            .controlSize(.small)
+
+            Menu(appState.strings.t("nav.exportMenu")) {
+                Button(appState.strings.t("nav.exportAll")) {
+                    appState.openExportSheet(selectedOnly: false)
+                }
+                Button(appState.strings.t("nav.exportSelected")) {
+                    appState.openExportSheet(selectedOnly: true)
+                }
+                .disabled(appState.primarySelectedProfile == nil)
+            }
+            .controlSize(.small)
         }
     }
 
