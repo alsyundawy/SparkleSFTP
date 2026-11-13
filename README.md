@@ -132,7 +132,7 @@ Because community builds are ad-hoc signed, macOS may ask for initial confirmati
 - **SHA-256 Checksum Verification**:
 
 ```text
-9fab8ac9ba897bed690863f123f4601e4da0c77d64b479df83f7da859216ad33  SparkleSFTP-0.4.0-universal.dmg
+888f6f7bf744e221396e507ac30934eccbbf57a2b638d6848b0bfe3c99bff25e  SparkleSFTP-0.4.0-universal.dmg
 ```
 
 Verify in Terminal:
