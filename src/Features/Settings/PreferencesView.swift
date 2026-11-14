@@ -5,6 +5,7 @@ import SwiftUI
 
 public struct PreferencesView: View {
     @ObservedObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: SettingsTabIdentifier = .general
     @State private var searchQuery: String = ""
     @State private var showResetAllConfirmation = false
@@ -18,27 +19,36 @@ public struct PreferencesView: View {
         appState.strings
     }
 
+    private var palette: SparkleThemePalette {
+        appState.activePalette
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
             headerBar
-            Divider()
+            Divider().overlay(palette.borderColor)
+            fixedTwoRowTabBar
+            Divider().overlay(palette.borderColor)
 
             if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 tabContentView
             } else {
                 searchResultsView
             }
+
+            Divider().overlay(palette.borderColor)
+            footerBar
         }
         .frame(
-            minWidth: 740,
+            minWidth: 760,
             idealWidth: 760,
             maxWidth: .infinity,
-            minHeight: 580,
+            minHeight: 600,
             idealHeight: 600,
             maxHeight: .infinity
         )
-        .sparkleWorkspaceSurface(appState.activePalette)
-        .background(SparkleWindowConfigurator(palette: appState.activePalette, allowFullScreen: true))
+        .sparkleWorkspaceSurface(palette)
+        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: true))
         .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
             if (notification.object as? UUID) != appState.windowInstanceID {
                 appState.reloadPreferencesFromNotification()
@@ -56,61 +66,14 @@ public struct PreferencesView: View {
         }
     }
 
-    private var headerBar: some View {
-        HStack(spacing: SparkleTheme.Spacing.small) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(appState.activePalette.secondaryTextColor)
-            TextField(strings.t("prefs.searchPlaceholder"), text: $searchQuery)
-                .textFieldStyle(.plain)
-                .frame(maxWidth: 240)
-
-            if !searchQuery.isEmpty {
-                Button {
-                    searchQuery = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(appState.activePalette.secondaryTextColor)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Spacer()
-
-            Button(strings.t("prefs.exportSettings")) {
-                exportSettingsToFile()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-
-            Button(strings.t("prefs.importSettings")) {
-                importSettingsFromFile()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-
-            Button(strings.t("prefs.resetAll")) {
-                showResetAllConfirmation = true
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-        .padding(.horizontal, SparkleTheme.Spacing.medium)
-        .padding(.vertical, SparkleTheme.Spacing.small)
-        .background(appState.activePalette.canvasColor.opacity(0.5))
-    }
-
     private var tabContentView: some View {
-        VStack(spacing: 0) {
-            fixedTwoRowTabBar
-            Divider()
-            activeTabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(SparkleTheme.Spacing.small)
-        }
+        activeTabContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(palette.canvasColor)
     }
 
     private var fixedTwoRowTabBar: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             HStack(spacing: 6) {
                 tabButton(tab: .general, title: strings.t("prefs.tabGeneral"), icon: "globe")
                 tabButton(tab: .themes, title: strings.t("prefs.tabThemes"), icon: SparkleTheme.Symbols.theme)
@@ -127,8 +90,8 @@ public struct PreferencesView: View {
             }
         }
         .padding(.horizontal, SparkleTheme.Spacing.medium)
-        .padding(.vertical, SparkleTheme.Spacing.small)
-        .background(appState.activePalette.canvasColor.opacity(0.6))
+        .padding(.vertical, 8)
+        .background(palette.windowColor)
     }
 
     private func tabButton(tab: SettingsTabIdentifier, title: String, icon: String) -> some View {
@@ -138,29 +101,89 @@ public struct PreferencesView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: isSelected ? .bold : .regular))
+                    .font(isSelected ? SparkleTheme.Typography.headline : SparkleTheme.Typography.body)
                 Text(title)
-                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
+                    .font(isSelected ? SparkleTheme.Typography.headline : SparkleTheme.Typography.body)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
-            .padding(.horizontal, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isSelected ? SparkleTheme.Colors.accent.opacity(0.18) : Color.clear)
-            )
+            .padding(.horizontal, 6)
+            .background(isSelected ? palette.canvasColor : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(isSelected ? SparkleTheme.Colors.accent.opacity(0.6) : Color.clear, lineWidth: 1)
+                    .stroke(isSelected ? palette.borderColor : Color.clear, lineWidth: 1)
             )
-            .foregroundStyle(isSelected ? SparkleTheme.Colors.accent : appState.activePalette.primaryTextColor)
+            .foregroundStyle(isSelected ? palette.accentColor : palette.secondaryTextColor)
         }
         .buttonStyle(.plain)
     }
 
+    private var headerBar: some View {
+        HStack(spacing: SparkleTheme.Spacing.small) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(palette.secondaryTextColor)
+            TextField(strings.t("prefs.searchPlaceholder"), text: $searchQuery)
+                .textFieldStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if !searchQuery.isEmpty {
+                Button {
+                    searchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(palette.secondaryTextColor)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, SparkleTheme.Spacing.medium)
+        .padding(.vertical, 8)
+        .background(palette.windowColor)
+    }
+
+    private var footerBar: some View {
+        HStack(spacing: SparkleTheme.Spacing.small) {
+            Button(strings.t("prefs.resetAll")) {
+                showResetAllConfirmation = true
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Button(strings.t("prefs.exportSettings")) {
+                exportSettingsToFile()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Button(strings.t("prefs.importSettings")) {
+                importSettingsFromFile()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Spacer()
+
+            Button(strings.t("common.close")) {
+                if let keyWindow = NSApp.keyWindow,
+                   keyWindow.identifier == NSUserInterfaceItemIdentifier("sparkle.preferences") {
+                    keyWindow.close()
+                } else {
+                    dismiss()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(.horizontal, SparkleTheme.Spacing.medium)
+        .padding(.vertical, 10)
+        .background(palette.windowColor)
+    }
+}
+
+extension PreferencesView {
     @ViewBuilder
-    private var activeTabContent: some View {
+    var activeTabContent: some View {
         switch selectedTab {
         case .general:
             PreferencesLocalizationTab(appState: appState)
@@ -185,46 +208,59 @@ public struct PreferencesView: View {
         }
     }
 
-    private var searchResultsView: some View {
+    var searchResultsView: some View {
         let results = SettingsRegistry.search(query: searchQuery)
         return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
             Text("\(results.count) \(strings.t("prefs.searchResultsCount"))")
                 .font(SparkleTheme.Typography.caption)
-                .foregroundStyle(appState.activePalette.secondaryTextColor)
+                .foregroundStyle(palette.secondaryTextColor)
                 .padding(.horizontal, SparkleTheme.Spacing.medium)
                 .padding(.top, SparkleTheme.Spacing.small)
 
-            List {
-                ForEach(results, id: \.id) { descriptor in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(descriptor.key)
-                                .font(.system(.caption, design: .monospaced))
-                                .bold()
-                            Spacer()
-                            Text(strings.t(descriptor.tab.titleKey))
-                                .font(SparkleTheme.Typography.caption)
-                                .foregroundStyle(SparkleTheme.Colors.accent)
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(results, id: \.id) { descriptor in
+                        Button {
+                            selectedTab = descriptor.tab
+                            searchQuery = ""
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack {
+                                    Text(descriptor.key)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .bold()
+                                        .foregroundStyle(palette.primaryTextColor)
+                                    Spacer()
+                                    Text(strings.t(descriptor.tab.titleKey))
+                                        .font(SparkleTheme.Typography.caption)
+                                        .foregroundStyle(palette.accentColor)
+                                }
+                                Text(strings.t(descriptor.titleKey))
+                                    .font(SparkleTheme.Typography.body)
+                                    .foregroundStyle(palette.primaryTextColor)
+                                Text(strings.t(descriptor.descriptionKey))
+                                    .font(SparkleTheme.Typography.caption)
+                                    .foregroundStyle(palette.secondaryTextColor)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(palette.windowColor)
+                            .overlay(alignment: .leading) {
+                                Rectangle().fill(palette.accentColor).frame(width: 3)
+                            }
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(palette.borderColor, lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
-                        Text(strings.t(descriptor.titleKey))
-                            .font(SparkleTheme.Typography.body)
-                        Text(strings.t(descriptor.descriptionKey))
-                            .font(SparkleTheme.Typography.caption)
-                            .foregroundStyle(appState.activePalette.secondaryTextColor)
-                    }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        selectedTab = descriptor.tab
-                        searchQuery = ""
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(SparkleTheme.Spacing.medium)
             }
-            .listStyle(.inset(alternatesRowBackgrounds: true))
+            .background(palette.canvasColor)
         }
     }
 
-    private func exportSettingsToFile() {
+    func exportSettingsToFile() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "SparkleSFTP-Settings.json"
         panel.allowedContentTypes = [.json]
@@ -236,7 +272,7 @@ public struct PreferencesView: View {
         }
     }
 
-    private func importSettingsFromFile() {
+    func importSettingsFromFile() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
