@@ -214,7 +214,10 @@ final class ConnectionListCoordinator: NSObject, NSTableViewDataSource, NSTableV
         return false
     }
 
-    func tableView(_: NSTableView, shouldSelectRow row: Int) -> Bool {
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+        if let interactiveTable = tableView as? InteractiveConnectionTableView, interactiveTable.isScrollingActive {
+            return false
+        }
         guard row >= 0, row < cachedRows.count else { return false }
         if case .profile = cachedRows[row] {
             return true
@@ -256,6 +259,13 @@ final class ConnectionListCoordinator: NSObject, NSTableViewDataSource, NSTableV
             configureProfileCell(cell, profile: profile)
             return cell
         }
+    }
+
+    func selectionShouldChange(in tableView: NSTableView) -> Bool {
+        if let interactiveTable = tableView as? InteractiveConnectionTableView, interactiveTable.isScrollingActive {
+            return false
+        }
+        return true
     }
 
     func tableViewSelectionDidChange(_: Notification) {

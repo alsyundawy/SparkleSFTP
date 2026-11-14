@@ -161,7 +161,7 @@ struct PersistenceTests {
         [Sessions\\Legacy%20SCP]
         HostName=scp.example.net
         UserName=deploy
-        FSProtocol=0
+        FSProtocol=1
         """
         let scpSessions = IniSessionImporter.parse(iniContents: scpIni)
         #expect(scpSessions.count == 1)

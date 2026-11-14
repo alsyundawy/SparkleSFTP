@@ -30,7 +30,7 @@ public struct ImportConnectionsSheet: View {
         guard let report else { return "" }
         switch report.format {
         case .fileZillaXML: return strings.t("import.fileZillaFormat")
-        case .commanderINI: return strings.t("import.iniFormat")
+        case .commanderINI, .winSCPINI: return strings.t("import.iniFormat")
         case .nativeJSON: return strings.t("import.nativeJSONFormat")
         case .encryptedArchive: return strings.t("import.encryptedArchiveFormat")
         }
@@ -58,6 +58,13 @@ public struct ImportConnectionsSheet: View {
                 if let firstSite = detectedSites.first {
                     Button(strings.t("import.autoDetectFileZilla")) {
                         appState.inspectExternalConnections(from: firstSite)
+                    }
+                }
+
+                let detectedWinSCP = ExternalConnectionFileReader.defaultWinSCPSiteFiles()
+                if let firstWinSCP = detectedWinSCP.first {
+                    Button(strings.t("import.autoDetectWinSCP")) {
+                        appState.inspectExternalConnections(from: firstWinSCP)
                     }
                 }
 

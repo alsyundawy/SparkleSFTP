@@ -317,11 +317,14 @@ public enum IniSessionImporter {
 
     private static func resolveProtocol(fsProtocol: String, ftpsMode: String) -> ProtocolType? {
         switch fsProtocol {
-        case "0":
-            return .scp
-        case "1", "2":
+        case "0", "2":
+            // WinSCP Specification (SessionData.h): fsSFTP = 0 (default), fsSFTP_with_SCP_fallback = 2
             return .sftp
+        case "1":
+            // WinSCP Specification (SessionData.h): fsSCP = 1
+            return .scp
         case "5":
+            // WinSCP Specification (SessionData.h): fsFTP = 5
             switch ftpsMode {
             case "1": return .ftpsImplicit
             case "2", "3": return .ftpsExplicit

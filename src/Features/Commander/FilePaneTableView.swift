@@ -55,6 +55,20 @@ public struct FilePaneTableView: NSViewRepresentable {
         scrollView.autohidesScrollers = true
         scrollView.drawsBackground = true
 
+        let tableView = createTableView(context: context)
+        configureColumns(on: tableView)
+
+        scrollView.documentView = tableView
+        tableView.menu = context.coordinator.buildContextMenu()
+        context.coordinator.cachedLocaleCode = strings.localeCode
+        context.coordinator.scrollView = scrollView
+        context.coordinator.tableView = tableView
+        context.coordinator.installFocusObserver()
+        context.coordinator.applyTheme(palette)
+        return scrollView
+    }
+
+    private func createTableView(context: Context) -> InteractiveFileTableView {
         let tableView = InteractiveFileTableView()
         tableView.usesAlternatingRowBackgroundColors = false
         tableView.gridStyleMask = .solidHorizontalGridLineMask
@@ -67,15 +81,15 @@ public struct FilePaneTableView: NSViewRepresentable {
         tableView.doubleAction = #selector(Coordinator.handleDoubleClick(_:))
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
-        tableView.onActivateSelected = { [weak coordinator = context.coordinator] in
-            coordinator?.activateCurrentSelection()
-        }
-        tableView.onQuickLookSelected = { [weak coordinator = context.coordinator] in
-            coordinator?.quickLookCurrentSelection()
-        }
-        tableView.onGoParent = { [weak coordinator = context.coordinator] in
-            coordinator?.parent.onGoParent?()
-        }
+        wireTableCallbacks(tableView, coordinator: context.coordinator)
+        return tableView
+    }
+
+    private func wireTableCallbacks(_ tableView: InteractiveFileTableView, coordinator: Coordinator) {
+        tableView.onActivateSelected = { [weak coordinator] in coordinator?.activateCurrentSelection() }
+        tableView.onQuickLookSelected = { [weak coordinator] in coordinator?.quickLookCurrentSelection() }
+        tableView.onGoParent = { [weak coordinator] in coordinator?.parent.onGoParent?() }
+        tableView.onFocusRequested = { [weak coordinator] in coordinator?.parent.onFocusPane() }
         tableView.onSwitchPane = { [weak tableView, isLocalPane] in
             guard let window = tableView?.window else { return }
             NotificationCenter.default.post(
@@ -84,23 +98,8 @@ public struct FilePaneTableView: NSViewRepresentable {
                 userInfo: ["isLocal": !isLocalPane]
             )
         }
-        tableView.onRightClickSelectRow = { [weak coordinator = context.coordinator] row in
-            coordinator?.selectRowForContextMenu(row)
-        }
-        tableView.onContextActionShortcut = { [weak coordinator = context.coordinator] action in
-            coordinator?.triggerContextAction(action)
-        }
-
-        configureColumns(on: tableView)
-
-        scrollView.documentView = tableView
-        tableView.menu = context.coordinator.buildContextMenu()
-        context.coordinator.cachedLocaleCode = strings.localeCode
-        context.coordinator.scrollView = scrollView
-        context.coordinator.tableView = tableView
-        context.coordinator.installFocusObserver()
-        context.coordinator.applyTheme(palette)
-        return scrollView
+        tableView.onRightClickSelectRow = { [weak coordinator] in coordinator?.selectRowForContextMenu($0) }
+        tableView.onContextActionShortcut = { [weak coordinator] in coordinator?.triggerContextAction($0) }
     }
 
     public static func dismantleNSView(_: NSScrollView, coordinator: Coordinator) {
@@ -314,6 +313,16 @@ public extension FilePaneTableView {
             return cell
         }
 
+        public func selectionShouldChange(in tableView: NSTableView) -> Bool {
+            guard let interactive = tableView as? InteractiveFileTableView else { return true }
+            return !interactive.isScrollingActive
+        }
+
+        public func tableView(_ tableView: NSTableView, shouldSelectRow _: Int) -> Bool {
+            guard let interactive = tableView as? InteractiveFileTableView else { return true }
+            return !interactive.isScrollingActive
+        }
+
         public func tableViewSelectionDidChange(_: Notification) {
             guard !isProgrammaticUpdate, let tableView else { return }
             parent.onFocusPane()
@@ -339,51 +348,7 @@ public extension FilePaneTableView {
         }
 
         public func tableView(_: NSTableView, didClick tableColumn: NSTableColumn) {
-            switch tableColumn.identifier.rawValue {
-            case "name": parent.onSortColumn(.name)
-            case "size": parent.onSortColumn(.size)
-            case "modified": parent.onSortColumn(.modifiedDate)
-            case "permissions": parent.onSortColumn(.permissions)
-            default: break
-            }
-        }
-
-        @objc func handleDoubleClick(_ sender: NSTableView) {
-            let row = sender.clickedRow
-            guard row >= 0, row < cachedFiles.count else { return }
-            parent.onActivateRow(cachedFiles[row])
-        }
-
-        func activateCurrentSelection() {
-            guard let row = tableView?.selectedRow, row >= 0, row < cachedFiles.count else { return }
-            parent.onActivateRow(cachedFiles[row])
-        }
-
-        func quickLookCurrentSelection() {
-            guard let row = tableView?.selectedRow, row >= 0, row < cachedFiles.count else { return }
-            parent.onQuickLookRow?(cachedFiles[row])
-        }
-
-        func selectRowForContextMenu(_ row: Int) {
-            guard row >= 0, row < cachedFiles.count, let tableView else { return }
-            parent.onFocusPane()
-            tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
-        }
-
-        func triggerContextAction(_ action: FilePaneContextAction) {
-            parent.onFocusPane()
-            if action == .deselectAll {
-                isProgrammaticUpdate = true
-                tableView?.deselectAll(nil)
-                lastSyncedSelection = []
-                parent.selectedIDs = []
-                isProgrammaticUpdate = false
-                parent.onContextAction(action, nil)
-                return
-            }
-            let selected = tableView?.selectedRow ?? -1
-            let target = (selected >= 0 && selected < cachedFiles.count) ? cachedFiles[selected] : nil
-            parent.onContextAction(action, target)
+            didClickColumn(tableColumn)
         }
     }
 }

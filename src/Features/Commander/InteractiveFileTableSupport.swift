@@ -14,6 +14,64 @@ final class InteractiveFileTableView: NSTableView {
     var onSwitchPane: (() -> Void)?
     var onRightClickSelectRow: ((Int) -> Void)?
     var onContextActionShortcut: ((FilePaneContextAction) -> Void)?
+    var onFocusRequested: (() -> Void)?
+
+    private(set) var isScrollingActive = false
+    private var pendingMouseDownEvent: NSEvent?
+    private var dragStartPoint: NSPoint = .zero
+    private var isDraggingSelection = false
+    private let dragMovementThreshold: CGFloat = 10.0
+    private var selectionAnchorRow: Int = -1
+    private var scrollResetWorkItem: DispatchWorkItem?
+
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        NotificationCenter.default.removeObserver(self, name: NSScrollView.willStartLiveScrollNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSScrollView.didEndLiveScrollNotification, object: nil)
+
+        if let scrollView = enclosingScrollView {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleLiveScrollDidStart),
+                name: NSScrollView.willStartLiveScrollNotification,
+                object: scrollView
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleLiveScrollDidEnd),
+                name: NSScrollView.didEndLiveScrollNotification,
+                object: scrollView
+            )
+        }
+    }
+
+    override func viewWillMove(toSuperview newSuperview: NSView?) {
+        super.viewWillMove(toSuperview: newSuperview)
+        if newSuperview == nil {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSScrollView.willStartLiveScrollNotification,
+                object: nil
+            )
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSScrollView.didEndLiveScrollNotification,
+                object: nil
+            )
+            scrollResetWorkItem?.cancel()
+            isScrollingActive = false
+            pendingMouseDownEvent = nil
+            isDraggingSelection = false
+        }
+    }
+
+    @objc private func handleLiveScrollDidStart() {
+        isScrollingActive = true
+    }
+
+    @objc private func handleLiveScrollDidEnd() {
+        isScrollingActive = false
+    }
 
     override var acceptsFirstResponder: Bool {
         true
@@ -21,18 +79,110 @@ final class InteractiveFileTableView: NSTableView {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
+        onFocusRequested?()
         let localPoint = convert(event.locationInWindow, from: nil)
         let hitRow = row(at: localPoint)
+
         if hitRow == -1 {
             deselectAll(nil)
+            selectionAnchorRow = -1
+            pendingMouseDownEvent = nil
+            isDraggingSelection = false
             onContextActionShortcut?(.deselectAll)
             return
         }
-        super.mouseDown(with: event)
+
+        if event.clickCount >= 2 {
+            pendingMouseDownEvent = nil
+            isDraggingSelection = false
+            super.mouseDown(with: event)
+            return
+        }
+
+        // Defer selection until mouseUp to prevent trackpad tap-to-click gestures from
+        // accidentally triggering AppKit drag-selection during two-finger scrolling.
+        pendingMouseDownEvent = event
+        dragStartPoint = localPoint
+        isDraggingSelection = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard !isScrollingActive, let pendingEvent = pendingMouseDownEvent else { return }
+        let currentPoint = convert(event.locationInWindow, from: nil)
+        let distance = hypot(currentPoint.x - dragStartPoint.x, currentPoint.y - dragStartPoint.y)
+
+        if !isDraggingSelection {
+            guard distance >= dragMovementThreshold else { return }
+            isDraggingSelection = true
+        }
+
+        let startRow = row(at: dragStartPoint)
+        let currentRow = row(at: currentPoint)
+        guard startRow >= 0, currentRow >= 0 else { return }
+
+        let minRow = min(startRow, currentRow)
+        let maxRow = max(startRow, currentRow)
+        let targetIndexes = IndexSet(integersIn: minRow ... maxRow)
+
+        if pendingEvent.modifierFlags.contains(.command) {
+            selectRowIndexes(selectedRowIndexes.union(targetIndexes), byExtendingSelection: false)
+        } else {
+            selectRowIndexes(targetIndexes, byExtendingSelection: false)
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if let pendingEvent = pendingMouseDownEvent, !isDraggingSelection {
+            let localPoint = convert(event.locationInWindow, from: nil)
+            let distance = hypot(localPoint.x - dragStartPoint.x, localPoint.y - dragStartPoint.y)
+            let hitRow = row(at: localPoint)
+            if distance < dragMovementThreshold, hitRow >= 0 {
+                applyClickSelection(forRow: hitRow, modifiers: pendingEvent.modifierFlags)
+            }
+        }
+        pendingMouseDownEvent = nil
+        isDraggingSelection = false
+        super.mouseUp(with: event)
+    }
+
+    private func applyClickSelection(forRow hitRow: Int, modifiers: NSEvent.ModifierFlags) {
+        if modifiers.contains(.command) {
+            if isRowSelected(hitRow) {
+                deselectRow(hitRow)
+            } else {
+                selectRowIndexes(IndexSet(integer: hitRow), byExtendingSelection: true)
+            }
+            selectionAnchorRow = hitRow
+        } else if modifiers.contains(.shift) {
+            let anchor = (selectionAnchorRow >= 0 && selectionAnchorRow < numberOfRows)
+                ? selectionAnchorRow
+                : (selectedRow >= 0 ? selectedRow : hitRow)
+            let minRow = min(anchor, hitRow)
+            let maxRow = max(anchor, hitRow)
+            selectRowIndexes(IndexSet(integersIn: minRow ... maxRow), byExtendingSelection: false)
+        } else {
+            selectRowIndexes(IndexSet(integer: hitRow), byExtendingSelection: false)
+            selectionAnchorRow = hitRow
+        }
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        // Trackpad scrolling immediately cancels pending mouse clicks and drag selections
+        pendingMouseDownEvent = nil
+        isDraggingSelection = false
+        isScrollingActive = true
+        scrollResetWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.isScrollingActive = false
+        }
+        scrollResetWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+        super.scrollWheel(with: event)
     }
 
     override func rightMouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
+        onFocusRequested?()
         let localPoint = convert(event.locationInWindow, from: nil)
         let hitRow = row(at: localPoint)
         if hitRow >= 0, !isRowSelected(hitRow) {
@@ -69,146 +219,6 @@ final class InteractiveFileTableView: NSTableView {
 
     @objc func delete(_: Any?) {
         onContextActionShortcut?(.delete)
-    }
-
-    private func isTableResponderFocused() -> Bool {
-        guard let responder = window?.firstResponder else { return false }
-        if responder is NSText {
-            return false
-        }
-        if responder === self {
-            return true
-        }
-        if let responderView = responder as? NSView {
-            return responderView.isDescendant(of: self)
-        }
-        return false
-    }
-
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard isTableResponderFocused() else {
-            return super.performKeyEquivalent(with: event)
-        }
-        if handleModifierKey(event) || handleFunctionKey(event) {
-            return true
-        }
-        return super.performKeyEquivalent(with: event)
-    }
-
-    override func keyDown(with event: NSEvent) {
-        if handleModifierKey(event) || handleFunctionKey(event) {
-            return
-        }
-        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        switch event.keyCode {
-        case 53 where mods.isEmpty:
-            onContextActionShortcut?(.deselectAll)
-        case 48 where mods.isEmpty:
-            onSwitchPane?()
-        case 36 where mods.isEmpty, 76 where mods.isEmpty:
-            onActivateSelected?()
-        case 49 where mods.isEmpty:
-            onQuickLookSelected?()
-        case 51 where mods.isEmpty:
-            onGoParent?()
-        case 117 where mods.isEmpty:
-            onContextActionShortcut?(.delete)
-        default:
-            super.keyDown(with: event)
-        }
-    }
-
-    private func handleModifierKey(_ event: NSEvent) -> Bool {
-        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        if mods == [.command] {
-            return handleCommandOnlyShortcut(event)
-        }
-        if mods == [.command, .shift] {
-            if event.charactersIgnoringModifiers?.lowercased() == "a" {
-                onContextActionShortcut?(.deselectAll)
-                return true
-            }
-            if event.charactersIgnoringModifiers?.lowercased() == "c" {
-                onContextActionShortcut?(.copyFileNames)
-                return true
-            }
-        }
-        if mods == [.command, .option], event.charactersIgnoringModifiers?.lowercased() == "c" {
-            onContextActionShortcut?(.copyFullPaths)
-            return true
-        }
-        if mods == [.option], event.keyCode == 36 || event.keyCode == 76 {
-            onContextActionShortcut?(.inspect)
-            return true
-        }
-        return false
-    }
-
-    private func handleCommandOnlyShortcut(_ event: NSEvent) -> Bool {
-        if handleCommandKeyCodeShortcut(event.keyCode) {
-            return true
-        }
-        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
-        return handleCommandCharacterShortcut(key)
-    }
-
-    private func handleCommandKeyCodeShortcut(_ keyCode: UInt16) -> Bool {
-        switch keyCode {
-        case 51:
-            onContextActionShortcut?(.delete)
-            return true
-        case 126:
-            onGoParent?()
-            return true
-        case 125:
-            onActivateSelected?()
-            return true
-        case 36, 76:
-            onContextActionShortcut?(.insertCommandLine)
-            return true
-        default:
-            return false
-        }
-    }
-
-    private func handleCommandCharacterShortcut(_ key: String) -> Bool {
-        switch key {
-        case "a":
-            onContextActionShortcut?(.selectAll)
-            return true
-        case "d":
-            onContextActionShortcut?(.deselectAll)
-            return true
-        case "c":
-            onContextActionShortcut?(.copyClipboard)
-            return true
-        case "i":
-            onContextActionShortcut?(.inspect)
-            return true
-        default:
-            return false
-        }
-    }
-
-    private func handleFunctionKey(_ event: NSEvent) -> Bool {
-        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        if mods == [.shift], event.keyCode == 96 {
-            onContextActionShortcut?(.copyTo)
-            return true
-        }
-        guard mods.isEmpty else { return false }
-        let action: FilePaneContextAction? = switch event.keyCode {
-        case 120: .rename
-        case 96: .transfer
-        case 97: .moveTo
-        case 98: .newFolder
-        case 100: .delete
-        case 101: .inspect
-        default: nil
-        }
-        guard let action else { return false }
-        onContextActionShortcut?(action)
-        return true
     }
 }
 
