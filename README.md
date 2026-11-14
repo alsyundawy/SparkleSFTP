@@ -123,20 +123,20 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ## ⌨️ Essential Keyboard Shortcuts
 
-| Shortcut | Action | Description |
-| :--- | :--- | :--- |
-| `⌘⇧P` | Command Palette | Spotlight-style instant action and navigation launcher |
-| `⌘A` | Select All | Select all files and folders in the active file pane |
-| `Esc` / `⇧⌘A` / `⌘D` | Deselect All | Deselect / cancel selection of all files and folders |
-| `F5` | Cross-Pane Transfer | Transfer selected items directly to the opposing file pane |
-| `⇧F5` | Copy To... | Prompt for a custom destination directory to copy files |
-| `⌘C` / `⌘V` | Clipboard Copy / Paste | Standard macOS clipboard file operations |
-| `⌥⌘L` | Toggle Activity Log | Show or hide the real-time command log in sidebar |
-| `⌘⌥T` | Standalone Terminal | Open the multi-tab iTerm2 terminal workspace |
-| `⌘\` | Toggle Quick Connect | Show or hide the quick connect connection bar |
-| `⌘1` / `⌘2` | Pane Focus | Switch keyboard focus between Local and Remote file tables |
-| `⌘,` | Preferences | Open the 10-tab Settings window with Search & Reset |
-| `⌘W` | Close Tab | Close the active workspace connection tab |
+| Shortcut             | Action                 | Description                                                |
+| :------------------- | :--------------------- | :--------------------------------------------------------- |
+| `⌘⇧P`                | Command Palette        | Spotlight-style instant action and navigation launcher     |
+| `⌘A`                 | Select All             | Select all files and folders in the active file pane       |
+| `Esc` / `⇧⌘A` / `⌘D` | Deselect All           | Deselect / cancel selection of all files and folders       |
+| `F5`                 | Cross-Pane Transfer    | Transfer selected items directly to the opposing file pane |
+| `⇧F5`                | Copy To...             | Prompt for a custom destination directory to copy files    |
+| `⌘C` / `⌘V`          | Clipboard Copy / Paste | Standard macOS clipboard file operations                   |
+| `⌥⌘L`                | Toggle Activity Log    | Show or hide the real-time command log in sidebar          |
+| `⌘⌥T`                | Standalone Terminal    | Open the multi-tab iTerm2 terminal workspace               |
+| `⌘\`                 | Toggle Quick Connect   | Show or hide the quick connect connection bar              |
+| `⌘1` / `⌘2`          | Pane Focus             | Switch keyboard focus between Local and Remote file tables |
+| `⌘,`                 | Preferences            | Open the 10-tab Settings window with Search & Reset        |
+| `⌘W`                 | Close Tab              | Close the active workspace connection tab                  |
 
 ---
 

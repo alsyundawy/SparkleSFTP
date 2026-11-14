@@ -77,14 +77,14 @@
 - ⚡ **Pembatas Kecepatan Bandwidth & Pipelining Adaptif**: Pengatur batas kecepatan transfer token-bucket serta pengontrol kedalaman transfer cerdas (1–16 jendela) dengan coba-ulang eksponensial.
 - 🏷️ **Ganti Nama Massal & Verifikasi Hash Multi-Algoritma**: Perencana aturan ganti nama berkas massal dengan penghitung digit `[C]` serta verifikasi checksum streaming SHA-256, SHA-512, SHA-1, dan MD5.
 - 📦 **Perlengkapan Arsip Aman**: Kompresi dan ekstraksi multi-format (ZIP, TAR, GZ) yang kebal terhadap serangan Zip-Slip path traversal.
-- ⌘ **Palet Perintah (*Command Palette*, `⌘⇧P`)**: Peluncur aksi cepat bergaya Spotlight untuk mencari perintah, markah, koneksi, dan navigasi pengaturan.
+- ⌘ **Palet Perintah (_Command Palette_, `⌘⇧P`)**: Peluncur aksi cepat bergaya Spotlight untuk mencari perintah, markah, koneksi, dan navigasi pengaturan.
 - 📌 **Manajer Markah & Riwayat Jalur**: Menyimpan markah direktori lokal dan remote dengan ikon kustom, isolasi sesi host, serta Penelusuran Tersinkronisasi.
 - 🌲 **Bilah Sisi Pohon Direktori**: Penjelajah pohon folder berhierarki untuk panel lokal dan remote dengan pencegahan siklus rekursif symlink.
 - ⚡ **Super Adem & Hemat Daya (Zero Runaway CPU)**: Dirancang dengan notifikasi jendela AppKit presisi, menghentikan perulangan render sehingga konsumsi daya 0.0% saat santai (idle).
 - 🎨 **Seluruh 76 Tema Dipulihkan & Dimuat Lengkap**: Koleksi lengkap 76 tema bawaan dalam 26 rumpun yang memenuhi standar kontras WCAG 2.1 AA/AAA.
 - 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan daur ulang baris AppKit native.
 - 💻 **Terminal Mandiri Bergaya iTerm2 (`⌘⌥T`)**: Ruang kerja terminal multi-tab dengan pembagian jendela vertikal dan horizontal, koneksi SSH, serta sinkronisasi direktori OSC 7.
-- 🔐 **Keamanan Apple Keychain & Touch ID**: Tanpa server pihak ketiga (*Zero-cloud*), seluruh kredensial dan kunci privat SSH tersimpan aman di dalam Apple Keychain fisik Mac Anda.
+- 🔐 **Keamanan Apple Keychain & Touch ID**: Tanpa server pihak ketiga (_Zero-cloud_), seluruh kredensial dan kunci privat SSH tersimpan aman di dalam Apple Keychain fisik Mac Anda.
 
 ---
 
@@ -123,20 +123,20 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 ## ⌨️ Daftar Tombol Pintas Penting
 
-| Tombol Pintas | Tindakan | Keterangan |
-| :--- | :--- | :--- |
-| `⌘⇧P` | Palet Perintah | Peluncur cepat tindakan, koneksi, markah, dan navigasi |
-| `⌘A` | Pilih Semua | Memilih semua berkas dan folder di panel aktif |
-| `Esc` / `⇧⌘A` / `⌘D` | Batalkan Semua Pilihan | Membatalkan / melepas sorotan pilihan semua berkas dan folder |
-| `F5` | Transfer Cepat Antar-Panel | Mengirimkan berkas terpilih langsung ke panel di seberangnya |
-| `⇧F5` | Salin Ke... | Meminta lokasi folder tujuan kustom untuk menyalin berkas |
-| `⌘C` / `⌘V` | Salin / Tempel Clipboard | Operasi salin-tempel standar clipboard macOS |
-| `⌥⌘L` | Tampilkan/Sembunyikan Log | Membuka atau menutup konsol riwayat perintah aktivitas server |
-| `⌘⌥T` | Terminal Mandiri | Membuka jendela kerja terminal multi-tab bergaya iTerm2 |
-| `⌘\` | Bilah Sambungan Cepat | Menampilkan atau menyembunyikan bilah Quick Connect |
-| `⌘1` / `⌘2` | Fokus Panel Berkas | Berpindah fokus keyboard antara panel Lokal dan Remote |
-| `⌘,` | Pengaturan / Preferensi | Membuka jendela 10 tab setelan dengan fitur cari & atur ulang |
-| `⌘W` | Tutup Tab | Menutup tab koneksi server yang sedang aktif |
+| Tombol Pintas        | Tindakan                   | Keterangan                                                    |
+| :------------------- | :------------------------- | :------------------------------------------------------------ |
+| `⌘⇧P`                | Palet Perintah             | Peluncur cepat tindakan, koneksi, markah, dan navigasi        |
+| `⌘A`                 | Pilih Semua                | Memilih semua berkas dan folder di panel aktif                |
+| `Esc` / `⇧⌘A` / `⌘D` | Batalkan Semua Pilihan     | Membatalkan / melepas sorotan pilihan semua berkas dan folder |
+| `F5`                 | Transfer Cepat Antar-Panel | Mengirimkan berkas terpilih langsung ke panel di seberangnya  |
+| `⇧F5`                | Salin Ke...                | Meminta lokasi folder tujuan kustom untuk menyalin berkas     |
+| `⌘C` / `⌘V`          | Salin / Tempel Clipboard   | Operasi salin-tempel standar clipboard macOS                  |
+| `⌥⌘L`                | Tampilkan/Sembunyikan Log  | Membuka atau menutup konsol riwayat perintah aktivitas server |
+| `⌘⌥T`                | Terminal Mandiri           | Membuka jendela kerja terminal multi-tab bergaya iTerm2       |
+| `⌘\`                 | Bilah Sambungan Cepat      | Menampilkan atau menyembunyikan bilah Quick Connect           |
+| `⌘1` / `⌘2`          | Fokus Panel Berkas         | Berpindah fokus keyboard antara panel Lokal dan Remote        |
+| `⌘,`                 | Pengaturan / Preferensi    | Membuka jendela 10 tab setelan dengan fitur cari & atur ulang |
+| `⌘W`                 | Tutup Tab                  | Menutup tab koneksi server yang sedang aktif                  |
 
 ---
 
