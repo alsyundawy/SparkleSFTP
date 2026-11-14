@@ -136,6 +136,8 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 | `⌘\`                 | Bilah Sambungan Cepat      | Menampilkan atau menyembunyikan bilah Quick Connect           |
 | `⌘1` / `⌘2`          | Fokus Panel Berkas         | Berpindah fokus keyboard antara panel Lokal dan Remote        |
 | `⌘,`                 | Pengaturan / Preferensi    | Membuka jendela 10 tab setelan dengan fitur cari & atur ulang |
+| `⇧⌘I`                | Impor Koneksi              | Impor profil koneksi dari WinSCP, FileZilla, atau Vault       |
+| `⇧⌘E`                | Ekspor Koneksi             | Ekspor profil koneksi dengan pelestarian protokol presisi     |
 | `⌘W`                 | Tutup Tab                  | Menutup tab koneksi server yang sedang aktif                  |
 
 ---
@@ -148,7 +150,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.6.0-universal.dmg
-# SHA-256 Valid: b81002fdee4433f007a70f69fd8c4d0b7a8e1c4ddb6061f4b580ca47354e510a
+# SHA-256 Valid: 656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db
 ```
 
 ---

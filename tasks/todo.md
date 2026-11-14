@@ -120,6 +120,12 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 - [x] `T-085` Add display strings with 100% parity across `en.json` and `id.json` (490 keys each), establish maintenance branches `0.1.0` through `0.4.1`, and configure IDE diagnostic exclusions (`.vscode/settings.json`, `.markdownlint-cli2.jsonc`, `.markdownlintignore`)
 - [x] `T-086` Restore eager loading of all 76 themes in `AppState` and showcase components, and implement symmetrical minimize/restore arrow indicators (`chevron.down` / `chevron.up`) for both Activity Log and Transfer Queue docks
 - [x] `T-087` Generate desktop suite flyer banner (`assets/sparklesftp-desktop-banner.jpg`), overhaul `README.md` and `README-id.md` matching SparkNotePad user-friendly format, execute 14-Pillar code audit, build universal binary `.app` and DMG (`SparkleSFTP-0.4.1-universal.dmg` + `.sha256`), update `README.md`, `README-id.md`, `CHANGELOG.md`, `DOCNOTE.md`, `TODO.md`, and docs
+- [x] `T-088` WinSCP Productivity Features & Terminal Integration (`v0.5.0`): Bookmarks, Directory Tree, Quick Remote Commands, OSC 7 directory sync, FileZilla XML import, Tokyo Night Storm default theme, and internal terminal launcher
+- [x] `T-089` Portability & Trust Release (`v0.6.0`): Configuration Vault (`.sparklevault`), 10-tab Settings Registry, Directory Comparison, External Editor Watcher, Bandwidth Limiter, Real-Time Folder Watch, Batch Rename, Checksum Multi-Hash, Safe Archive Toolkit, and FTPS hardening
+- [x] `T-090` Fixed 2-Row Preferences Tab Bar (`PreferencesView.swift`): Deterministic 2-row tab bar permanently preventing horizontal overflow and chevron menu clipping
+- [x] `T-091` WinSCP & FileZilla Export/Import Protocol Symmetry: Native WinSCP INI export, FileZilla 3 XML export, colored protocol badges, and expanded auto-candidate detection
+- [x] `T-092` Suppression of Accidental Touchpad Scroll Row Selection: 10.0pt drag movement threshold, deferred single-click selection, and scrollWheel cancellation guard
+- [x] `T-093` Universal 2 Packaging & 14-Pillar Verification: 157 tests in 45 suites passing (100% green), 0 linter violations, and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db`)
 
 ## External Operational & Release Gates (Deferred to Release Environment)
 

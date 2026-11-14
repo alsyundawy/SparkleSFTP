@@ -53,10 +53,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Rsync integration service probing GNU rsync vs OpenRsync with `--` argument injection defense.
   - Non-intrusive workspace tab session restorer.
   - Spotlight-style ⌘⇧P Command Palette searching navigation, connections, bookmarks, and actions.
+- **Fixed 2-Row Preferences Tab Bar (Zero Overflow) (`PreferencesView`)**:
+  - Replaced single-row overflowing `TabView` with a deterministic, fixed 2-row tab bar (`fixedTwoRowTabBar`):
+    - Row 1: General (0), Themes (1), Transfers (2), Terminal (3), Editor (4).
+    - Row 2: Security (5), Network (6), Sync & Bookmarks (7), Archives (8), Updates (9).
+  - Eliminates window overflow, clipping, and macOS dropdown chevron (`>>`) across all display scales.
+  - Styled with active accent borders and automatic high-contrast palette typography (`primaryTextColor`).
+- **Protocol-Aware WinSCP INI & FileZilla 3 XML Export/Import Symmetry (`ConfigExporter`, `ExportConnectionsSheet`, `ImportConnectionsSheet`)**:
+  - Added native `ConfigExporter.exportToWinSCPINI` encoding exact WinSCP protocol directives (`FSProtocol=0` for SFTP, `FSProtocol=1` for SCP, `FSProtocol=5, Ftps=0` for FTP, `Ftps=1` for FTPS Implicit, `Ftps=2` for FTPS Explicit).
+  - Fixed FileZilla XML export protocol mappings (`.ftpsImplicit = 3`, `.ftpsExplicit = 4`, `.ftp = 0`, `.sftp/.scp = 1`).
+  - Added export format selector (`.sparklesftp` / `.json`, `WinSCP.ini`, `sitemanager.xml`), system save panel, and connection list preview with explicit colored protocol badges (`[SFTP]`, `[SCP]`, `[FTP]`, `[FTPS Explicit]`, `[FTPS Implicit]`).
+  - Upgraded import empty state view with format explanation tags and dedicated buttons for reading default WinSCP and FileZilla configurations.
+  - Expanded WinSCP auto-candidate lookup across container sandbox and host user home (`FileManager.default.homeDirectory(forUser: NSUserName())`).
+  - Fixed `ExternalSessionFileReader.resolveProtocol` inverted mapping where `FSProtocol=0` was misidentified as SCP.
+- **Suppression of Accidental File/Folder Selection on Trackpad Scroll (`InteractiveFileTableSupport`, `InteractiveConnectionTableSupport`)**:
+  - Implemented 10.0pt drag movement threshold (`dragMovementThreshold`) before initiating row selection.
+  - Deferred row selection on single clicks (`event.clickCount == 1`) to `mouseUp`.
+  - Allowed double-clicks (`event.clickCount >= 2`) to pass directly to `super.mouseDown`, preserving instant folder navigation and file activation.
+  - Implemented immediate cancellation of pending mouse state and activation of `isScrollingActive` in `scrollWheel`.
+- **Keyboard Shortcuts & Toolchain/iTerm2 Integration (`AboutView+Tabs`, `ZlibAndLibraryProbes`)**:
+  - Added ⌥⌘T Standalone Terminal, ⌥⌘L Activity Log, ⇧⌘I / ⇧⌘E Import/Export, Esc / ⌘D Deselect All, and ⌘, Settings to shortcuts documentation.
+  - Dynamic context-aware Upload/Download commander menu action button in `SparkleSFTPApp`.
+  - Expanded external terminal search paths in `ZlibAndLibraryProbes` for `/Applications/iTerm2.app`, `~/Applications/iTerm.app`, and `~/Applications/iTerm2.app`.
 - **Localization & Documentation**:
   - 100% key parity across English (`en.json`) and Indonesian (`id.json`) spanning 691 keys.
   - Added `ADR-0009` (Config Bundles & Crypto) and `ADR-0010` (External Toolchains & Security).
   - Authored comprehensive 14-Pillar Codebase Review report (`docs/reviews/0.6.0-14-pillar-review.md`).
+- **Quality Gates, Test Suite & Universal 2 Release Packaging**:
+  - 157 tests across 45 suites passing (100% green).
+  - 0 SwiftLint violations across 278 Swift files, 0 SwiftFormat warnings, 0 Trunk issues (361 files).
+  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db`).
 
 ## [0.5.0] - 2026-11-14
 

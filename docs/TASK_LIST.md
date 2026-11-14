@@ -138,6 +138,27 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-099** Create comprehensive unit tests (`BookmarkManagerTests`, `RemoteCommandSanitizerTests`) with all 129 tests across 35 test suites passing.
 - [x] **T-100** Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.5.0-universal.dmg` + `.sha256`) and update documentation.
 
+## Milestone 13: Portability & Trust (`v0.6.0`) (`WG-1`–`WG-9`)
+
+- [x] **T-101** Implement `.sparkleconfig` JSON and `.sparklevault` AES-256-GCM binary formats with PBKDF2-HMAC-SHA256 600k iterations and zeroization.
+- [x] **T-102** Implement `ConfigExporter` and `ConfigImporter` with 4 conflict policies and live diff preview.
+- [x] **T-103** Implement centralized `SettingsRegistry` for all 10 tabs with live search, per-tab reset, and settings dictionary import/export.
+- [x] **T-104** Implement linear $O(N+M)$ Directory Comparison (`DirectoryComparison.swift`) with 6 distinct state classifications.
+- [x] **T-105** Implement External Editor Watcher & Sync-Back (`ExternalEditWatcher.swift`) with sandboxed cache and 500ms write debounce.
+- [x] **T-106** Implement Transfer Rate Limiter, dynamic `AutoPipelineController` (1–16 window), and exponential backoff retry policy.
+- [x] **T-107** Implement Real-Time Folder Watch & Sync Coordinator (`FolderWatchSyncCoordinator.swift`).
+- [x] **T-108** Implement Batch Rename Engine & UI Dialog with collision/traversal safety.
+- [x] **T-109** Implement Multi-Hash Checksum Computation & Verification (streaming MD5, SHA-1, SHA-256, SHA-512).
+- [x] **T-110** Implement Safe Archive Toolkit (ZIP/TAR/GZ) with Zip-Slip path traversal immunity.
+- [x] **T-111** Implement FTPS `PROT P` strict TLS and `CURLOPT_FTP_SKIP_PASV_IP = 0`.
+- [x] **T-112** Implement SSH Agent auth helper, Rsync integration, workspace session restore, and Spotlight Command Palette (`⌘⇧P`).
+- [x] **T-113** Implement Fixed 2-Row Preferences Tab Bar (`PreferencesView.swift`) permanently eliminating horizontal window overflow and chevron menu clipping.
+- [x] **T-114** Implement WinSCP INI export and FileZilla 3 XML export with strict protocol fidelity (`SFTP`, `SCP`, `FTP`, `FTPS Explicit`, `FTPS Implicit`) and colored protocol badges.
+- [x] **T-115** Suppress accidental file/folder selection on trackpad scroll via 10.0pt movement threshold, deferred single-click selection, and `scrollWheel` cancellation guard.
+- [x] **T-116** Update keyboard shortcuts (⌥⌘T, ⌥⌘L, ⇧⌘I, ⇧⌘E, Esc, ⌘D, ⌘,) and expand external terminal search paths for iTerm2.
+- [x] **T-117** Verify 14 engineering review pillars, 157 tests in 45 suites passing (100% green), and 0 linter violations across all linters.
+- [x] **T-118** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db`).
+
 ## Post-MVP / External Infrastructure Gates (Deferred)
 
 - [ ] Run live Docker server integration tests (`Tools/TestServers/run-integration-tests.sh`) against live SSH/SFTP/FTP containers (Docker runtime not installed on this host).

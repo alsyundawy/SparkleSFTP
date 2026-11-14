@@ -123,20 +123,22 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ## ⌨️ Essential Keyboard Shortcuts
 
-| Shortcut             | Action                 | Description                                                |
-| :------------------- | :--------------------- | :--------------------------------------------------------- |
-| `⌘⇧P`                | Command Palette        | Spotlight-style instant action and navigation launcher     |
-| `⌘A`                 | Select All             | Select all files and folders in the active file pane       |
-| `Esc` / `⇧⌘A` / `⌘D` | Deselect All           | Deselect / cancel selection of all files and folders       |
-| `F5`                 | Cross-Pane Transfer    | Transfer selected items directly to the opposing file pane |
-| `⇧F5`                | Copy To...             | Prompt for a custom destination directory to copy files    |
-| `⌘C` / `⌘V`          | Clipboard Copy / Paste | Standard macOS clipboard file operations                   |
-| `⌥⌘L`                | Toggle Activity Log    | Show or hide the real-time command log in sidebar          |
-| `⌘⌥T`                | Standalone Terminal    | Open the multi-tab iTerm2 terminal workspace               |
-| `⌘\`                 | Toggle Quick Connect   | Show or hide the quick connect connection bar              |
-| `⌘1` / `⌘2`          | Pane Focus             | Switch keyboard focus between Local and Remote file tables |
-| `⌘,`                 | Preferences            | Open the 10-tab Settings window with Search & Reset        |
-| `⌘W`                 | Close Tab              | Close the active workspace connection tab                  |
+| Shortcut             | Action                 | Description                                                 |
+| :------------------- | :--------------------- | :---------------------------------------------------------- |
+| `⌘⇧P`                | Command Palette        | Spotlight-style instant action and navigation launcher      |
+| `⌘A`                 | Select All             | Select all files and folders in the active file pane        |
+| `Esc` / `⇧⌘A` / `⌘D` | Deselect All           | Deselect / cancel selection of all files and folders        |
+| `F5`                 | Cross-Pane Transfer    | Transfer selected items directly to the opposing file pane  |
+| `⇧F5`                | Copy To...             | Prompt for a custom destination directory to copy files     |
+| `⌘C` / `⌘V`          | Clipboard Copy / Paste | Standard macOS clipboard file operations                    |
+| `⌥⌘L`                | Toggle Activity Log    | Show or hide the real-time command log in sidebar           |
+| `⌘⌥T`                | Standalone Terminal    | Open the multi-tab iTerm2 terminal workspace                |
+| `⌘\`                 | Toggle Quick Connect   | Show or hide the quick connect connection bar               |
+| `⌘1` / `⌘2`          | Pane Focus             | Switch keyboard focus between Local and Remote file tables  |
+| `⌘,`                 | Preferences            | Open the 10-tab Settings window with Search & Reset         |
+| `⇧⌘I`                | Import Connections     | Import connection profiles from WinSCP, FileZilla, or Vault |
+| `⇧⌘E`                | Export Connections     | Export connection profiles with protocol preservation       |
+| `⌘W`                 | Close Tab              | Close the active workspace connection tab                   |
 
 ---
 
@@ -148,7 +150,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.6.0-universal.dmg
-# Expected SHA-256: b81002fdee4433f007a70f69fd8c4d0b7a8e1c4ddb6061f4b580ca47354e510a
+# Expected SHA-256: 656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db
 ```
 
 ---
