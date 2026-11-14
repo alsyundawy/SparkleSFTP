@@ -21,6 +21,13 @@ final class InteractiveFileTableView: NSTableView {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
+        let localPoint = convert(event.locationInWindow, from: nil)
+        let hitRow = row(at: localPoint)
+        if hitRow == -1 {
+            deselectAll(nil)
+            onContextActionShortcut?(.deselectAll)
+            return
+        }
         super.mouseDown(with: event)
     }
 
@@ -38,6 +45,8 @@ final class InteractiveFileTableView: NSTableView {
         switch item.action {
         case #selector(selectAll(_:)):
             return numberOfRows > 0
+        case #selector(deselectAll(_:)):
+            return !selectedRowIndexes.isEmpty
         case #selector(copy(_:)), #selector(delete(_:)):
             return !selectedRowIndexes.isEmpty
         default:
@@ -47,6 +56,11 @@ final class InteractiveFileTableView: NSTableView {
 
     override func selectAll(_: Any?) {
         onContextActionShortcut?(.selectAll)
+    }
+
+    override func deselectAll(_ sender: Any?) {
+        super.deselectAll(sender)
+        onContextActionShortcut?(.deselectAll)
     }
 
     @objc func copy(_: Any?) {
@@ -87,6 +101,8 @@ final class InteractiveFileTableView: NSTableView {
         }
         let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
         switch event.keyCode {
+        case 53 where mods.isEmpty:
+            onContextActionShortcut?(.deselectAll)
         case 48 where mods.isEmpty:
             onSwitchPane?()
         case 36 where mods.isEmpty, 76 where mods.isEmpty:
@@ -107,9 +123,15 @@ final class InteractiveFileTableView: NSTableView {
         if mods == [.command] {
             return handleCommandOnlyShortcut(event)
         }
-        if mods == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "c" {
-            onContextActionShortcut?(.copyFileNames)
-            return true
+        if mods == [.command, .shift] {
+            if event.charactersIgnoringModifiers?.lowercased() == "a" {
+                onContextActionShortcut?(.deselectAll)
+                return true
+            }
+            if event.charactersIgnoringModifiers?.lowercased() == "c" {
+                onContextActionShortcut?(.copyFileNames)
+                return true
+            }
         }
         if mods == [.command, .option], event.charactersIgnoringModifiers?.lowercased() == "c" {
             onContextActionShortcut?(.copyFullPaths)
@@ -143,6 +165,9 @@ final class InteractiveFileTableView: NSTableView {
         switch key {
         case "a":
             onContextActionShortcut?(.selectAll)
+            return true
+        case "d":
+            onContextActionShortcut?(.deselectAll)
             return true
         case "c":
             onContextActionShortcut?(.copyClipboard)
@@ -180,6 +205,7 @@ final class InteractiveFileTableView: NSTableView {
 final class ThemedFileRowView: NSTableRowView {
     var highlightColor = NSColor.selectedContentBackgroundColor
     var hoverColor = NSColor.labelColor.withAlphaComponent(0.08)
+    var accentIndicatorColor = NSColor.controlAccentColor
     private var hoverTrackingArea: NSTrackingArea?
     private var isHovered = false {
         didSet {
@@ -223,12 +249,23 @@ final class ThemedFileRowView: NSTableRowView {
         super.drawBackground(in: dirtyRect)
         guard !isSelected, isHovered else { return }
         hoverColor.setFill()
-        bounds.fill()
+        let hoverRect = bounds.insetBy(dx: 1, dy: 1)
+        let path = NSBezierPath(roundedRect: hoverRect, xRadius: 3, yRadius: 3)
+        path.fill()
     }
 
-    override func drawSelection(in _: NSRect) {
+    override func drawSelection(in dirtyRect: NSRect) {
         guard selectionHighlightStyle != .none, isSelected else { return }
+        let selectionRect = bounds.insetBy(dx: 1, dy: 0.5)
+        let fillPath = NSBezierPath(roundedRect: selectionRect, xRadius: 3, yRadius: 3)
         highlightColor.setFill()
-        bounds.fill()
+        fillPath.fill()
+
+        // 3.5px prominent left accent strip to make selected files & folders crystal clear
+        let barColor = isEmphasized ? accentIndicatorColor : accentIndicatorColor.withAlphaComponent(0.6)
+        barColor.setFill()
+        let barRect = NSRect(x: bounds.minX + 1, y: bounds.minY + 1.5, width: 3.5, height: bounds.height - 3)
+        let barPath = NSBezierPath(roundedRect: barRect, xRadius: 1.75, yRadius: 1.75)
+        barPath.fill()
     }
 }

@@ -9,6 +9,9 @@ private struct GitHubReleasePayload: Decodable {
     let body: String?
     let draft: Bool
     let prerelease: Bool
+    let targetCommitish: String?
+    let publishedAt: String?
+    let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
         case tagName = "tag_name"
@@ -16,6 +19,9 @@ private struct GitHubReleasePayload: Decodable {
         case body
         case draft
         case prerelease
+        case targetCommitish = "target_commitish"
+        case publishedAt = "published_at"
+        case createdAt = "created_at"
     }
 }
 
@@ -26,10 +32,20 @@ public final class SparkleUpdaterService {
     private var controller: SPUStandardUpdaterController?
     public private(set) var isConfiguredForSignedUpdates = false
     public let installedVersion: String
+    public let installedBuild: String
+    public let installedCommit: String
+    public let installedBuildDate: Date?
 
     public init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.3.0"
+        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.5.0"
+        installedBuild = (info["CFBundleVersion"] as? String) ?? "1"
+        installedCommit = (info["SparkleSFTPCommitHash"] as? String) ?? ""
+        if let rawDate = info["SparkleSFTPBuildDate"] as? String {
+            installedBuildDate = ISO8601DateFormatter().date(from: rawDate)
+        } else {
+            installedBuildDate = nil
+        }
         let feedURL = info["SUFeedURL"] as? String
         let publicEDKey = info["SUPublicEDKey"] as? String
         let isPackagedApp = Bundle.main.bundleURL.pathExtension == "app"
@@ -103,11 +119,28 @@ public final class SparkleUpdaterService {
             guard let latest = eligible.first else {
                 return .upToDate(version: installedVersion)
             }
-            if UpdateConfigurationValidator.isNewerVersion(latest.tagName, than: installedVersion),
+
+            let isoFormatter = ISO8601DateFormatter()
+            let remoteDate = latest.publishedAt.flatMap { isoFormatter.date(from: $0) }
+                ?? latest.createdAt.flatMap { isoFormatter.date(from: $0) }
+
+            let isSemverNewer = UpdateConfigurationValidator.isNewerVersion(latest.tagName, than: installedVersion)
+            let isSameVersion = UpdateConfigurationValidator.isSameVersion(latest.tagName, installedVersion)
+            let isNewerBuild = isSameVersion && UpdateConfigurationValidator.isNewerBuildOrCommit(
+                candidateCommit: latest.targetCommitish,
+                candidateDate: remoteDate,
+                currentCommit: installedCommit,
+                currentDate: installedBuildDate
+            )
+
+            if (isSemverNewer || isNewerBuild),
                let releaseURL = UpdateConfigurationValidator.validatedHTTPSURL(latest.htmlURL) {
                 let cleanVer = latest.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+                let displayVersion = isNewerBuild
+                    ? "\(cleanVer) (commit \(latest.targetCommitish?.prefix(7) ?? "latest"))"
+                    : cleanVer
                 return .updateAvailable(
-                    version: cleanVer,
+                    version: displayVersion,
                     releaseURL: releaseURL,
                     notes: latest.body ?? ""
                 )

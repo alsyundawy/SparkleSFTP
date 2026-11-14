@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added & Enhanced (WinSCP Productivity Features & Terminal Integration Release)
 
+- **High-Contrast File/Folder Selection & Full Selection Controls (`DualPaneCommanderView`, `InteractiveFileTableSupport`)**:
+  - Implemented high-contrast `ThemedFileRowView` selection styling with a vibrant 3.5px left indicator bar, rounded selection highlight, and focus-aware tinting (emphasized active vs muted inactive pane).
+  - Added dedicated **Select All** (`conn.selectAllShort` / "Semua") and **Deselect All** (`conn.deselectAllShort` / "Batal") toolbar buttons to both local and remote action bars.
+  - Added **Deselect All** (`conn.deselectAll`) menu item to the commander right-click context menu.
+  - Implemented instant deselect keyboard shortcuts: `Esc` (keyCode 53), `⇧⌘A`, and `⌘D`.
+  - Added click-to-deselect when clicking on the empty canvas area below files in both commander and connection tables.
+  - Fixed selection persistence across directories by clearing selected IDs upon navigating to a new directory in `refreshLocalDirectory` and `refreshRemoteDirectory`.
+- **Force Update Detection by Commit & Release (`SparkleUpdaterService`, `UpdateConfigurationValidator`)**:
+  - Enhanced `SparkleUpdaterService` to check Git commit hash (`target_commitish`) and release publication timestamp, allowing force-updating even when version tag and asset names remain identical.
+  - Extended `UpdateConfigurationValidator` with `isSameVersion` and `isNewerBuildOrCommit` heuristics.
+  - Updated `build-universal.sh` to inject exact Git commit SHA, commit count build number, and build timestamp directly into `SparkleSFTP.app/Contents/Info.plist`.
 - **Bookmarks & Path History Manager (`src/Features/Bookmarks/`)**:
   - Implemented `BookmarkItem` and `PathHistoryItem` models supporting Sendable and Codable isolation with icon indicators, host scoping, and custom naming.
   - Implemented `BookmarkManager` handling UserDefaults persistence and 20-item ring buffer history per scope (`local` / `remote`).

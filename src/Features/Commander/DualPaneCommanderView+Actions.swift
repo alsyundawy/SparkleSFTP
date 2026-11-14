@@ -105,6 +105,10 @@ extension DualPaneCommanderView {
 
             commanderSelectionActionButtons(isLocal: isLocal)
 
+            let hasSelection = isLocal
+                ? !appState.selectedLocalFileIDs.isEmpty
+                : !(appState.currentSession?.selectedRemoteFileIDs.isEmpty ?? true)
+
             Button(appState.strings.t("conn.selectAllShort")) {
                 if isLocal {
                     appState.selectAllLocalFiles()
@@ -113,6 +117,16 @@ extension DualPaneCommanderView {
                 }
             }
             .help(appState.strings.t("conn.selectAllTooltip"))
+
+            Button(appState.strings.t("conn.deselectAllShort")) {
+                if isLocal {
+                    appState.deselectAllLocalFiles()
+                } else {
+                    appState.deselectAllRemoteFiles()
+                }
+            }
+            .disabled(!hasSelection)
+            .help(appState.strings.t("conn.deselectAllTooltip"))
 
             Button(appState.strings.delete, role: .destructive) {
                 appState.activePane = isLocal ? .left : .right
@@ -218,6 +232,12 @@ extension DualPaneCommanderView {
                 appState.selectAllLocalFiles()
             } else {
                 appState.selectAllRemoteFiles()
+            }
+        case .deselectAll:
+            if isLocal {
+                appState.deselectAllLocalFiles()
+            } else {
+                appState.deselectAllRemoteFiles()
             }
         case .copyClipboard:
             appState.copyItemsToClipboard(files: selection, isLocal: isLocal)

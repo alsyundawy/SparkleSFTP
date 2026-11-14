@@ -123,6 +123,8 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 | Tombol Pintas | Tindakan | Keterangan |
 | :--- | :--- | :--- |
+| `⌘A` | Pilih Semua | Memilih semua berkas dan folder di panel aktif |
+| `Esc` / `⇧⌘A` / `⌘D` | Batalkan Semua Pilihan | Membatalkan / melepas sorotan pilihan semua berkas dan folder |
 | `F5` | Transfer Cepat Antar-Panel | Mengirimkan berkas terpilih langsung ke panel di seberangnya |
 | `⇧F5` | Salin Ke... | Meminta lokasi folder tujuan kustom untuk menyalin berkas |
 | `⌘C` / `⌘V` | Salin / Tempel Clipboard | Operasi salin-tempel standar clipboard macOS |
@@ -142,7 +144,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 - **Verifikasi Integritas SHA-256**:
 
 ```text
-7222917a08fb271822a92074cc43ffccd56ac95a35e18104931fca2f866b58bf  SparkleSFTP-0.5.0-universal.dmg
+3399ce9b1d67e53fdc846430a81408f01d2ae8c55901b90ce71c7f0d6e35dbc7  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verifikasi di Terminal Mac:

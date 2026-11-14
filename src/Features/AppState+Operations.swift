@@ -104,6 +104,9 @@ public extension AppState {
                 }
             }
             localFiles = PaginatedFileWindow(allFiles: sorted)
+            if oldURL != url {
+                selectedLocalFileIDs.removeAll()
+            }
             syncCurrentTabLocalSnapshot()
             if watchedLocalURL?.standardizedFileURL != url.standardizedFileURL {
                 watchedLocalURL = url
@@ -152,6 +155,9 @@ public extension AppState {
                 }
             }
             activeSessions[refreshedIdx].remoteFiles = PaginatedFileWindow(allFiles: sorted)
+            if oldPath != targetPath {
+                activeSessions[refreshedIdx].selectedRemoteFileIDs.removeAll()
+            }
             ActivityLogger.shared.logResponse(
                 "Directory listing of \"\(targetPath.rawValue)\" successful (\(items.count) items)"
             )
@@ -187,9 +193,20 @@ public extension AppState {
         activePane = .left
     }
 
+    func deselectAllLocalFiles() {
+        selectedLocalFileIDs.removeAll()
+        activePane = .left
+    }
+
     func selectAllRemoteFiles() {
         guard let idx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
         activeSessions[idx].selectedRemoteFileIDs = Set(activeSessions[idx].remoteFiles.visibleFiles.map(\.id))
+        activePane = .right
+    }
+
+    func deselectAllRemoteFiles() {
+        guard let idx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
+        activeSessions[idx].selectedRemoteFileIDs.removeAll()
         activePane = .right
     }
 

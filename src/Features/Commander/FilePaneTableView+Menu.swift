@@ -43,6 +43,7 @@ extension FilePaneTableView.Coordinator {
         }
         addItem(parent.strings.newFolder, action: .newFolder, to: menu)
         addItem(strings.t("conn.selectAll"), action: .selectAll, to: menu)
+        addItem(strings.t("conn.deselectAll"), action: .deselectAll, to: menu)
         if parent.isLocalPane {
             addItem(strings.t("pane.showInFinder"), action: .showInFinder, to: menu)
         }

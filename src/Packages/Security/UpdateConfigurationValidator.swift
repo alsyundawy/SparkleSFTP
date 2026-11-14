@@ -48,6 +48,46 @@ public enum UpdateConfigurationValidator {
         return false
     }
 
+    /// Checks whether two version strings represent the same semantic release (e.g. "v0.5.0" and "0.5.0").
+    public static func isSameVersion(_ lhsTag: String, _ rhsTag: String) -> Bool {
+        let lhs = numericComponents(from: lhsTag)
+        let rhs = numericComponents(from: rhsTag)
+        let count = max(lhs.count, rhs.count)
+        for index in 0 ..< count {
+            let left = index < lhs.count ? lhs[index] : 0
+            let right = index < rhs.count ? rhs[index] : 0
+            if left != right {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Evaluates if a candidate release represents a newer build even if the semantic version is the same.
+    /// Uses commit hashes, build numbers, and release publication dates.
+    public static func isNewerBuildOrCommit(
+        candidateCommit: String?,
+        candidateDate: Date?,
+        currentCommit: String?,
+        currentDate: Date?
+    ) -> Bool {
+        if let cand = candidateCommit?.trimmingCharacters(in: .whitespacesAndNewlines), !cand.isEmpty,
+           let curr = currentCommit?.trimmingCharacters(in: .whitespacesAndNewlines), !curr.isEmpty {
+            if cand.lowercased() != curr.lowercased() {
+                if let cDate = candidateDate, let iDate = currentDate {
+                    return cDate >= iDate
+                }
+                return true
+            }
+        }
+
+        if let cDate = candidateDate, let iDate = currentDate {
+            return cDate.timeIntervalSince(iDate) > 60
+        }
+
+        return false
+    }
+
     private static func numericComponents(from raw: String) -> [Int] {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let withoutLeadingV = trimmed.hasPrefix("v") || trimmed.hasPrefix("V")

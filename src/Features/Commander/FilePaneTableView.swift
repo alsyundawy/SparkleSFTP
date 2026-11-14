@@ -262,8 +262,9 @@ public extension FilePaneTableView {
                 rowView = newRow
             }
             let accent = NSColor(hex: parent.palette.accentHex)
-            rowView.highlightColor = accent.withAlphaComponent(parent.palette.isDark ? 0.34 : 0.22)
-            rowView.hoverColor = accent.withAlphaComponent(parent.palette.isDark ? 0.14 : 0.08)
+            rowView.accentIndicatorColor = accent
+            rowView.highlightColor = accent.withAlphaComponent(parent.palette.isDark ? 0.38 : 0.26)
+            rowView.hoverColor = accent.withAlphaComponent(parent.palette.isDark ? 0.16 : 0.10)
             return rowView
         }
 
@@ -371,6 +372,15 @@ public extension FilePaneTableView {
 
         func triggerContextAction(_ action: FilePaneContextAction) {
             parent.onFocusPane()
+            if action == .deselectAll {
+                isProgrammaticUpdate = true
+                tableView?.deselectAll(nil)
+                lastSyncedSelection = []
+                parent.selectedIDs = []
+                isProgrammaticUpdate = false
+                parent.onContextAction(action, nil)
+                return
+            }
             let selected = tableView?.selectedRow ?? -1
             let target = (selected >= 0 && selected < cachedFiles.count) ? cachedFiles[selected] : nil
             parent.onContextAction(action, target)

@@ -70,6 +70,12 @@ chmod +x "${MACOS_DIR}/SparkleSFTP"
 lipo -archs "${MACOS_DIR}/SparkleSFTP"
 
 cp "${REPO_ROOT}/src/App/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
+GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || date +%s)"
+BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" "${CONTENTS_DIR}/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${BUILD_NUMBER}" "${CONTENTS_DIR}/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :SparkleSFTPCommitHash ${GIT_COMMIT}" "${CONTENTS_DIR}/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :SparkleSFTPCommitHash string ${GIT_COMMIT}" "${CONTENTS_DIR}/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :SparkleSFTPBuildDate ${BUILD_DATE}" "${CONTENTS_DIR}/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :SparkleSFTPBuildDate string ${BUILD_DATE}" "${CONTENTS_DIR}/Info.plist"
 if [[ -f "${REPO_ROOT}/src/App/Resources/AppIcon.icns" ]]; then
   cp "${REPO_ROOT}/src/App/Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
 fi

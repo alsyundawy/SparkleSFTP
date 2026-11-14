@@ -226,6 +226,25 @@ struct SecurityTests {
         #expect(UpdateConfigurationValidator.isNewerVersion("v0.2.1-beta.1", than: "0.2.0"))
         #expect(!UpdateConfigurationValidator.isNewerVersion("0.2.0", than: "0.2.0"))
         #expect(!UpdateConfigurationValidator.isNewerVersion("v0.1.9", than: "0.2.0"))
+        #expect(UpdateConfigurationValidator.isSameVersion("v0.5.0", "0.5.0"))
+        #expect(UpdateConfigurationValidator.isSameVersion("0.5.0", "v0.5.0-alpha"))
+        #expect(!UpdateConfigurationValidator.isSameVersion("0.5.0", "0.5.1"))
+
+        let now = Date()
+        let earlier = now.addingTimeInterval(-3600)
+        let later = now.addingTimeInterval(3600)
+        #expect(UpdateConfigurationValidator.isNewerBuildOrCommit(
+            candidateCommit: "aa420c4",
+            candidateDate: later,
+            currentCommit: "5a5add2",
+            currentDate: now
+        ))
+        #expect(!UpdateConfigurationValidator.isNewerBuildOrCommit(
+            candidateCommit: "aa420c4",
+            candidateDate: earlier,
+            currentCommit: "aa420c4",
+            currentDate: now
+        ))
 
         let manual = AutoUpdateSettings(automaticallyChecks: true, checkFrequency: .manual, lastCheckedAt: nil)
         #expect(!manual.isOverdue)

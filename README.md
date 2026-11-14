@@ -123,6 +123,8 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
+| `⌘A` | Select All | Select all files and folders in the active file pane |
+| `Esc` / `⇧⌘A` / `⌘D` | Deselect All | Deselect / cancel selection of all files and folders |
 | `F5` | Cross-Pane Transfer | Transfer selected items directly to the opposing file pane |
 | `⇧F5` | Copy To... | Prompt for a custom destination directory to copy files |
 | `⌘C` / `⌘V` | Clipboard Copy / Paste | Standard macOS clipboard file operations |
@@ -142,7 +144,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 - **SHA-256 Checksum Verification**:
 
 ```text
-7222917a08fb271822a92074cc43ffccd56ac95a35e18104931fca2f866b58bf  SparkleSFTP-0.5.0-universal.dmg
+3399ce9b1d67e53fdc846430a81408f01d2ae8c55901b90ce71c7f0d6e35dbc7  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verify in Terminal:

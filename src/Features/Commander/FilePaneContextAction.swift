@@ -24,4 +24,5 @@ public enum FilePaneContextAction: Int, Sendable {
     case copyFullPaths = 21
     case selectAll = 22
     case showInFinder = 23
+    case deselectAll = 24
 }

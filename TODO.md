@@ -129,8 +129,10 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Pass all 134 unit tests across 36 test suites, 0 SwiftLint violations, and 0 SwiftFormat warnings across 225 Swift files (`T-091`)
 - [x] Implement Native Connection Export & Import (`InternalConnectionExportModels`, `InternalConnectionExporter`, PBKDF2-HMAC-SHA256 with 100,000 iterations, AES-256-GCM, sanitized & plaintext modes) (`T-094`)
 - [x] Create `ExportConnectionsSheet` and enhance `ImportConnectionsSheet` with encrypted archive unlock UI, `.sparklesftp` UTType, and menu integration (`⌘⇧E` / `⌘⇧I`) (`T-095`)
+- [x] High-Contrast File/Folder Selection & Full Selection Controls (`T-096`): High-contrast `ThemedFileRowView` with 3.5px left accent bar, Select All (`Semua`) and Deselect All (`Batal`) toolbar action buttons, Deselect All (`Esc`, `⇧⌘A`, `⌘D`) keyboard shortcuts, empty canvas click deselect, and clean selection reset on directory navigation (`DualPaneCommanderView`, `InteractiveFileTableSupport`, `AppState+Operations`)
+- [x] Force Update by Git Commit & Release (`T-097`): `SparkleUpdaterService` and `UpdateConfigurationValidator` detect new builds/commits even with identical version tags; automatic Git commit SHA and build number injection via PlistBuddy in `build-universal.sh`; verified Universal 2 binary and DMG creation
 - [x] Build Universal 2 release `.app` and DMG (`SparkleSFTP-0.5.0-universal.dmg` + `.sha256`) (`T-092`)
-- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.5.0.md`) across branches (`T-093`)
+- [x] Update documentation (`CHANGELOG.md`, `DOCNOTE.md`, `README.md`, `README-id.md`, `TODO.md`, `docs/releases/v0.5.0.md`, `docs/CODE_REVIEW_14_PILLARS.md`) across branches (`T-093`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 
