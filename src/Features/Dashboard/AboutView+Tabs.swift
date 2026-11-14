@@ -62,7 +62,7 @@ extension AboutView {
                 Text(
                     "SparkleSFTP is built cleanly in Swift 6 with native macOS Security.framework, Keychain, "
                         + "Touch ID, and SecTrust isolation — inspired by SparkNotePad, SubnetCalc, and orthodox "
-                        + "dual-pane Commander workflows across versions 0.1.0 through 0.5.0."
+                        + "dual-pane Commander workflows across versions 0.1.0 through 0.6.0."
                 )
                 .font(SparkleTheme.Typography.caption)
                 .foregroundStyle(palette.secondaryTextColor)

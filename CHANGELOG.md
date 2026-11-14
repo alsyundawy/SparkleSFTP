@@ -9,6 +9,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-14
+
+### Added & Enhanced (Portability & Trust Release)
+
+- **Native Configuration Bundles & Cryptographic Vault (F-01, `SparklePersistence`)**:
+  - Introduced `.sparkleconfig` (portable JSON) and `.sparklevault` (AES-256-GCM authenticated binary archive).
+  - Hardened key derivation via PBKDF2-HMAC-SHA256 with 600,000 iterations and in-place cryptographic memory zeroization.
+  - Implemented 46-byte binary header (`SPKVAULT1`) with Additional Authenticated Data (AAD) binding.
+  - Multi-source migration engine importing FileZilla `sitemanager.xml`, WinSCP `WinSCP.ini`, OpenSSH `~/.ssh/config`, and legacy exports with 4 conflict policies (`.skipExisting`, `.overwrite`, `.keepBoth`, `.mergeGroups`).
+  - Added `PasswordStrengthMeter` with color-coded entropy validation and `ImportBundlePreviewSheet` diff inspection.
+- **Complete 10-Tab Settings Registry & Universal Search (F-02, `SparkleCore`, `SparkleFeatures`)**:
+  - Implemented centralized `SettingsRegistry` cataloging preferences across all 10 tabs with type-safe descriptors.
+  - Added live search query filtering across setting labels and descriptions with match counters.
+  - Implemented per-tab and universal factory defaults reset, plus JSON settings dictionary import/export.
+  - Fully implemented all 10 tabs: General, Connections, Transfers, Sync & Bookmarks, Terminal, Editor, Security, Network, Archives, and Themes.
+- **High-Performance Directory Comparison (F-03, `SparkleFileManager`)**:
+  - Linear $O(N + M)$ dual-map comparison classifying items into 6 states: identical, only in local, only in remote, different size, local newer, and remote newer.
+  - High-volume benchmark verified: 10,000 files compared in under 150ms.
+- **External Editor Watcher & Sync-Back (F-04, `SparkleFeatures`)**:
+  - Sandboxed cache staging inside `~/Library/Caches/SparkleSFTP/remote-edit/` with POSIX permissions `0700`.
+  - Darwin `DispatchSourceFileSystemObject` file watcher with `O_NOFOLLOW` symlink defense and 500ms write debounce.
+- **Transfer Bandwidth Limiter & Adaptive Pipeline Depth (F-05, `SparkleTransferEngine`)**:
+  - Token-bucket transfer rate limiter enforcing upload and download throughput limits with zero UI jitter.
+  - Dynamic `AutoPipelineController` probing network latency and adjusting pipeline concurrency between 1 and 16 windows.
+  - Exponential backoff with jitter retry coordinator rejecting non-retryable security and authentication errors.
+- **Real-Time Folder Watch & Sync Coordinator (F-06, `SparkleSynchronization`)**:
+  - Actor-isolated folder modification coordinator with 1.5s debounce, pause/resume, and glob exclusion filtering.
+- **Batch Rename Engine & UI Dialog (F-07, `SparkleFileManager`, `SparkleFeatures`)**:
+  - Pure rule planner supporting find/replace, regular expressions, case formatting, and counter token `[C]`.
+  - Comprehensive safety validations detecting path traversal (`..`), empty names, and duplicate collisions.
+- **Multi-Hash Checksum Computation & Verification (F-08, `SparkleFileManager`, `SparkleFeatures`)**:
+  - Streaming SHA-256, SHA-512, SHA-1, and MD5 hashing without loading entire files into memory.
+  - Checksum dialog with paste-and-verify badge and automated remote CLI digest extraction.
+- **Safe Archive Toolkit (F-09, `SparkleFileManager`, `SparkleFeatures`)**:
+  - Safe ZIP, TAR, and GZ compression and extraction via system `/usr/bin/tar` and optional `7zz`.
+  - Zip-Slip path traversal defense rejecting entries with `..` or leading slashes, capped at 50,000 entries.
+- **FTPS Protocol Hardening (F-10, `SparkleNetworking`)**:
+  - Enforced `CURLOPT_FTP_SKIP_PASV_IP = 0` to prevent malicious third-party IP hijacking in passive mode.
+  - Enforced `CURLUSESSL_ALL` (PROT P) for complete control and data channel TLS encryption.
+- **Productivity & System Integrations (F-11 through F-15)**:
+  - SSH Agent authentication helper verifying `SSH_AUTH_SOCK` Unix domain sockets.
+  - Rsync integration service probing GNU rsync vs OpenRsync with `--` argument injection defense.
+  - Non-intrusive workspace tab session restorer.
+  - Spotlight-style ⌘⇧P Command Palette searching navigation, connections, bookmarks, and actions.
+- **Localization & Documentation**:
+  - 100% key parity across English (`en.json`) and Indonesian (`id.json`) spanning 691 keys.
+  - Added `ADR-0009` (Config Bundles & Crypto) and `ADR-0010` (External Toolchains & Security).
+  - Authored comprehensive 14-Pillar Codebase Review report (`docs/reviews/0.6.0-14-pillar-review.md`).
+
 ## [0.5.0] - 2026-11-14
 
 ### Added & Enhanced (WinSCP Productivity Features & Terminal Integration Release)

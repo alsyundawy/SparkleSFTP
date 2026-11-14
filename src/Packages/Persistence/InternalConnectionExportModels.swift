@@ -55,7 +55,7 @@ public struct SparkleSFTPConnectionExport: Sendable, Codable, Equatable {
 
     public init(
         schemaVersion: Int = SparkleSFTPConnectionExport.currentSchemaVersion,
-        appVersion: String = "0.5.0",
+        appVersion: String = "0.6.0",
         exportedAt: Date = Date(),
         generator: String = SparkleSFTPConnectionExport.generatorIdentifier,
         groups: [ServerGroup] = [],

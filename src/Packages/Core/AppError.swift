@@ -170,4 +170,9 @@ public enum AppError: Error, Sendable, LocalizedError, Equatable {
             return false
         }
     }
+
+    /// Indicates whether this error represents a transient condition suitable for retry.
+    public var isRetryable: Bool {
+        !isNonRetryableSecurityOrAuthError
+    }
 }

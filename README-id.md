@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Rilis-v0.5.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.5.0"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Rilis-v0.6.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.6.0"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Ventura_%7C_Sonoma_%7C_Sequoia)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+"></a>
   <a href="https://github.com/alsyundawy/SparkleSFTP"><img src="https://img.shields.io/badge/Arsitektur-Universal_2_(arm64_%2B_x86__64)-purple?style=for-the-badge&logo=apple&logoColor=white" alt="Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Bahasa-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Bahasa: Swift 6"></a>
@@ -39,7 +39,7 @@
 
 <p align="center">
   <a href="#-panduan-unduh--instalasi-cepat">
-    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.5.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
+    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.6.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
   </a>
   <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest">
     <img src="https://img.shields.io/badge/🪞_Rilis_&_Catatan_Perubahan-GitHub-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Rilis & Catatan Perubahan">
@@ -68,21 +68,23 @@
 
 ---
 
-## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.5.0
+## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.6.0
 
-- 🔒 **Ekspor & Impor Konfigurasi Koneksi Native (`.sparklesftp` / `.json`)**: Ekspor dan impor seluruh konfigurasi koneksi serta grup server dengan tiga opsi keamanan: Bersih/Sanitized (tanpa rahasia, aman dibagikan ke tim), Cadangan Terenkripsi Kata Sandi (AES-256-GCM + PBKDF2-HMAC-SHA256 dengan 100.000 iterasi), serta Rahasia Teks Terbuka untuk cadangan lokal tepercaya.
-- 📌 **Manajer Markah & Riwayat Jalur**: Menyimpan markah jalur direktori lokal dan remote dengan ikon kustom dan isolasi per sesi host. Dilengkapi 20 riwayat jalur putar (*ring buffer*) per panel dengan menu lompat cepat (*quick jump*) dan opsi **Penelusuran Tersinkronisasi (*Synchronized Browsing*)**.
-- 🌲 **Bilah Sisi Pohon Direktori (*Directory Tree Sidebar*)**: Penjelajah pohon folder berhierarki untuk panel lokal dan remote dengan pemuatan subdirektori malas (*lazy evaluation*) dan pencegahan siklus rekursif symlink agar antarmuka tidak macet.
-- ⚡ **Peluncur Perintah Remote Cepat (*Quick Remote Commands Runner*)**: Bilah eksekusi perintah di bawah panel remote dengan prasetel perintah bawaan (Linux, BSD, macOS), penggantian placeholder cerdas (`!`, `!/`, `!?prompt?!`), serta penyaringan metakarakter shell berbahaya (CWE-78).
-- 🐚 **Integrasi Direktori OSC 7 SwiftTerm**: Integrasi terminal dua arah yang membaca kode pelarian OSC 7 (`\033]7;file://...`) dari shell aktif (zsh, bash, fish) dan secara otomatis memperbarui jalur panel remote commander saat Anda berpindah direktori (`cd`).
-- ⚡ **Super Adem & Hemat Daya (Zero Runaway CPU)**: Dirancang dengan penanganan notifikasi jendela AppKit yang presisi (`NSWindow.didResizeNotification`), menghentikan perulangan render sehingga Mac tetap dingin dan konsumsi daya turun ke 0.0% saat santai (idle).
-- 🎨 **Seluruh 76 Tema Dipulihkan & Dimuat Lengkap**: Koleksi lengkap 76 tema bawaan dalam 26 rumpun yang memenuhi standar kontras WCAG 2.1 AA/AAA. Pratinjau langsung, impor/ekspor tema JSON, dan peralihan mulus antara mode Gelap dan Terang.
-- 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan teknologi daur ulang baris (*Cell Reuse*) AppKit (`ThemedFileRowView`), membuka direktori berisi 10.000+ berkas secara instan tanpa tersendat.
-- 📜 **Log Aktivitas di Bilah Sisi Kiri (`⌥⌘L`)**: Log aktivitas server kini diletakkan rapi di atas Manajer Koneksi pada bilah sisi kiri dengan bilah pulihkan minimalis (*restore pill*) berpanah `chevron.down` saat disembunyikan dan `chevron.up` untuk mengecilkan.
-- 🚀 **Antrean Transfer Tangguh di Latar Belakang**: Pengiriman berkas berkecepatan tinggi dengan 8 kebijakan konflik, penggabungan progres 80ms, penamaan sementara `.filepart` yang aman, dan **tombol indikator panah Minimize / Restore** (`chevron.down` untuk mengecilkan, `chevron.up` untuk memulihkan).
-- 🖥️ **Galeri Pratinjau Desain Sparkle Commander (`--showcase-gallery`)**: Eksplorasi interaktif 8 layar peremajaan antarmuka visual native macOS masa depan.
-- 💻 **Terminal Mandiri Bergaya iTerm2 (`⌘⌥T`)**: Ruang kerja terminal multi-tab dengan pembagian jendela vertikal (`⌘D`) dan horizontal (`⌘⇧D`), koneksi SSH server, serta sinkronisasi tema warna aktif.
-- 🔐 **Keamanan Apple Keychain & Touch ID**: Tanpa server pihak ketiga (*Zero-cloud*), seluruh kata sandi dan kunci rahasia SSH Anda tersimpan aman di dalam Apple Keychain fisik Mac Anda.
+- 🔒 **Bundel Konfigurasi & Vault Kriptografis Native (`.sparkleconfig` / `.sparklevault`)**: Cadangkan dan pulihkan profil dengan enkripsi autentikasi AES-256-GCM, PBKDF2-HMAC-SHA256 (600.000 iterasi), pengikatan header AAD, dan pembersihan memori kunci zero-knowledge. Impor berkas FileZilla XML, WinSCP INI, dan OpenSSH config dengan 4 kebijakan konflik.
+- ⚙️ **Registri Pengaturan 10 Tab & Pencarian Universal (`⌘,`)**: Registri preferensi terpusat dengan pencarian dinamis, atur ulang bawaan per tab, dan ekspor/impor kamus pengaturan JSON di seluruh 10 tab.
+- 🔍 **Perbandingan Direktori Berkecepatan Tinggi**: Perbandingan instan $O(N+M)$ mendeteksi berkas identik, perbedaan ukuran, selisih waktu modifikasi, dan berkas hilang di antara 10.000+ berkas dalam hitungan milidetik.
+- 📝 **Pengawas & Pengunggah Editor Eksternal**: Sunting berkas remote langsung di editor favorit Anda (VS Code, Sublime, BBEdit) dengan deteksi perubahan otomatis dan sinkronisasi kembali yang aman.
+- ⚡ **Pembatas Kecepatan Bandwidth & Pipelining Adaptif**: Pengatur batas kecepatan transfer token-bucket serta pengontrol kedalaman transfer cerdas (1–16 jendela) dengan coba-ulang eksponensial.
+- 🏷️ **Ganti Nama Massal & Verifikasi Hash Multi-Algoritma**: Perencana aturan ganti nama berkas massal dengan penghitung digit `[C]` serta verifikasi checksum streaming SHA-256, SHA-512, SHA-1, dan MD5.
+- 📦 **Perlengkapan Arsip Aman**: Kompresi dan ekstraksi multi-format (ZIP, TAR, GZ) yang kebal terhadap serangan Zip-Slip path traversal.
+- ⌘ **Palet Perintah (*Command Palette*, `⌘⇧P`)**: Peluncur aksi cepat bergaya Spotlight untuk mencari perintah, markah, koneksi, dan navigasi pengaturan.
+- 📌 **Manajer Markah & Riwayat Jalur**: Menyimpan markah direktori lokal dan remote dengan ikon kustom, isolasi sesi host, serta Penelusuran Tersinkronisasi.
+- 🌲 **Bilah Sisi Pohon Direktori**: Penjelajah pohon folder berhierarki untuk panel lokal dan remote dengan pencegahan siklus rekursif symlink.
+- ⚡ **Super Adem & Hemat Daya (Zero Runaway CPU)**: Dirancang dengan notifikasi jendela AppKit presisi, menghentikan perulangan render sehingga konsumsi daya 0.0% saat santai (idle).
+- 🎨 **Seluruh 76 Tema Dipulihkan & Dimuat Lengkap**: Koleksi lengkap 76 tema bawaan dalam 26 rumpun yang memenuhi standar kontras WCAG 2.1 AA/AAA.
+- 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan daur ulang baris AppKit native.
+- 💻 **Terminal Mandiri Bergaya iTerm2 (`⌘⌥T`)**: Ruang kerja terminal multi-tab dengan pembagian jendela vertikal dan horizontal, koneksi SSH, serta sinkronisasi direktori OSC 7.
+- 🔐 **Keamanan Apple Keychain & Touch ID**: Tanpa server pihak ketiga (*Zero-cloud*), seluruh kredensial dan kunci privat SSH tersimpan aman di dalam Apple Keychain fisik Mac Anda.
 
 ---
 
@@ -90,11 +92,11 @@
 
 ### Langkah 1: Unduh Berkas DMG
 
-Unduh berkas instalasi resmi **`SparkleSFTP-0.5.0-universal.dmg`** dari GitHub Releases.
+Unduh berkas instalasi resmi **`SparkleSFTP-0.6.0-universal.dmg`** dari GitHub Releases.
 
 ### Langkah 2: Pasang ke Folder Applications
 
-1. Klik dua kali berkas `SparkleSFTP-0.5.0-universal.dmg` untuk membukanya.
+1. Klik dua kali berkas `SparkleSFTP-0.6.0-universal.dmg` untuk membukanya.
 2. Seret ikon **SparkleSFTP** ke dalam folder **Applications**.
 3. Buka SparkleSFTP melalui Launchpad, Finder, atau Spotlight (`⌘Spasi`).
 
@@ -123,6 +125,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 | Tombol Pintas | Tindakan | Keterangan |
 | :--- | :--- | :--- |
+| `⌘⇧P` | Palet Perintah | Peluncur cepat tindakan, koneksi, markah, dan navigasi |
 | `⌘A` | Pilih Semua | Memilih semua berkas dan folder di panel aktif |
 | `Esc` / `⇧⌘A` / `⌘D` | Batalkan Semua Pilihan | Membatalkan / melepas sorotan pilihan semua berkas dan folder |
 | `F5` | Transfer Cepat Antar-Panel | Mengirimkan berkas terpilih langsung ke panel di seberangnya |
@@ -132,7 +135,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 | `⌘⌥T` | Terminal Mandiri | Membuka jendela kerja terminal multi-tab bergaya iTerm2 |
 | `⌘\` | Bilah Sambungan Cepat | Menampilkan atau menyembunyikan bilah Quick Connect |
 | `⌘1` / `⌘2` | Fokus Panel Berkas | Berpindah fokus keyboard antara panel Lokal dan Remote |
-| `⌘,` | Pengaturan / Preferensi | Membuka jendela setelan tema, bahasa, dan pembaruan |
+| `⌘,` | Pengaturan / Preferensi | Membuka jendela 10 tab setelan dengan fitur cari & atur ulang |
 | `⌘W` | Tutup Tab | Menutup tab koneksi server yang sedang aktif |
 
 ---
@@ -143,14 +146,9 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 - **Penyimpanan Lokal Terenkripsi**: Frasa sandi SSH dan kunci privat tersimpan langsung di Apple Keychain yang dilindungi Touch ID.
 - **Verifikasi Integritas SHA-256**:
 
-```text
-3399ce9b1d67e53fdc846430a81408f01d2ae8c55901b90ce71c7f0d6e35dbc7  SparkleSFTP-0.5.0-universal.dmg
-```
-
-Verifikasi di Terminal Mac:
-
 ```bash
-shasum -a 256 SparkleSFTP-0.5.0-universal.dmg
+shasum -a 256 SparkleSFTP-0.6.0-universal.dmg
+# SHA-256 Valid: baef0c187c94e190b976c31cddc97d38743325571e6d451fac3104e173cba2a6
 ```
 
 ---
@@ -162,7 +160,7 @@ Kompilasi dan bangun paket menggunakan Swift 6 di macOS 13+:
 ```bash
 swift build -j 2
 Tools/Release/build-universal.sh
-Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.5.0
+Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.6.0
 ```
 
 ---

@@ -38,7 +38,7 @@ public final class SparkleUpdaterService {
 
     public init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.5.0"
+        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.6.0"
         installedBuild = (info["CFBundleVersion"] as? String) ?? "1"
         installedCommit = (info["SparkleSFTPCommitHash"] as? String) ?? ""
         if let rawDate = info["SparkleSFTPBuildDate"] as? String {
@@ -133,7 +133,8 @@ public final class SparkleUpdaterService {
                 currentDate: installedBuildDate
             )
 
-            if (isSemverNewer || isNewerBuild),
+            let isAvailable = isSemverNewer || isNewerBuild
+            if isAvailable,
                let releaseURL = UpdateConfigurationValidator.validatedHTTPSURL(latest.htmlURL) {
                 let cleanVer = latest.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
                 let displayVersion = isNewerBuild

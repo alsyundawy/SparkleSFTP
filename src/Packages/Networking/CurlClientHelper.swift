@@ -56,6 +56,7 @@ enum CurlClientHelper {
         sparklesftp_curl_setopt_long(handle, CURLOPT_TCP_KEEPINTVL, 15)
         sparklesftp_curl_setopt_long(handle, CURLOPT_BUFFERSIZE, 262_144)
         sparklesftp_curl_setopt_long(handle, CURLOPT_UPLOAD_BUFFERSIZE, 262_144)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_FTP_SKIP_PASV_IP, 0)
 
         if context.proxy.kind != .none, !context.proxy.host.isEmpty {
             let scheme = context.proxy.kind == .socks5 ? "socks5h" : "http"

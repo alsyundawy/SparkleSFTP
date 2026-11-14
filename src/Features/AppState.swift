@@ -63,15 +63,7 @@ public final class AppState: ObservableObject {
     @Published public var activeTabID: UUID
 
     @Published public var quickConnectProtocol: ProtocolType = .sftp {
-        didSet {
-            if oldValue != quickConnectProtocol {
-                let oldDefault = String(oldValue.defaultPort)
-                let trimmed = quickConnectPort.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty || trimmed == oldDefault {
-                    quickConnectPort = String(quickConnectProtocol.defaultPort)
-                }
-            }
-        }
+        didSet { updateQuickConnectPortForProtocol(oldValue) }
     }
 
     @Published public var quickConnectHost: String = ""
@@ -120,13 +112,7 @@ public final class AppState: ObservableObject {
     @Published public var lastError: AppError?
 
     @Published public var language: AppLanguage = .english {
-        didSet {
-            if activeLocaleCode != language.rawValue {
-                activeLocaleCode = language.rawValue
-            }
-            refreshLocalizedStrings()
-            savePreferencesIfLoaded()
-        }
+        didSet { handleLanguageChange() }
     }
 
     @Published public var activeLocaleCode: String = "en" {
@@ -141,18 +127,11 @@ public final class AppState: ObservableObject {
     }
 
     @Published public var appearanceMode: ThemeAppearanceMode = .auto {
-        didSet {
-            applyAppearanceToApplication()
-            refreshActivePalette()
-            savePreferencesIfLoaded()
-        }
+        didSet { handleAppearanceChange() }
     }
 
     @Published public var selectedThemeID: String = SparkleThemeCatalog.defaultLight.id {
-        didSet {
-            refreshActivePalette()
-            savePreferencesIfLoaded()
-        }
+        didSet { handleSelectedThemeChange() }
     }
 
     @Published public var availableThemes: [SparkleThemePalette] {
@@ -207,6 +186,12 @@ public final class AppState: ObservableObject {
     @Published public var syncComparisonMode: SyncComparisonMode = .sizeAndMtime
     @Published public var syncDirection: SyncDirection = .localToRemote
 
+    // MARK: - v0.6.0 Extended Settings Properties
+
+    @Published public var extendedSettings = ExtendedSettingsState() {
+        didSet { savePreferencesIfLoaded() }
+    }
+
     public internal(set) var strings: AppStrings
     public internal(set) var activePalette: SparkleThemePalette
 
@@ -250,30 +235,6 @@ public final class AppState: ObservableObject {
     let applyAutoUpdateSettingsAction: @MainActor (AutoUpdateSettings) -> Void
     let transferJournal: TransferJournal?
 
-    public var transferQueue: TransferQueue {
-        if let existing = transferQueueInstance {
-            return existing
-        }
-        let resolver = ConflictResolver(
-            defaultPolicy: defaultUploadConflictPolicy,
-            defaultDownloadPolicy: defaultDownloadConflictPolicy
-        ) { [weak self] context in
-            guard let self else { return .skip }
-            return await promptConflictResolution(context)
-        }
-        let created = TransferQueue(
-            maxGlobalConcurrent: maxGlobalConcurrentTransfers,
-            maxPerHostConcurrent: maxPerHostConcurrentTransfers,
-            journal: transferJournal,
-            conflictResolver: resolver
-        ) { [weak self] profileID in
-            guard let self else { throw AppError.notConnected }
-            return try await resolveRemoteFileSystem(for: profileID)
-        }
-        transferQueueInstance = created
-        return created
-    }
-
     public init(
         credentialStore: any CredentialStoreProtocol = KeychainService(),
         hostTrustStore: HostTrustStore = HostTrustStore(),
@@ -287,9 +248,7 @@ public final class AppState: ObservableObject {
         installedAppVersion: String? = nil,
         isSignedUpdatesReady: Bool = false,
         performUpdateCheckAction: @escaping @MainActor (AutoUpdateSettings, Bool) async
-            -> AutoUpdateCheckStatus = { _, _ in
-                .upToDate(version: "0.5.0")
-            },
+            -> AutoUpdateCheckStatus = { _, _ in .upToDate(version: "0.6.0") },
         applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
         let themeSignpostID = SparkleSignposts.launch.makeSignpostID()
@@ -312,7 +271,7 @@ public final class AppState: ObservableObject {
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
         let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.5.0"
+        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.6.0"
         self.isSignedUpdatesReady = isSignedUpdatesReady
         self.performUpdateCheckAction = performUpdateCheckAction
         self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction
@@ -328,51 +287,6 @@ public final class AppState: ObservableObject {
         for (dirURL, watcher) in remoteEditWatches {
             watcher.stopWatching()
             try? FileManager.default.removeItem(at: dirURL)
-        }
-    }
-}
-
-extension AppState {
-    public var defaultConflictPolicy: TransferConflictPolicy {
-        get { defaultUploadConflictPolicy }
-        set {
-            defaultUploadConflictPolicy = newValue
-            defaultDownloadConflictPolicy = newValue
-        }
-    }
-
-    func resolveRemoteFileSystem(for profileID: UUID) throws -> any RemoteFileSystem {
-        if let current = currentSession, current.profile.id == profileID {
-            return current.service.fileSystem
-        }
-        guard let session = activeSessions.first(where: { $0.profile.id == profileID }) else {
-            throw AppError.notConnected
-        }
-        return session.service.fileSystem
-    }
-
-    func ensureTransferObserverStarted() {
-        if snapshotStreamTask == nil {
-            startTransferObserver()
-        }
-    }
-
-    func startTransferObserver() {
-        snapshotStreamTask?.cancel()
-        snapshotStreamTask = Task { [weak self] in
-            guard let self else { return }
-            let stream = await transferQueue.makeSnapshotsStream()
-            for await snapshots in stream {
-                if Task.isCancelled {
-                    break
-                }
-                transferSnapshots = snapshots
-                handleTransferSnapshotsChanged(snapshots)
-                notifyTerminalTransfersIfNeeded(snapshots)
-                if !pendingFolderPermissionJobs.isEmpty {
-                    await finalizePendingFolderPermissions(from: snapshots)
-                }
-            }
         }
     }
 }

@@ -145,7 +145,15 @@ final class InteractiveFileTableView: NSTableView {
     }
 
     private func handleCommandOnlyShortcut(_ event: NSEvent) -> Bool {
-        switch event.keyCode {
+        if handleCommandKeyCodeShortcut(event.keyCode) {
+            return true
+        }
+        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
+        return handleCommandCharacterShortcut(key)
+    }
+
+    private func handleCommandKeyCodeShortcut(_ keyCode: UInt16) -> Bool {
+        switch keyCode {
         case 51:
             onContextActionShortcut?(.delete)
             return true
@@ -159,9 +167,11 @@ final class InteractiveFileTableView: NSTableView {
             onContextActionShortcut?(.insertCommandLine)
             return true
         default:
-            break
+            return false
         }
-        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
+    }
+
+    private func handleCommandCharacterShortcut(_ key: String) -> Bool {
         switch key {
         case "a":
             onContextActionShortcut?(.selectAll)
@@ -254,7 +264,7 @@ final class ThemedFileRowView: NSTableRowView {
         path.fill()
     }
 
-    override func drawSelection(in dirtyRect: NSRect) {
+    override func drawSelection(in _: NSRect) {
         guard selectionHighlightStyle != .none, isSelected else { return }
         let selectionRect = bounds.insetBy(dx: 1, dy: 0.5)
         let fillPath = NSBezierPath(roundedRect: selectionRect, xRadius: 3, yRadius: 3)

@@ -26,6 +26,7 @@ public extension AppState {
         let defaults = UserDefaults.standard
         loadLocalizationAndThemePreferences(defaults)
         loadTransferAndToolchainPreferences(defaults)
+        loadExtendedPreferences(defaults)
         didLoadPreferences = true
     }
 
@@ -109,6 +110,7 @@ public extension AppState {
         if let encoded = try? JSONEncoder().encode(autoUpdateSettings) {
             defaults.set(encoded, forKey: PreferenceKey.updateSettings)
         }
+        saveExtendedPreferences(defaults)
         NotificationCenter.default.post(name: .sparklePreferencesDidChange, object: windowInstanceID)
     }
 
@@ -330,5 +332,34 @@ public extension AppState {
     func refreshToolchainReport() async {
         let isSandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
         toolchainReport = await ToolchainInspector.inspectHostToolchain(runSubprocesses: !isSandboxed)
+    }
+
+    func updateQuickConnectPortForProtocol(_ oldValue: ProtocolType) {
+        if oldValue != quickConnectProtocol {
+            let oldDefault = String(oldValue.defaultPort)
+            let trimmed = quickConnectPort.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty || trimmed == oldDefault {
+                quickConnectPort = String(quickConnectProtocol.defaultPort)
+            }
+        }
+    }
+
+    func handleLanguageChange() {
+        if activeLocaleCode != language.rawValue {
+            activeLocaleCode = language.rawValue
+        }
+        refreshLocalizedStrings()
+        savePreferencesIfLoaded()
+    }
+
+    func handleAppearanceChange() {
+        applyAppearanceToApplication()
+        refreshActivePalette()
+        savePreferencesIfLoaded()
+    }
+
+    func handleSelectedThemeChange() {
+        refreshActivePalette()
+        savePreferencesIfLoaded()
     }
 }

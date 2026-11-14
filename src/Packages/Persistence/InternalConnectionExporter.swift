@@ -172,6 +172,9 @@ public enum InternalConnectionExporter {
 
     /// Fast inspect to detect if JSON data is an encrypted SparkleSFTP archive.
     public static func isEncryptedArchive(data: Data) -> Bool {
+        if data.starts(with: SparkleVaultHeader.magicBytes) {
+            return true
+        }
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let format = json["format"] as? String,
            format == SparkleSFTPEncryptedArchive.formatIdentifier {
@@ -182,30 +185,69 @@ public enum InternalConnectionExporter {
 
     /// Fast inspect to detect if JSON data is a native SparkleSFTP unencrypted export.
     public static func isNativeExport(data: Data) -> Bool {
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let gen = json["generator"] as? String,
-           gen.contains("SparkleSFTP") {
-            return true
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let magic = json["magic"] as? String, magic == SparkleConfigBundle.currentMagic {
+                return true
+            }
+            if let gen = json["generator"] as? String, gen.contains("SparkleSFTP") {
+                return true
+            }
         }
         return false
     }
 
     /// Parses native JSON or decrypted archive data into an `ExternalImportReport`.
     public static func parseToReport(data: Data, passphrase: String? = nil) throws -> ExternalImportReport {
-        var rawData = data
-        if isEncryptedArchive(data: rawData) {
+        let rawData = try decryptRawDataIfNeeded(data: data, passphrase: passphrase)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        if let bundle = try? decoder.decode(SparkleConfigBundle.self, from: rawData) {
+            return reportFromBundle(bundle)
+        }
+
+        let exportObj = try decoder.decode(SparkleSFTPConnectionExport.self, from: rawData)
+        return reportFromLegacyExport(exportObj)
+    }
+
+    private static func decryptRawDataIfNeeded(data: Data, passphrase: String?) throws -> Data {
+        if data.starts(with: SparkleVaultHeader.magicBytes) {
             guard let passphrase, !passphrase.isEmpty else {
                 throw AppError.persistenceFailure(reason: "ARCHIVE_ENCRYPTED_PASSPHRASE_REQUIRED")
             }
-            let decoder = JSONDecoder()
-            let archive = try decoder.decode(SparkleSFTPEncryptedArchive.self, from: rawData)
-            rawData = try decrypt(archive: archive, passphrase: passphrase)
+            return try ConfigBundleCrypto.decryptVault(vaultData: data, passphrase: passphrase)
         }
+        if isEncryptedArchive(data: data) {
+            guard let passphrase, !passphrase.isEmpty else {
+                throw AppError.persistenceFailure(reason: "ARCHIVE_ENCRYPTED_PASSPHRASE_REQUIRED")
+            }
+            let archive = try JSONDecoder().decode(SparkleSFTPEncryptedArchive.self, from: data)
+            return try decrypt(archive: archive, passphrase: passphrase)
+        }
+        return data
+    }
 
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let exportObj = try decoder.decode(SparkleSFTPConnectionExport.self, from: rawData)
+    private static func reportFromBundle(_ bundle: SparkleConfigBundle) -> ExternalImportReport {
+        let groupsByID = Dictionary(uniqueKeysWithValues: bundle.payload.groups.map { ($0.id, $0.name) })
+        let imported: [ImportedConnection] = bundle.payload.profiles.map { profile in
+            let grp = profile.groupID.flatMap { groupsByID[$0] }
+            return ImportedConnection(
+                profile: profile,
+                transientSecret: nil,
+                groupName: grp,
+                secretStatus: ImportedSecretStatus.none,
+                notes: "Imported from SparkleConfigBundle v\(bundle.appVersion)"
+            )
+        }
+        return ExternalImportReport(
+            format: .nativeJSON,
+            connections: imported,
+            skippedUnsupported: 0,
+            warnings: []
+        )
+    }
 
+    private static func reportFromLegacyExport(_ exportObj: SparkleSFTPConnectionExport) -> ExternalImportReport {
         var imported: [ImportedConnection] = []
         for item in exportObj.connections {
             let secretData = item.embeddedSecretBase64.flatMap { Data(base64Encoded: $0) }
@@ -220,7 +262,6 @@ public enum InternalConnectionExporter {
                 )
             )
         }
-
         return ExternalImportReport(
             format: .nativeJSON,
             connections: imported,

@@ -98,7 +98,7 @@ final class InteractiveConnectionTableView: NSTableView {
 
     override func keyDown(with event: NSEvent) {
         let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        if event.keyCode == 53 && mods.isEmpty {
+        if event.keyCode == 53, mods.isEmpty {
             deselectAll(nil)
             return
         }

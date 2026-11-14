@@ -116,6 +116,8 @@ public struct ExportConnectionsSheet: View {
             SecureField(strings.t("export.passphrasePlaceholder"), text: $passphrase)
                 .textFieldStyle(.roundedBorder)
 
+            PasswordStrengthMeter(level: PasswordStrengthLevel.evaluate(passphrase))
+
             SecureField(strings.t("export.confirmPassphrasePlaceholder"), text: $confirmPassphrase)
                 .textFieldStyle(.roundedBorder)
 

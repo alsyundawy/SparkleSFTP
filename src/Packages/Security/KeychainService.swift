@@ -25,6 +25,12 @@ private final class KeychainMemoryCache: @unchecked Sendable { // JUSTIFICATION:
         entries.removeValue(forKey: key)
         lock.unlock()
     }
+
+    func purge() {
+        lock.lock()
+        entries.removeAll()
+        lock.unlock()
+    }
 }
 
 /// Native Apple Security.framework Keychain store enforcing device-only isolation (CWE-312 / CWE-522).
@@ -34,6 +40,10 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
 
     public init(serviceIdentifier: String = "com.alsyundawy.SparkleSFTP") {
         self.serviceIdentifier = serviceIdentifier
+    }
+
+    public func purgeTransientCache() async {
+        memoryCache.purge()
     }
 
     /// Builds Keychain attributes enforcing local-device-only isolation (no iCloud Keychain sync).

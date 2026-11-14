@@ -108,6 +108,53 @@ public struct ConnectionProfile: Identifiable, Sendable, Codable, Hashable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    public var hasPassword: Bool {
+        passwordRef != nil
+    }
+
+    public var hasPrivateKey: Bool {
+        privateKeyRef != nil
+    }
+
+    public var hasPassphrase: Bool {
+        passphraseRef != nil
+    }
+
+    public func copying(
+        id: UUID? = nil,
+        name: String? = nil,
+        groupID: UUID?? = nil
+    ) -> ConnectionProfile {
+        let finalGroupID: UUID? = if let explicitGroup = groupID {
+            explicitGroup
+        } else {
+            self.groupID
+        }
+        return ConnectionProfile(
+            id: id ?? self.id,
+            name: name ?? self.name,
+            groupID: finalGroupID,
+            protocolType: protocolType,
+            host: host,
+            port: port,
+            username: username,
+            authMethod: authMethod,
+            passwordRef: passwordRef,
+            privateKeyRef: privateKeyRef,
+            passphraseRef: passphraseRef,
+            privateKeyBookmarkData: privateKeyBookmarkData,
+            jumpHostProfileID: jumpHostProfileID,
+            proxy: proxy,
+            defaultRemotePath: defaultRemotePath,
+            defaultLocalPath: defaultLocalPath,
+            isFavorite: isFavorite,
+            requireTouchID: requireTouchID,
+            lastConnectedAt: lastConnectedAt,
+            createdAt: createdAt,
+            updatedAt: Date()
+        )
+    }
 }
 
 public struct ServerGroup: Identifiable, Sendable, Codable, Hashable {
