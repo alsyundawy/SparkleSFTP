@@ -19,7 +19,7 @@ final class InteractiveFileTableView: NSTableView {
     private(set) var isScrollingActive = false
     private var pendingMouseDownEvent: NSEvent?
     private var dragStartPoint: NSPoint = .zero
-    private var isDraggingSelection = false
+    var isDraggingSelection = false
     private let dragMovementThreshold: CGFloat = 10.0
     private var selectionAnchorRow: Int = -1
     private var scrollResetWorkItem: DispatchWorkItem?
@@ -67,10 +67,20 @@ final class InteractiveFileTableView: NSTableView {
 
     @objc private func handleLiveScrollDidStart() {
         isScrollingActive = true
+        pendingMouseDownEvent = nil
+        isDraggingSelection = false
+        clearAllRowHovers()
     }
 
     @objc private func handleLiveScrollDidEnd() {
         isScrollingActive = false
+        clearAllRowHovers()
+    }
+
+    func clearAllRowHovers() {
+        enumerateAvailableRowViews { rowView, _ in
+            (rowView as? RowHoverControllable)?.clearHover()
+        }
     }
 
     override var acceptsFirstResponder: Bool {
@@ -109,8 +119,23 @@ final class InteractiveFileTableView: NSTableView {
     override func mouseDragged(with event: NSEvent) {
         guard !isScrollingActive, let pendingEvent = pendingMouseDownEvent else { return }
         let currentPoint = convert(event.locationInWindow, from: nil)
-        let distance = hypot(currentPoint.x - dragStartPoint.x, currentPoint.y - dragStartPoint.y)
+        let deltaX = abs(currentPoint.x - dragStartPoint.x)
+        let deltaY = abs(currentPoint.y - dragStartPoint.y)
 
+        // If movement is predominantly vertical without Command or Shift modifier,
+        // treat it as trackpad scrolling gesture rather than row selection drag.
+        if deltaY > deltaX * 1.2, !pendingEvent.modifierFlags.contains([.command, .shift]) {
+            pendingMouseDownEvent = nil
+            isDraggingSelection = false
+            return
+        }
+
+        // Range drag-selection is strictly reserved for intentional Command or Shift modifier holds
+        guard pendingEvent.modifierFlags.contains([.command, .shift]) else {
+            return
+        }
+
+        let distance = hypot(deltaX, deltaY)
         if !isDraggingSelection {
             guard distance >= dragMovementThreshold else { return }
             isDraggingSelection = true
@@ -171,12 +196,14 @@ final class InteractiveFileTableView: NSTableView {
         pendingMouseDownEvent = nil
         isDraggingSelection = false
         isScrollingActive = true
+        clearAllRowHovers()
         scrollResetWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             self?.isScrollingActive = false
+            self?.clearAllRowHovers()
         }
         scrollResetWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20, execute: workItem)
         super.scrollWheel(with: event)
     }
 
@@ -222,7 +249,12 @@ final class InteractiveFileTableView: NSTableView {
     }
 }
 
-final class ThemedFileRowView: NSTableRowView {
+@MainActor
+protocol RowHoverControllable: AnyObject {
+    func clearHover()
+}
+
+final class ThemedFileRowView: NSTableRowView, RowHoverControllable {
     var highlightColor = NSColor.selectedContentBackgroundColor
     var hoverColor = NSColor.labelColor.withAlphaComponent(0.08)
     var accentIndicatorColor = NSColor.controlAccentColor
@@ -233,6 +265,23 @@ final class ThemedFileRowView: NSTableRowView {
                 needsDisplay = true
             }
         }
+    }
+
+    private var enclosingTableView: InteractiveFileTableView? {
+        var view: NSView? = superview
+        while let current = view {
+            if let table = current as? InteractiveFileTableView {
+                return table
+            }
+            view = current.superview
+        }
+        return nil
+    }
+
+    func clearHover() {
+        guard isHovered else { return }
+        isHovered = false
+        needsDisplay = true
     }
 
     override func prepareForReuse() {
@@ -256,6 +305,10 @@ final class ThemedFileRowView: NSTableRowView {
     }
 
     override func mouseEntered(with event: NSEvent) {
+        if let table = enclosingTableView, table.isScrollingActive {
+            isHovered = false
+            return
+        }
         isHovered = true
         super.mouseEntered(with: event)
     }
@@ -267,6 +320,9 @@ final class ThemedFileRowView: NSTableRowView {
 
     override func drawBackground(in dirtyRect: NSRect) {
         super.drawBackground(in: dirtyRect)
+        if let table = enclosingTableView, table.isScrollingActive {
+            return
+        }
         guard !isSelected, isHovered else { return }
         hoverColor.setFill()
         let hoverRect = bounds.insetBy(dx: 1, dy: 1)

@@ -3,7 +3,7 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-private final class ThemedConnectionRowView: NSTableRowView {
+private final class ThemedConnectionRowView: NSTableRowView, RowHoverControllable {
     var highlightColor = NSColor.selectedContentBackgroundColor
     var hoverColor = NSColor.labelColor.withAlphaComponent(0.08)
     private var hoverTrackingArea: NSTrackingArea?
@@ -13,6 +13,23 @@ private final class ThemedConnectionRowView: NSTableRowView {
                 needsDisplay = true
             }
         }
+    }
+
+    private var enclosingTableView: InteractiveConnectionTableView? {
+        var view: NSView? = superview
+        while let current = view {
+            if let table = current as? InteractiveConnectionTableView {
+                return table
+            }
+            view = current.superview
+        }
+        return nil
+    }
+
+    func clearHover() {
+        guard isHovered else { return }
+        isHovered = false
+        needsDisplay = true
     }
 
     override func prepareForReuse() {
@@ -36,6 +53,10 @@ private final class ThemedConnectionRowView: NSTableRowView {
     }
 
     override func mouseEntered(with event: NSEvent) {
+        if let table = enclosingTableView, table.isScrollingActive {
+            isHovered = false
+            return
+        }
         isHovered = true
         super.mouseEntered(with: event)
     }
@@ -47,6 +68,9 @@ private final class ThemedConnectionRowView: NSTableRowView {
 
     override func drawBackground(in dirtyRect: NSRect) {
         super.drawBackground(in: dirtyRect)
+        if let table = enclosingTableView, table.isScrollingActive {
+            return
+        }
         guard !isSelected, isHovered, !isGroupRowStyle else { return }
         hoverColor.setFill()
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 5, yRadius: 5)

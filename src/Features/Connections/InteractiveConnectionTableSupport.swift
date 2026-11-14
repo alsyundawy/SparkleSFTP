@@ -15,7 +15,7 @@ final class InteractiveConnectionTableView: NSTableView {
     private(set) var isScrollingActive = false
     private var pendingMouseDownEvent: NSEvent?
     private var dragStartPoint: NSPoint = .zero
-    private var isDraggingSelection = false
+    var isDraggingSelection = false
     private let dragMovementThreshold: CGFloat = 10.0
     private var selectionAnchorRow: Int = -1
     private var scrollResetWorkItem: DispatchWorkItem?
@@ -63,10 +63,20 @@ final class InteractiveConnectionTableView: NSTableView {
 
     @objc private func handleLiveScrollDidStart() {
         isScrollingActive = true
+        pendingMouseDownEvent = nil
+        isDraggingSelection = false
+        clearAllRowHovers()
     }
 
     @objc private func handleLiveScrollDidEnd() {
         isScrollingActive = false
+        clearAllRowHovers()
+    }
+
+    func clearAllRowHovers() {
+        enumerateAvailableRowViews { rowView, _ in
+            (rowView as? RowHoverControllable)?.clearHover()
+        }
     }
 
     override var acceptsFirstResponder: Bool {
@@ -101,8 +111,23 @@ final class InteractiveConnectionTableView: NSTableView {
     override func mouseDragged(with event: NSEvent) {
         guard !isScrollingActive, let pendingEvent = pendingMouseDownEvent else { return }
         let currentPoint = convert(event.locationInWindow, from: nil)
-        let distance = hypot(currentPoint.x - dragStartPoint.x, currentPoint.y - dragStartPoint.y)
+        let deltaX = abs(currentPoint.x - dragStartPoint.x)
+        let deltaY = abs(currentPoint.y - dragStartPoint.y)
 
+        // If movement is predominantly vertical without Command or Shift modifier,
+        // treat it as trackpad scrolling gesture rather than row selection drag.
+        if deltaY > deltaX * 1.2, !pendingEvent.modifierFlags.contains([.command, .shift]) {
+            pendingMouseDownEvent = nil
+            isDraggingSelection = false
+            return
+        }
+
+        // Range drag-selection is strictly reserved for intentional Command or Shift modifier holds
+        guard pendingEvent.modifierFlags.contains([.command, .shift]) else {
+            return
+        }
+
+        let distance = hypot(deltaX, deltaY)
         if !isDraggingSelection {
             guard distance >= dragMovementThreshold else { return }
             isDraggingSelection = true
@@ -162,12 +187,14 @@ final class InteractiveConnectionTableView: NSTableView {
         pendingMouseDownEvent = nil
         isDraggingSelection = false
         isScrollingActive = true
+        clearAllRowHovers()
         scrollResetWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             self?.isScrollingActive = false
+            self?.clearAllRowHovers()
         }
         scrollResetWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20, execute: workItem)
         super.scrollWheel(with: event)
     }
 
@@ -198,79 +225,5 @@ final class InteractiveConnectionTableView: NSTableView {
 
     @objc func delete(_: Any?) {
         onDeletePressed?()
-    }
-
-    private func isTableResponderFocused() -> Bool {
-        guard let responder = window?.firstResponder else { return false }
-        if responder is NSText {
-            return false
-        }
-        if responder === self {
-            return true
-        }
-        if let responderView = responder as? NSView {
-            return responderView.isDescendant(of: self)
-        }
-        return false
-    }
-
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard isTableResponderFocused() else {
-            return super.performKeyEquivalent(with: event)
-        }
-        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        if mods == [.command] {
-            if event.keyCode == 51 {
-                onDeletePressed?()
-                return true
-            }
-            if event.charactersIgnoringModifiers?.lowercased() == "a" {
-                onSelectAllPressed?()
-                return true
-            }
-            if event.charactersIgnoringModifiers?.lowercased() == "d" {
-                deselectAll(nil)
-                return true
-            }
-        }
-        if mods == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "a" {
-            deselectAll(nil)
-            return true
-        }
-        return super.performKeyEquivalent(with: event)
-    }
-
-    override func keyDown(with event: NSEvent) {
-        let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        if event.keyCode == 53, mods.isEmpty {
-            deselectAll(nil)
-            return
-        }
-        if mods == [.command] {
-            if event.keyCode == 51 {
-                onDeletePressed?()
-                return
-            }
-            if event.charactersIgnoringModifiers?.lowercased() == "a" {
-                onSelectAllPressed?()
-                return
-            }
-            if event.charactersIgnoringModifiers?.lowercased() == "d" {
-                deselectAll(nil)
-                return
-            }
-        }
-        if mods == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "a" {
-            deselectAll(nil)
-            return
-        }
-        switch event.keyCode {
-        case 36 where mods.isEmpty, 76 where mods.isEmpty:
-            onReturnPressed?()
-        case 51 where mods.isEmpty, 117 where mods.isEmpty:
-            onDeletePressed?()
-        default:
-            super.keyDown(with: event)
-        }
     }
 }
