@@ -22,6 +22,27 @@ public enum ExternalConnectionFileReader {
         return candidates.filter { FileManager.default.fileExists(atPath: $0.path) }
     }
 
+    public static func defaultWinSCPSiteFiles(
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> [URL] {
+        let candidates = [
+            homeDirectory.appendingPathComponent("WinSCP.ini"),
+            homeDirectory.appendingPathComponent("winscp.ini"),
+            homeDirectory.appendingPathComponent(".winscp.ini"),
+            homeDirectory.appendingPathComponent("Downloads/WinSCP.ini"),
+            homeDirectory.appendingPathComponent("Downloads/winscp.ini"),
+            homeDirectory.appendingPathComponent("Documents/WinSCP.ini"),
+            homeDirectory.appendingPathComponent("Documents/winscp.ini"),
+            homeDirectory.appendingPathComponent(".config/winscp/winscp.ini"),
+            homeDirectory.appendingPathComponent(".config/winscp/WinSCP.ini"),
+            homeDirectory.appendingPathComponent("Library/Application Support/WinSCP/WinSCP.ini"),
+            homeDirectory.appendingPathComponent("Library/Application Support/WinSCP/winscp.ini"),
+            homeDirectory.appendingPathComponent(".wine/drive_c/Program Files (x86)/WinSCP/WinSCP.ini"),
+            homeDirectory.appendingPathComponent(".wine/drive_c/Program Files/WinSCP/WinSCP.ini")
+        ]
+        return candidates.filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
     public static func decodeText(from data: Data) -> String {
         if data.starts(with: [0xFF, 0xFE]),
            let utf16LE = String(bytes: Data(data.dropFirst(2)), encoding: .utf16LittleEndian) {

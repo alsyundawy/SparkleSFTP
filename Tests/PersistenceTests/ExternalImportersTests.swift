@@ -133,15 +133,15 @@ struct ExternalImportersTests {
         #expect(report.connections.count == 3)
         #expect(report.skippedUnsupported == 1)
 
-        let scp = try #require(report.connections.first)
-        #expect(scp.profile.protocolType == .scp)
-        #expect(scp.groupName == "Cloud/Prod")
-        #expect(scp.profile.name == "App Server")
-        #expect(scp.profile.proxy.kind == .socks5)
-        #expect(scp.secretStatus == .encryptedUnavailable)
+        let sftp = try #require(report.connections.first)
+        #expect(sftp.profile.protocolType == .sftp)
+        #expect(sftp.groupName == "Cloud/Prod")
+        #expect(sftp.profile.name == "App Server")
+        #expect(sftp.profile.proxy.kind == .socks5)
+        #expect(sftp.secretStatus == .encryptedUnavailable)
 
-        let defaultSFTP = try #require(report.connections.dropFirst().first)
-        #expect(defaultSFTP.profile.protocolType == .sftp)
+        let scpEntry = try #require(report.connections.dropFirst().first)
+        #expect(scpEntry.profile.protocolType == .scp)
 
         let ftps = try #require(report.connections.dropFirst(2).first)
         #expect(ftps.profile.protocolType == .ftpsImplicit)
@@ -151,17 +151,17 @@ struct ExternalImportersTests {
     @Test("IniSessionImporter decrypts standard UTF-8 passwords and legacy obfuscated passwords safely")
     func commanderIniPasswordDecryption() throws {
         let unicodeSecret = "p@ssw0rd!€123"
-        let encryptedStandard = Self.encodeStandardIniPassword(
+        let encryptedStandard = IniTestPasswordEncoder.encodeStandardIniPassword(
             password: unicodeSecret,
             username: "alice@corp",
             hostname: "files.example.org"
         )
-        let encryptedUserless = Self.encodeStandardIniPassword(
+        let encryptedUserless = IniTestPasswordEncoder.encodeStandardIniPassword(
             password: "anon-secret",
             username: "",
             hostname: "public.example.net"
         )
-        let encryptedLegacy = Self.encodeLegacyIniPassword(password: "legacy42")
+        let encryptedLegacy = IniTestPasswordEncoder.encodeLegacyIniPassword(password: "legacy42")
 
         let ini = """
         [Configuration\\Security]
@@ -205,7 +205,7 @@ struct ExternalImportersTests {
 
     @Test("IniSessionImporter fails closed when Vault Password is enabled or payload is corrupted")
     func commanderIniVaultPasswordFailsClosed() {
-        let validWithoutVaultPass = Self.encodeStandardIniPassword(
+        let validWithoutVaultPass = IniTestPasswordEncoder.encodeStandardIniPassword(
             password: "should-not-decode-when-vault-pass-enabled",
             username: "deploy",
             hostname: "host.example.com"
@@ -227,12 +227,44 @@ struct ExternalImportersTests {
         #expect(report.connections[0].profile.passwordRef == nil)
     }
 
-    private static func encodeObfuscatedByte(_ plain: UInt8) -> String {
+    @Test("WinSCP INI protocol mapping conforms to WinSCP specifications (0/missing/2 = SFTP, 1 = SCP)")
+    func winSCPProtocolResolutionDefaults() {
+        let ini = """
+        [Sessions\\DefaultOmittedProtocol]
+        HostName=sftp.example.org
+        UserName=root
+
+        [Sessions\\ExplicitSFTP0]
+        HostName=sftp0.example.org
+        UserName=admin
+        FSProtocol=0
+
+        [Sessions\\ExplicitSFTP2]
+        HostName=sftp2.example.org
+        UserName=deploy
+        FSProtocol=2
+
+        [Sessions\\ExplicitSCP1]
+        HostName=scp.example.org
+        UserName=backup
+        FSProtocol=1
+        """
+        let report = IniSessionImporter.parseWithReport(iniContents: ini)
+        #expect(report.connections.count == 4)
+        #expect(report.connections[0].profile.protocolType == .sftp)
+        #expect(report.connections[1].profile.protocolType == .sftp)
+        #expect(report.connections[2].profile.protocolType == .sftp)
+        #expect(report.connections[3].profile.protocolType == .scp)
+    }
+}
+
+private enum IniTestPasswordEncoder {
+    static func encodeObfuscatedByte(_ plain: UInt8) -> String {
         let obfuscated = ~plain ^ 0xA3
         return String(format: "%02X", obfuscated)
     }
 
-    private static func encodeStandardIniPassword(
+    static func encodeStandardIniPassword(
         password: String,
         username: String,
         hostname: String
@@ -252,7 +284,7 @@ struct ExternalImportersTests {
         return hex
     }
 
-    private static func encodeLegacyIniPassword(password: String) -> String {
+    static func encodeLegacyIniPassword(password: String) -> String {
         let payload = Array(password.utf8)
         let shift = 2
         var hex = encodeObfuscatedByte(UInt8(payload.count)) + encodeObfuscatedByte(UInt8(shift))

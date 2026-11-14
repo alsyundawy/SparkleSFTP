@@ -145,4 +145,52 @@ extension FilePaneTableView.Coordinator {
         }
         return cell
     }
+
+    func selectRowForContextMenu(_ row: Int) {
+        guard row >= 0, row < cachedFiles.count, let tableView else { return }
+        parent.onFocusPane()
+        tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+    }
+
+    func activateCurrentSelection() {
+        guard let row = tableView?.selectedRow, row >= 0, row < cachedFiles.count else { return }
+        parent.onActivateRow(cachedFiles[row])
+    }
+
+    func quickLookCurrentSelection() {
+        guard let row = tableView?.selectedRow, row >= 0, row < cachedFiles.count else { return }
+        parent.onQuickLookRow?(cachedFiles[row])
+    }
+
+    @objc func handleDoubleClick(_ sender: NSTableView) {
+        let row = sender.clickedRow >= 0 ? sender.clickedRow : sender.selectedRow
+        guard row >= 0, row < cachedFiles.count else { return }
+        parent.onActivateRow(cachedFiles[row])
+    }
+
+    func triggerContextAction(_ action: FilePaneContextAction) {
+        parent.onFocusPane()
+        if action == .deselectAll {
+            isProgrammaticUpdate = true
+            tableView?.deselectAll(nil)
+            lastSyncedSelection = []
+            parent.selectedIDs = []
+            isProgrammaticUpdate = false
+            parent.onContextAction(action, nil)
+            return
+        }
+        let selected = tableView?.selectedRow ?? -1
+        let target = (selected >= 0 && selected < cachedFiles.count) ? cachedFiles[selected] : nil
+        parent.onContextAction(action, target)
+    }
+
+    func didClickColumn(_ tableColumn: NSTableColumn) {
+        switch tableColumn.identifier.rawValue {
+        case "name": parent.onSortColumn(.name)
+        case "size": parent.onSortColumn(.size)
+        case "modified": parent.onSortColumn(.modifiedDate)
+        case "permissions": parent.onSortColumn(.permissions)
+        default: break
+        }
+    }
 }

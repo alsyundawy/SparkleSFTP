@@ -4,6 +4,7 @@ import SparkleCore
 public enum ExternalImportFormat: String, Sendable, Codable, Equatable {
     case fileZillaXML
     case commanderINI
+    case winSCPINI
     case nativeJSON
     case encryptedArchive
 }
