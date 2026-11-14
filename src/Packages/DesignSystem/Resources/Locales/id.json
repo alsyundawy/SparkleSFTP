@@ -200,6 +200,8 @@
     "transfers.clearFailed": "Hapus Gagal",
     "transfers.clearFinished": "Bersihkan Selesai",
     "transfers.conflictQueueHint": "Aturan timpa gaya FileZilla aktif",
+    "transfers.copyLocalPath": "Salin Jalur Lokal",
+    "transfers.copyRemotePath": "Salin Jalur Remote",
     "transfers.colDirection": "Arah",
     "transfers.colLocalFile": "Berkas Server/Lokal",
     "transfers.colPriority": "Prioritas",

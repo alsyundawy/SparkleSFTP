@@ -42,44 +42,102 @@ struct TransferQueueRowView: View {
         HStack(spacing: 0) {
             switch filter {
             case .queued:
-                localFileCell(minWidth: 160, maxWidth: .infinity)
-                directionCell(width: 65)
-                remoteFileCell(minWidth: 160, maxWidth: .infinity)
-                sizeCell(width: 85)
-                priorityCell(width: 65)
-                statusCell(width: 180)
+                queuedRowCells
             case .failed:
-                localFileCell(minWidth: 150, maxWidth: .infinity)
-                directionCell(width: 65)
-                remoteFileCell(minWidth: 150, maxWidth: .infinity)
-                sizeCell(width: 85)
-                priorityCell(width: 65)
-                timeCell(width: 75)
-                reasonCell(minWidth: 150, maxWidth: .infinity)
+                failedRowCells
             case .successful:
-                localFileCell(minWidth: 180, maxWidth: .infinity)
-                directionCell(width: 65)
-                remoteFileCell(minWidth: 180, maxWidth: .infinity)
-                sizeCell(width: 85)
-                priorityCell(width: 65)
+                successfulRowCells
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 3)
         .contextMenu {
-            if snapshot.status.isActive || snapshot.status == .queued {
-                Button(strings.t("transfers.pause"), action: onPause)
-                Button(strings.t("common.cancel"), role: .destructive, action: onCancel)
-            } else if snapshot.status != .completed {
-                Button(strings.t("transfers.retry"), action: onRetry)
-                if snapshot.status == .paused || snapshot.status == .interrupted {
-                    Button(strings.t("common.cancel"), role: .destructive, action: onCancel)
-                }
-            }
+            rowContextMenu
         }
     }
 
-    private func localFileCell(minWidth: CGFloat, maxWidth: CGFloat) -> some View {
+    private var rowDivider: some View {
+        Rectangle()
+            .fill(palette.borderColor.opacity(0.15))
+            .frame(width: 1, height: 14)
+    }
+
+    @ViewBuilder
+    private var queuedRowCells: some View {
+        localFileCell(minWidth: 160, maxWidth: .infinity)
+        rowDivider
+        directionCell(width: 65)
+        rowDivider
+        remoteFileCell(minWidth: 160, maxWidth: .infinity)
+        rowDivider
+        sizeCell(width: 85)
+        rowDivider
+        priorityCell(width: 65)
+        rowDivider
+        statusCell(width: 180)
+    }
+
+    @ViewBuilder
+    private var failedRowCells: some View {
+        localFileCell(minWidth: 150, maxWidth: .infinity)
+        rowDivider
+        directionCell(width: 65)
+        rowDivider
+        remoteFileCell(minWidth: 150, maxWidth: .infinity)
+        rowDivider
+        sizeCell(width: 85)
+        rowDivider
+        priorityCell(width: 65)
+        rowDivider
+        timeCell(width: 75)
+        rowDivider
+        reasonCell(minWidth: 150, maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var successfulRowCells: some View {
+        localFileCell(minWidth: 180, maxWidth: .infinity)
+        rowDivider
+        directionCell(width: 65)
+        rowDivider
+        remoteFileCell(minWidth: 180, maxWidth: .infinity)
+        rowDivider
+        sizeCell(width: 85)
+        rowDivider
+        priorityCell(width: 65)
+    }
+
+    @ViewBuilder
+    private var rowContextMenu: some View {
+        Button(strings.t("transfers.copyLocalPath")) {
+            let path = snapshot.metadata.direction == .upload
+                ? snapshot.metadata.source.displayPath
+                : snapshot.metadata.destination.displayPath
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(path, forType: .string)
+        }
+        Button(strings.t("transfers.copyRemotePath")) {
+            let path = snapshot.metadata.direction == .upload
+                ? snapshot.metadata.destination.displayPath
+                : snapshot.metadata.source.displayPath
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(path, forType: .string)
+        }
+        Divider()
+        if snapshot.status.isActive || snapshot.status == .queued {
+            Button(strings.t("transfers.pause"), action: onPause)
+            Button(strings.t("common.cancel"), role: .destructive, action: onCancel)
+        } else if snapshot.status != .completed {
+            Button(strings.t("transfers.retry"), action: onRetry)
+            if snapshot.status == .paused || snapshot.status == .interrupted {
+                Button(strings.t("common.cancel"), role: .destructive, action: onCancel)
+            }
+        }
+    }
+}
+
+private extension TransferQueueRowView {
+    func localFileCell(minWidth: CGFloat, maxWidth: CGFloat) -> some View {
         let localPath = snapshot.metadata.direction == .upload
             ? snapshot.metadata.source.displayPath
             : snapshot.metadata.destination.displayPath

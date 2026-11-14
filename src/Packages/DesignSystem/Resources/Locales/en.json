@@ -200,6 +200,8 @@
     "transfers.clearFailed": "Clear Failed",
     "transfers.clearFinished": "Clear Finished",
     "transfers.conflictQueueHint": "Sticky FileZilla overwrite rules active",
+    "transfers.copyLocalPath": "Copy Local Path",
+    "transfers.copyRemotePath": "Copy Remote Path",
     "transfers.colDirection": "Direction",
     "transfers.colLocalFile": "Server/Local file",
     "transfers.colPriority": "Priority",

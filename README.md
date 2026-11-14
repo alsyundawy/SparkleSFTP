@@ -142,7 +142,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 - **SHA-256 Checksum Verification**:
 
 ```text
-ea7dd7f6d12547a590ee9766515e87c372f79882b0d6077dabe0f096204c4efb  SparkleSFTP-0.5.0-universal.dmg
+7222917a08fb271822a92074cc43ffccd56ac95a35e18104931fca2f866b58bf  SparkleSFTP-0.5.0-universal.dmg
 ```
 
 Verify in Terminal:

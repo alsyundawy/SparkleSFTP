@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Comprehensive Localization & Quality Gates**:
   - Added 27 new localization keys across `en.json` and `id.json` achieving 100% key parity across 555 strings.
   - Expanded unit test suite to 134 tests across 36 test suites passing with 100% green status; verified 0 SwiftLint violations and 0 SwiftFormat warnings across 225 Swift files.
-  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg` (SHA-256: `ea7dd7f6d12547a590ee9766515e87c372f79882b0d6077dabe0f096204c4efb`).
+  - Built Universal 2 signed release bundle and packaged `SparkleSFTP-0.5.0-universal.dmg` (SHA-256: `7222917a08fb271822a92074cc43ffccd56ac95a35e18104931fca2f866b58bf`).
 
 ## [0.4.1] - 2026-11-13
 
