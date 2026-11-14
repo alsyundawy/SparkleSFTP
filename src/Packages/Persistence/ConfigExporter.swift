@@ -92,7 +92,8 @@ public enum ConfigExporter {
             let protocolNum = switch profile.protocolType {
             case .ftp: 0
             case .sftp, .scp: 1
-            case .ftpsExplicit, .ftpsImplicit: 4
+            case .ftpsImplicit: 3
+            case .ftpsExplicit: 4
             }
 
             let escapedName = escapeXML(profile.name)
@@ -115,6 +116,62 @@ public enum ConfigExporter {
         xml += "  </Servers>\n"
         xml += "</FileZilla3>\n"
         return xml
+    }
+
+    /// Exports connection profiles and groups to WinSCP `WinSCP.ini` session format.
+    public static func exportToWinSCPINI(
+        profiles: [ConnectionProfile],
+        groups: [ServerGroup] = []
+    ) -> String {
+        var groupMap: [UUID: String] = [:]
+        for group in groups {
+            groupMap[group.id] = group.name
+        }
+
+        var ini = "; WinSCP Configuration File\n"
+        ini += "; Exported by SparkleSFTP v0.6.0\n"
+        ini += "[Configuration\\Security]\n"
+        ini += "MasterPasswordProtected=0\n\n"
+
+        for profile in profiles {
+            let groupName = profile.groupID.flatMap { groupMap[$0] }
+            let sessionSection = if let groupName, !groupName.isEmpty {
+                "Sessions\\\(groupName)\\\(profile.name)"
+            } else {
+                "Sessions\\\(profile.name)"
+            }
+
+            ini += "[\(sessionSection)]\n"
+            ini += "HostName=\(profile.host)\n"
+            ini += "PortNumber=\(profile.port)\n"
+            ini += "UserName=\(profile.username)\n"
+
+            switch profile.protocolType {
+            case .sftp:
+                ini += "FSProtocol=0\n"
+            case .scp:
+                ini += "FSProtocol=1\n"
+            case .ftp:
+                ini += "FSProtocol=5\n"
+                ini += "Ftps=0\n"
+            case .ftpsImplicit:
+                ini += "FSProtocol=5\n"
+                ini += "Ftps=1\n"
+            case .ftpsExplicit:
+                ini += "FSProtocol=5\n"
+                ini += "Ftps=2\n"
+            }
+
+            let remote = profile.defaultRemotePath.rawValue
+            if !remote.isEmpty, remote != "/" {
+                ini += "RemoteDirectory=\(remote)\n"
+            }
+            if let local = profile.defaultLocalPath, !local.isEmpty {
+                ini += "LocalDirectory=\(local)\n"
+            }
+            ini += "\n"
+        }
+        return ini
     }
 
     private static func escapeXML(_ str: String) -> String {

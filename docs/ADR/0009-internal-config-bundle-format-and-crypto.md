@@ -11,6 +11,7 @@ Accepted
 ## Context
 
 Prior to SparkleSFTP v0.6.0, connection profile backups were limited to plaintext JSON exports and partial FileZilla XML exports. Users managing enterprise server fleets required:
+
 1. **Authenticated Zero-Knowledge Encryption**: Exporting sensitive credentials (passwords, private key passphrases, endpoints) safely to disk or cloud storage without plaintext exposure.
 2. **Selective Export Scopes**: Ability to export only specific subsystems (e.g. profiles only, bookmarks only, or full configuration state).
 3. **Cross-Platform & Cross-Client Portability**: Seamless migration from legacy SparkleSFTP exports, FileZilla `sitemanager.xml`, WinSCP `WinSCP.ini`, and OpenSSH `~/.ssh/config`.

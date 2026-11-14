@@ -100,50 +100,89 @@ public struct PreferencesView: View {
     }
 
     private var tabContentView: some View {
-        TabView(selection: $selectedTab) {
-            PreferencesLocalizationTab(appState: appState)
-                .tag(SettingsTabIdentifier.general)
-                .tabItem { Label(strings.t("prefs.tabGeneral"), systemImage: "globe") }
-
-            PreferencesThemeTab(appState: appState)
-                .tag(SettingsTabIdentifier.themes)
-                .tabItem { Label(strings.t("prefs.tabThemes"), systemImage: SparkleTheme.Symbols.theme) }
-
-            PreferencesTransfersTab(appState: appState)
-                .tag(SettingsTabIdentifier.transfers)
-                .tabItem { Label(strings.t("prefs.tabTransfers"), systemImage: "arrow.up.arrow.down.circle") }
-
-            PreferencesTerminalTab(appState: appState)
-                .tag(SettingsTabIdentifier.terminal)
-                .tabItem { Label(strings.t("prefs.tabTerminal"), systemImage: "terminal") }
-
-            PreferencesEditorTab(appState: appState)
-                .tag(SettingsTabIdentifier.editor)
-                .tabItem { Label(strings.t("prefs.tabEditor"), systemImage: "doc.text") }
-
-            PreferencesSecurityTab(appState: appState)
-                .tag(SettingsTabIdentifier.security)
-                .tabItem { Label(strings.t("prefs.tabSecurity"), systemImage: "lock.shield") }
-
-            PreferencesNetworkTab(appState: appState)
-                .tag(SettingsTabIdentifier.network)
-                .tabItem { Label(strings.t("prefs.tabNetwork"), systemImage: "network") }
-
-            PreferencesSyncBookmarksTab(appState: appState)
-                .tag(SettingsTabIdentifier.sync)
-                .tabItem {
-                    Label(strings.t("prefs.tabSyncBookmarks"), systemImage: "arrow.triangle.2.circlepath")
-                }
-
-            PreferencesArchivesTab(appState: appState)
-                .tag(SettingsTabIdentifier.archives)
-                .tabItem { Label(strings.t("prefs.tabArchives"), systemImage: "archivebox") }
-
-            PreferencesUpdatesTab(appState: appState)
-                .tag(SettingsTabIdentifier.updates)
-                .tabItem { Label(strings.t("prefs.tabUpdates"), systemImage: SparkleTheme.Symbols.updates) }
+        VStack(spacing: 0) {
+            fixedTwoRowTabBar
+            Divider()
+            activeTabContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(SparkleTheme.Spacing.small)
         }
-        .padding(SparkleTheme.Spacing.small)
+    }
+
+    private var fixedTwoRowTabBar: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                tabButton(tab: .general, title: strings.t("prefs.tabGeneral"), icon: "globe")
+                tabButton(tab: .themes, title: strings.t("prefs.tabThemes"), icon: SparkleTheme.Symbols.theme)
+                tabButton(tab: .transfers, title: strings.t("prefs.tabTransfers"), icon: "arrow.up.arrow.down.circle")
+                tabButton(tab: .terminal, title: strings.t("prefs.tabTerminal"), icon: "terminal")
+                tabButton(tab: .editor, title: strings.t("prefs.tabEditor"), icon: "doc.text")
+            }
+            HStack(spacing: 6) {
+                tabButton(tab: .security, title: strings.t("prefs.tabSecurity"), icon: "lock.shield")
+                tabButton(tab: .network, title: strings.t("prefs.tabNetwork"), icon: "network")
+                tabButton(tab: .sync, title: strings.t("prefs.tabSyncBookmarks"), icon: "arrow.triangle.2.circlepath")
+                tabButton(tab: .archives, title: strings.t("prefs.tabArchives"), icon: "archivebox")
+                tabButton(tab: .updates, title: strings.t("prefs.tabUpdates"), icon: SparkleTheme.Symbols.updates)
+            }
+        }
+        .padding(.horizontal, SparkleTheme.Spacing.medium)
+        .padding(.vertical, SparkleTheme.Spacing.small)
+        .background(appState.activePalette.canvasColor.opacity(0.6))
+    }
+
+    private func tabButton(tab: SettingsTabIdentifier, title: String, icon: String) -> some View {
+        let isSelected = selectedTab == tab
+        return Button {
+            selectedTab = tab
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: isSelected ? .bold : .regular))
+                Text(title)
+                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? SparkleTheme.Colors.accent.opacity(0.18) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(isSelected ? SparkleTheme.Colors.accent.opacity(0.6) : Color.clear, lineWidth: 1)
+            )
+            .foregroundStyle(isSelected ? SparkleTheme.Colors.accent : appState.activePalette.primaryTextColor)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var activeTabContent: some View {
+        switch selectedTab {
+        case .general:
+            PreferencesLocalizationTab(appState: appState)
+        case .themes:
+            PreferencesThemeTab(appState: appState)
+        case .transfers:
+            PreferencesTransfersTab(appState: appState)
+        case .terminal:
+            PreferencesTerminalTab(appState: appState)
+        case .editor:
+            PreferencesEditorTab(appState: appState)
+        case .security:
+            PreferencesSecurityTab(appState: appState)
+        case .network:
+            PreferencesNetworkTab(appState: appState)
+        case .sync:
+            PreferencesSyncBookmarksTab(appState: appState)
+        case .archives:
+            PreferencesArchivesTab(appState: appState)
+        case .updates:
+            PreferencesUpdatesTab(appState: appState)
+        }
     }
 
     private var searchResultsView: some View {

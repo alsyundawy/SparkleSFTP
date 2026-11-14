@@ -125,7 +125,10 @@ private struct SparkleAppCommands: Commands {
 
             Divider()
 
-            Button(activeState.strings.t("nav.upload")) {
+            let transferTitle = activeState.activePane == .left
+                ? activeState.strings.t("nav.upload")
+                : activeState.strings.t("nav.download")
+            Button(transferTitle) {
                 Task { await activeState.enqueueSelectedTransfer() }
             }
             .keyboardShortcut("u", modifiers: [.command])

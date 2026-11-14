@@ -161,4 +161,108 @@ struct InternalConnectionExportTests {
         #expect(encryptedReport.format == .encryptedArchive)
         #expect(encryptedReport.warnings.contains("ARCHIVE_ENCRYPTED_PASSPHRASE_REQUIRED"))
     }
+
+    private func makeSampleProtocolProfiles(groupID: UUID) -> [ConnectionProfile] {
+        [
+            ConnectionProfile(
+                name: "SFTP Node", groupID: groupID,
+                protocolType: .sftp, host: "sftp.example.com",
+                port: 22, username: "u"
+            ),
+            ConnectionProfile(
+                name: "SCP Node", groupID: groupID,
+                protocolType: .scp, host: "scp.example.com",
+                port: 2222, username: "u"
+            ),
+            ConnectionProfile(
+                name: "FTP Node", groupID: groupID,
+                protocolType: .ftp, host: "ftp.example.com",
+                port: 21, username: "u"
+            ),
+            ConnectionProfile(
+                name: "FTPS Explicit Node", groupID: groupID,
+                protocolType: .ftpsExplicit, host: "ftpes.example.com",
+                port: 21, username: "u"
+            ),
+            ConnectionProfile(
+                name: "FTPS Implicit Node", groupID: groupID,
+                protocolType: .ftpsImplicit, host: "ftps.example.com",
+                port: 990, username: "u"
+            )
+        ]
+    }
+
+    @Test("WinSCP INI export and import accurately preserves all protocols")
+    func winSCPINIExportPreservesProtocols() throws {
+        let group = ServerGroup(name: "Production Cluster")
+        let profiles = makeSampleProtocolProfiles(groupID: group.id)
+        let ini = ConfigExporter.exportToWinSCPINI(profiles: profiles, groups: [group])
+
+        #expect(ini.contains("FSProtocol=0"))
+        #expect(ini.contains("FSProtocol=1"))
+        #expect(ini.contains("FSProtocol=5"))
+        #expect(ini.contains("Ftps=1"))
+        #expect(ini.contains("Ftps=2"))
+
+        // Roundtrip import
+        let report = try ExternalConnectionFileReader.inspect(data: Data(ini.utf8), fileExtension: "ini")
+        #expect(report.format == ExternalImportFormat.winSCPINI)
+        #expect(report.connections.count == 5)
+
+        let byName: [String: ImportedConnection] = Dictionary(
+            uniqueKeysWithValues: report.connections.map { ($0.profile.name, $0) }
+        )
+        #expect(byName["SFTP Node"]?.profile.protocolType == .sftp)
+        #expect(byName["SCP Node"]?.profile.protocolType == .scp)
+        #expect(byName["FTP Node"]?.profile.protocolType == .ftp)
+        #expect(byName["FTPS Explicit Node"]?.profile.protocolType == .ftpsExplicit)
+        #expect(byName["FTPS Implicit Node"]?.profile.protocolType == .ftpsImplicit)
+    }
+
+    @Test("FileZilla XML export accurately maps protocols")
+    func fileZillaXMLExportPreservesProtocols() throws {
+        let group = ServerGroup(name: "Sites")
+        let sftpProfile = ConnectionProfile(
+            name: "SFTP Site", groupID: group.id,
+            protocolType: .sftp, host: "sftp.site.com",
+            port: 22, username: "user"
+        )
+        let ftpProfile = ConnectionProfile(
+            name: "FTP Site", groupID: group.id,
+            protocolType: .ftp, host: "ftp.site.com",
+            port: 21, username: "user"
+        )
+        let ftpsImplicitProfile = ConnectionProfile(
+            name: "FTPS Implicit Site", groupID: group.id,
+            protocolType: .ftpsImplicit, host: "ftps.site.com",
+            port: 990, username: "user"
+        )
+        let ftpsExplicitProfile = ConnectionProfile(
+            name: "FTPS Explicit Site", groupID: group.id,
+            protocolType: .ftpsExplicit, host: "ftpes.site.com",
+            port: 21, username: "user"
+        )
+
+        let xml = ConfigExporter.exportToFileZillaXML(
+            profiles: [sftpProfile, ftpProfile, ftpsImplicitProfile, ftpsExplicitProfile],
+            groups: [group]
+        )
+
+        #expect(xml.contains("<Protocol>0</Protocol>"))
+        #expect(xml.contains("<Protocol>1</Protocol>"))
+        #expect(xml.contains("<Protocol>3</Protocol>"))
+        #expect(xml.contains("<Protocol>4</Protocol>"))
+
+        let report = try ExternalConnectionFileReader.inspect(data: Data(xml.utf8), fileExtension: "xml")
+        #expect(report.format == ExternalImportFormat.fileZillaXML)
+        #expect(report.connections.count == 4)
+
+        let byName: [String: ImportedConnection] = Dictionary(
+            uniqueKeysWithValues: report.connections.map { ($0.profile.name, $0) }
+        )
+        #expect(byName["SFTP Site"]?.profile.protocolType == .sftp)
+        #expect(byName["FTP Site"]?.profile.protocolType == .ftp)
+        #expect(byName["FTPS Implicit Site"]?.profile.protocolType == .ftpsImplicit)
+        #expect(byName["FTPS Explicit Site"]?.profile.protocolType == .ftpsExplicit)
+    }
 }

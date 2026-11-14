@@ -206,12 +206,16 @@ extension AboutView {
             ("⌘T / ⇧⌘T / ⌘W", "New Tab / Duplicate Tab / Close Active Tab or Window"),
             ("⌘⇧[ / ⌘⇧]", "Select Previous / Next Workspace Tab"),
             ("⌘U / ⇧⌘N / F7", "Upload or Download selected / New Folder"),
-            ("⌘E / ⌘K", "Open Notepad2 Editor / Toggle Active Tab SSH Shell (1 Tab = 1 Shell)"),
+            ("⌘E / ⌘K", "Open Notepad2 Editor / Toggle Active Tab SSH Shell"),
+            ("⌥⌘T / ⌥⌘L", "Standalone iTerm2-Style Terminal / Activity Log"),
+            ("⇧⌘I / ⇧⌘E", "Import Connections / Export Connections (WinSCP/FileZilla/Vault)"),
+            ("⌘, (Preferences)", "Settings Dialog with Fixed 2-Row Tabs"),
             ("⌘⇧S / ⌘R", "Directory Synchronize / Refresh directory"),
             ("⌘↩ / ⌥↩", "Insert Filenames to Shell / Properties"),
             ("⌘C / ⌘⇧C / ⌘⌥C", "Copy to Clipboard / Copy Filenames / Copy Full Paths"),
             ("F2 / F5 / ⇧F5 / F6 / F8 / F9", "Rename / Transfer / Copy To / Move To / Delete / Properties"),
-            ("⌘A / ⌘⌫", "Select All / Delete selected items")
+            ("⌘A / ⌘D / Esc", "Select All / Deselect All / Cancel"),
+            ("⌘⌫ / F8", "Delete selected items")
         ]
         return VStack(alignment: .leading, spacing: SparkleTheme.Spacing.small) {
             Text("Key Productivity Shortcuts")

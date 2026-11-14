@@ -171,7 +171,16 @@ public enum ToolchainInspector {
         sslURL: URL? = nil
     ) -> HostToolchainReport {
         let shells = detectAvailableShells()
-        let iterm = firstAppBundle(in: ["/Applications/iTerm.app", "/Applications/Utilities/iTerm.app"])
+        let homePath = FileManager.default.homeDirectory(forUser: NSUserName())?.path
+            ?? FileManager.default.homeDirectoryForCurrentUser.path
+        let iterm = firstAppBundle(in: [
+            "/Applications/iTerm.app",
+            "/Applications/iTerm2.app",
+            "/Applications/Utilities/iTerm.app",
+            "/Applications/Utilities/iTerm2.app",
+            "\(homePath)/Applications/iTerm.app",
+            "\(homePath)/Applications/iTerm2.app"
+        ])
         let term = firstAppBundle(in: [
             "/System/Applications/Utilities/Terminal.app",
             "/Applications/Utilities/Terminal.app"

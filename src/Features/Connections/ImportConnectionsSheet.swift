@@ -104,10 +104,7 @@ public struct ImportConnectionsSheet: View {
                 .background(appState.activePalette.canvasColor)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                Text(strings.t("import.noEntries"))
-                    .font(SparkleTheme.Typography.body)
-                    .foregroundStyle(appState.activePalette.secondaryTextColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                emptyStateView
             }
 
             HStack {
@@ -222,12 +219,7 @@ public struct ImportConnectionsSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(entry.profile.name).font(SparkleTheme.Typography.headline)
-                        Text(entry.profile.protocolType.displayName)
-                            .font(.caption2)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(SparkleTheme.Colors.accent.opacity(0.15))
-                            .clipShape(Capsule())
+                        protocolBadge(for: entry.profile.protocolType)
                         if let group = entry.groupName {
                             Text(group)
                                 .font(.caption2)
@@ -272,5 +264,86 @@ public struct ImportConnectionsSheet: View {
         } else {
             selectedIndices = []
         }
+    }
+}
+
+// MARK: - Subviews & Protocol Badges
+
+extension ImportConnectionsSheet {
+    var emptyStateView: some View {
+        VStack(spacing: SparkleTheme.Spacing.medium) {
+            Image(systemName: "tray.and.arrow.down.fill")
+                .font(.system(size: 46))
+                .foregroundStyle(SparkleTheme.Colors.accent)
+
+            Text(strings.t("import.emptyStateTitle"))
+                .font(SparkleTheme.Typography.title)
+                .foregroundStyle(appState.activePalette.primaryTextColor)
+
+            Text(strings.t("import.noEntries"))
+                .font(SparkleTheme.Typography.body)
+                .foregroundStyle(appState.activePalette.secondaryTextColor)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 480)
+
+            HStack(spacing: 8) {
+                formatTag("WinSCP (.ini)")
+                formatTag("FileZilla (.xml)")
+                formatTag("SparkleSFTP (.sparklesftp / .json)")
+            }
+
+            HStack(spacing: SparkleTheme.Spacing.small) {
+                Button(strings.t("import.chooseFile")) {
+                    isPickingFile = true
+                }
+                .buttonStyle(.borderedProminent)
+
+                let detectedWinSCP = ExternalConnectionFileReader.defaultWinSCPSiteFiles()
+                if let firstWinSCP = detectedWinSCP.first {
+                    Button(strings.t("import.autoDetectWinSCP")) {
+                        appState.inspectExternalConnections(from: firstWinSCP)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                let detectedSites = ExternalConnectionFileReader.defaultFileZillaSiteFiles()
+                if let firstSite = detectedSites.first {
+                    Button(strings.t("import.autoDetectFileZilla")) {
+                        appState.inspectExternalConnections(from: firstSite)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(SparkleTheme.Spacing.large)
+    }
+
+    private func formatTag(_ name: String) -> some View {
+        Text(name)
+            .font(.caption2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(appState.activePalette.canvasColor.opacity(0.6))
+            .foregroundStyle(appState.activePalette.secondaryTextColor)
+            .clipShape(Capsule())
+    }
+
+    func protocolBadge(for protocolType: ProtocolType) -> some View {
+        let (label, tint): (String, Color) = switch protocolType {
+        case .sftp: ("SFTP", SparkleTheme.Colors.accent)
+        case .scp: ("SCP", Color.purple)
+        case .ftp: ("FTP", Color.orange)
+        case .ftpsExplicit: ("FTPS Explicit", Color.teal)
+        case .ftpsImplicit: ("FTPS Implicit", Color.green)
+        }
+        return Text(label)
+            .font(.system(size: 10, weight: .bold))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(tint.opacity(0.18))
+            .foregroundStyle(tint)
+            .clipShape(Capsule())
     }
 }

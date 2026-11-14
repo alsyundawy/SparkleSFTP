@@ -1424,22 +1424,22 @@ jobs:
 
 ## 🏆 14-Pillar Verification Matrix (v0.5.0 Hardening Review)
 
-| # | Pillar | Audit Finding & Verification Evidence | Status |
-|---|---|---|---|
-| **1** | **Bug Review** | Fixed stuck selection when clicking empty space; resolved ghost IDs across folder navigation; added `.deselectAll` to `FilePaneContextAction`. | ✅ FIXED |
-| **2** | **Syntax Review** | All touched Swift, Shell, JSON, and Plist files verified clean via compiler and `lint-check.sh` (0 errors). | ✅ PASSED |
-| **3** | **Runtime Review** | Validated responder chain in `InteractiveFileTableView` and `InteractiveConnectionTableView`; verified keyboard shortcut routing. | ✅ PASSED |
-| **4** | **Logic Review** | Enhanced `UpdateConfigurationValidator` and `SparkleUpdaterService` with `isSameVersion` and `isNewerBuildOrCommit` heuristics. | ✅ PASSED |
-| **5** | **Memory Review** | Strict cell dequeue reuse in `FilePaneTableView` maintained (`MEM-004`); hover tracking and reuse states cleared in `prepareForReuse`. | ✅ PASSED |
-| **6** | **Dead Code Review** | Audited all selectors and actions; zero obsolete code or dangling handlers. | ✅ PASSED |
-| **7** | **Duplicate Code Review** | Consolidated selection actions and shortcuts between local and remote commander panes. | ✅ PASSED |
-| **8** | **Circular Dependency Review** | SwiftPM dependency graph audited; acyclic package boundaries strictly preserved. | ✅ PASSED |
-| **9** | **Performance Bottlenecks** | Lightweight row rendering in `ThemedFileRowView`; zero unnecessary redraw loops during selection syncing. | ✅ PASSED |
-| **10** | **Security Vulnerability** | Audited against OWASP Top 25 (2024–2026) and MITRE CWE Top 50; verified CWE-78 sanitization, CWE-22 traversal blocks, and CWE-59 symlink safety. | ✅ PASSED |
-| **11** | **Maintainability** | Clean enum-based context actions (`FilePaneContextAction`), localized string keys, and PlistBuddy build automation. | ✅ PASSED |
-| **12** | **Scalability** | Dual-pane commander sustains large paginated directory listings with instant multi-selection updates. | ✅ PASSED |
-| **13** | **Readability** | Self-documenting Swift code following Google Engineering Practices and Apple Swift API Design Guidelines. | ✅ PASSED |
-| **14** | **Testability & Verification** | Automated tests executed under Swift Testing; verified DMG artifact and SHA-256 integrity. | ✅ PASSED |
+| #      | Pillar                         | Audit Finding & Verification Evidence                                                                                                            | Status    |
+| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| **1**  | **Bug Review**                 | Fixed stuck selection when clicking empty space; resolved ghost IDs across folder navigation; added `.deselectAll` to `FilePaneContextAction`.   | ✅ FIXED  |
+| **2**  | **Syntax Review**              | All touched Swift, Shell, JSON, and Plist files verified clean via compiler and `lint-check.sh` (0 errors).                                      | ✅ PASSED |
+| **3**  | **Runtime Review**             | Validated responder chain in `InteractiveFileTableView` and `InteractiveConnectionTableView`; verified keyboard shortcut routing.                | ✅ PASSED |
+| **4**  | **Logic Review**               | Enhanced `UpdateConfigurationValidator` and `SparkleUpdaterService` with `isSameVersion` and `isNewerBuildOrCommit` heuristics.                  | ✅ PASSED |
+| **5**  | **Memory Review**              | Strict cell dequeue reuse in `FilePaneTableView` maintained (`MEM-004`); hover tracking and reuse states cleared in `prepareForReuse`.           | ✅ PASSED |
+| **6**  | **Dead Code Review**           | Audited all selectors and actions; zero obsolete code or dangling handlers.                                                                      | ✅ PASSED |
+| **7**  | **Duplicate Code Review**      | Consolidated selection actions and shortcuts between local and remote commander panes.                                                           | ✅ PASSED |
+| **8**  | **Circular Dependency Review** | SwiftPM dependency graph audited; acyclic package boundaries strictly preserved.                                                                 | ✅ PASSED |
+| **9**  | **Performance Bottlenecks**    | Lightweight row rendering in `ThemedFileRowView`; zero unnecessary redraw loops during selection syncing.                                        | ✅ PASSED |
+| **10** | **Security Vulnerability**     | Audited against OWASP Top 25 (2024–2026) and MITRE CWE Top 50; verified CWE-78 sanitization, CWE-22 traversal blocks, and CWE-59 symlink safety. | ✅ PASSED |
+| **11** | **Maintainability**            | Clean enum-based context actions (`FilePaneContextAction`), localized string keys, and PlistBuddy build automation.                              | ✅ PASSED |
+| **12** | **Scalability**                | Dual-pane commander sustains large paginated directory listings with instant multi-selection updates.                                            | ✅ PASSED |
+| **13** | **Readability**                | Self-documenting Swift code following Google Engineering Practices and Apple Swift API Design Guidelines.                                        | ✅ PASSED |
+| **14** | **Testability & Verification** | Automated tests executed under Swift Testing; verified DMG artifact and SHA-256 integrity.                                                       | ✅ PASSED |
 
 ---
 

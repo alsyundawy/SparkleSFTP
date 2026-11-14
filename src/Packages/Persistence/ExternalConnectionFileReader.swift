@@ -6,41 +6,73 @@ public enum ExternalConnectionFileReader {
     public static func defaultFileZillaSiteFiles(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> [URL] {
-        let candidates = [
-            homeDirectory.appendingPathComponent(".config/filezilla/sitemanager.xml"),
-            homeDirectory.appendingPathComponent(".config/filezilla/filezilla.xml"),
-            homeDirectory.appendingPathComponent(".config/filezilla/recentservers.xml"),
-            homeDirectory.appendingPathComponent(".filezilla/sitemanager.xml"),
-            homeDirectory.appendingPathComponent(".filezilla/filezilla.xml"),
-            homeDirectory.appendingPathComponent(".filezilla/recentservers.xml"),
-            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/sitemanager.xml"),
-            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/filezilla.xml"),
-            homeDirectory.appendingPathComponent("Library/Preferences/FileZilla/recentservers.xml"),
-            homeDirectory.appendingPathComponent("Library/Application Support/filezilla/sitemanager.xml"),
-            homeDirectory.appendingPathComponent("Library/Application Support/filezilla/filezilla.xml")
-        ]
-        return candidates.filter { FileManager.default.fileExists(atPath: $0.path) }
+        var baseDirectories = [homeDirectory]
+        if let realHome = FileManager.default.homeDirectory(forUser: NSUserName()),
+           realHome.path != homeDirectory.path {
+            baseDirectories.append(realHome)
+        }
+
+        var candidates: [URL] = []
+        for base in baseDirectories {
+            candidates.append(contentsOf: [
+                base.appendingPathComponent(".config/filezilla/sitemanager.xml"),
+                base.appendingPathComponent(".config/filezilla/filezilla.xml"),
+                base.appendingPathComponent(".config/filezilla/recentservers.xml"),
+                base.appendingPathComponent(".filezilla/sitemanager.xml"),
+                base.appendingPathComponent(".filezilla/filezilla.xml"),
+                base.appendingPathComponent(".filezilla/recentservers.xml"),
+                base.appendingPathComponent("Library/Preferences/FileZilla/sitemanager.xml"),
+                base.appendingPathComponent("Library/Preferences/FileZilla/filezilla.xml"),
+                base.appendingPathComponent("Library/Preferences/FileZilla/recentservers.xml"),
+                base.appendingPathComponent("Library/Application Support/filezilla/sitemanager.xml"),
+                base.appendingPathComponent("Library/Application Support/filezilla/filezilla.xml")
+            ])
+        }
+        var seen = Set<String>()
+        return candidates.filter { url in
+            let path = url.path
+            guard !seen.contains(path), FileManager.default.fileExists(atPath: path) else { return false }
+            seen.insert(path)
+            return true
+        }
     }
 
     public static func defaultWinSCPSiteFiles(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> [URL] {
-        let candidates = [
-            homeDirectory.appendingPathComponent("WinSCP.ini"),
-            homeDirectory.appendingPathComponent("winscp.ini"),
-            homeDirectory.appendingPathComponent(".winscp.ini"),
-            homeDirectory.appendingPathComponent("Downloads/WinSCP.ini"),
-            homeDirectory.appendingPathComponent("Downloads/winscp.ini"),
-            homeDirectory.appendingPathComponent("Documents/WinSCP.ini"),
-            homeDirectory.appendingPathComponent("Documents/winscp.ini"),
-            homeDirectory.appendingPathComponent(".config/winscp/winscp.ini"),
-            homeDirectory.appendingPathComponent(".config/winscp/WinSCP.ini"),
-            homeDirectory.appendingPathComponent("Library/Application Support/WinSCP/WinSCP.ini"),
-            homeDirectory.appendingPathComponent("Library/Application Support/WinSCP/winscp.ini"),
-            homeDirectory.appendingPathComponent(".wine/drive_c/Program Files (x86)/WinSCP/WinSCP.ini"),
-            homeDirectory.appendingPathComponent(".wine/drive_c/Program Files/WinSCP/WinSCP.ini")
-        ]
-        return candidates.filter { FileManager.default.fileExists(atPath: $0.path) }
+        var baseDirectories = [homeDirectory]
+        if let realHome = FileManager.default.homeDirectory(forUser: NSUserName()),
+           realHome.path != homeDirectory.path {
+            baseDirectories.append(realHome)
+        }
+
+        var candidates: [URL] = []
+        for base in baseDirectories {
+            candidates.append(contentsOf: [
+                base.appendingPathComponent("WinSCP.ini"),
+                base.appendingPathComponent("winscp.ini"),
+                base.appendingPathComponent(".winscp.ini"),
+                base.appendingPathComponent("Downloads/WinSCP.ini"),
+                base.appendingPathComponent("Downloads/winscp.ini"),
+                base.appendingPathComponent("Documents/WinSCP.ini"),
+                base.appendingPathComponent("Documents/winscp.ini"),
+                base.appendingPathComponent("Desktop/WinSCP.ini"),
+                base.appendingPathComponent("Desktop/winscp.ini"),
+                base.appendingPathComponent(".config/winscp/winscp.ini"),
+                base.appendingPathComponent(".config/winscp/WinSCP.ini"),
+                base.appendingPathComponent("Library/Application Support/WinSCP/WinSCP.ini"),
+                base.appendingPathComponent("Library/Application Support/WinSCP/winscp.ini"),
+                base.appendingPathComponent(".wine/drive_c/Program Files (x86)/WinSCP/WinSCP.ini"),
+                base.appendingPathComponent(".wine/drive_c/Program Files/WinSCP/WinSCP.ini")
+            ])
+        }
+        var seen = Set<String>()
+        return candidates.filter { url in
+            let path = url.path
+            guard !seen.contains(path), FileManager.default.fileExists(atPath: path) else { return false }
+            seen.insert(path)
+            return true
+        }
     }
 
     public static func decodeText(from data: Data) -> String {

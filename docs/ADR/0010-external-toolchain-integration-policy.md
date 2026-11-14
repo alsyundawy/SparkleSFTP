@@ -11,6 +11,7 @@ Accepted
 ## Context
 
 SparkleSFTP v0.6.0 introduces productivity integrations with external binaries, system toolchains, and operating system services:
+
 1. **Archive Toolkit**: System `tar`, `gzip`, and optional `7zz`/`7z` for multi-format archive compression and extraction.
 2. **Synchronization & Transfer Acceleration**: System `rsync` for delta-sync operations.
 3. **Authentication**: OpenSSH Authentication Agent via `SSH_AUTH_SOCK` Unix domain socket.

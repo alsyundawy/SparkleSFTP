@@ -135,7 +135,7 @@ public enum IniSessionImporter {
         }
 
         return ExternalImportReport(
-            format: .commanderINI,
+            format: .winSCPINI,
             connections: results,
             skippedUnsupported: skippedUnsupported
         )

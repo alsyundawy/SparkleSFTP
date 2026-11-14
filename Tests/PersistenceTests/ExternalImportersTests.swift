@@ -129,7 +129,7 @@ struct ExternalImportersTests {
             bomData.append(utf16)
         }
         let report = try ExternalConnectionFileReader.inspect(data: bomData, fileExtension: "ini")
-        #expect(report.format == .commanderINI)
+        #expect(report.format == .winSCPINI)
         #expect(report.connections.count == 3)
         #expect(report.skippedUnsupported == 1)
 
