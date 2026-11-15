@@ -216,7 +216,7 @@ public enum ToolchainInspector {
     }
 
     private static func assembleLibraryStatuses(_ ctx: ToolchainProbeContext) -> [ToolchainLibraryStatus] {
-        coreLibraryStatuses(ctx) + systemLibraryStatuses(ctx)
+        coreLibraryStatuses(ctx) + systemLibraryStatuses(ctx) + toolchainUtilityStatuses(ctx)
     }
 
     private static func coreLibraryStatuses(_ ctx: ToolchainProbeContext) -> [ToolchainLibraryStatus] {
@@ -280,7 +280,12 @@ public enum ToolchainInspector {
                 version: ctx.sshVer ?? (ctx.sshURL?.path ?? "Not found"),
                 isAvailable: ctx.sshURL != nil, role: "External iTerm2 / Terminal launcher",
                 detail: ctx.sshURL?.path ?? "No ssh CLI executable detected"
-            ),
+            )
+        ]
+    }
+
+    private static func toolchainUtilityStatuses(_ ctx: ToolchainProbeContext) -> [ToolchainLibraryStatus] {
+        [
             ToolchainLibraryStatus(
                 id: "shell", name: "POSIX Shells", category: "Local Terminal",
                 version: ctx.shells.first ?? "None", isAvailable: !ctx.shells.isEmpty,
@@ -293,6 +298,22 @@ public enum ToolchainInspector {
                 isAvailable: ctx.itermURL != nil || ctx.terminalURL != nil,
                 role: "Open remote SSH session in external terminal",
                 detail: ctx.itermURL?.path ?? (ctx.terminalURL?.path ?? "Unavailable")
+            ),
+            ToolchainLibraryStatus(
+                id: "archive", name: "bsdtar / zip", category: "Archive Toolkit",
+                version: FileManager.default.fileExists(atPath: "/usr/bin/tar") ? "System Tar/Zip" : "Missing",
+                isAvailable: FileManager.default.fileExists(atPath: "/usr/bin/tar"),
+                role: "Zip-Slip safe archive extract & compression",
+                detail: "/usr/bin/tar (bsdtar), /usr/bin/zip, /usr/bin/unzip"
+            ),
+            ToolchainLibraryStatus(
+                id: "rsync", name: "rsync", category: "Sync Integration",
+                version: FileManager.default.fileExists(atPath: "/usr/bin/rsync") ? "System rsync" : "Homebrew",
+                isAvailable: FileManager.default.fileExists(atPath: "/usr/bin/rsync")
+                    || FileManager.default.fileExists(atPath: "/usr/local/bin/rsync")
+                    || FileManager.default.fileExists(atPath: "/opt/homebrew/bin/rsync"),
+                role: "Fast remote incremental synchronization engine",
+                detail: "CLI subprocess sync with delta compression"
             )
         ]
     }

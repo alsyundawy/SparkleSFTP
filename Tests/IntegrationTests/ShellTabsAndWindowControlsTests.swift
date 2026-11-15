@@ -81,12 +81,14 @@ struct ShellTabsAndWindowControlsTests {
         try? await Task.sleep(for: .milliseconds(60))
 
         #expect(prefsWindow.styleMask.contains(.miniaturizable))
-        #expect(prefsWindow.styleMask.contains(.resizable))
-        #expect(prefsWindow.maxSize.width > 10000)
-        for kind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+        #expect(!prefsWindow.styleMask.contains(.resizable))
+        for kind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton] {
             let btn = try #require(prefsWindow.standardWindowButton(kind))
             #expect(!btn.isHidden)
             #expect(btn.isEnabled)
+        }
+        if let zoomBtn = prefsWindow.standardWindowButton(.zoomButton) {
+            #expect(!zoomBtn.isEnabled)
         }
     }
 

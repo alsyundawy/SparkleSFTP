@@ -82,7 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quality Gates, Test Suite & Universal 2 Release Packaging**:
   - 157 tests across 45 suites passing (100% green).
   - 0 SwiftLint violations across 278 Swift files, 0 SwiftFormat warnings, 0 Trunk issues (361 files).
-  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db`).
+  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `6b72b63518969d388baddcafdc1f52b63b3668b470d685cb732a35717804235d`).
 
 ## [0.5.0] - 2026-11-14
 

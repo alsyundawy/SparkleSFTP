@@ -1,0 +1,5 @@
+---
+Checks: '-*,clang-diagnostic-*,bugprone-*,cert-*,security-*,-bugprone-easily-swappable-parameters'
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: none

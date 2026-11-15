@@ -154,7 +154,7 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Eliminate accidental file/folder selection on trackpad scroll via 10.0pt movement threshold, deferred single-click selection, and `scrollWheel` guard (`T-122`, `T-123`)
 - [x] Update shortcuts documentation (⌥⌘T, ⌥⌘L, ⇧⌘I, ⇧⌘E, Esc, ⌘D, ⌘,) and expand external terminal search paths for iTerm2 (`T-130`)
 - [x] Verify 14 engineering review pillars, 157 tests in 45 suites passing (100% green), and 0 linter violations across Trunk, SwiftLint, SwiftFormat, and MegaLinter (`T-117`, `T-118`, `T-131`)
-- [x] Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db`) (`T-120`, `T-132`)
+- [x] Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `6b72b63518969d388baddcafdc1f52b63b3668b470d685cb732a35717804235d`) (`T-120`, `T-132`)
 - [x] Push commits to `origin/main` and `origin/0.6.0` and prepare official release (`T-121`, `T-133`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)

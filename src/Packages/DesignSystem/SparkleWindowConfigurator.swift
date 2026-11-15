@@ -5,15 +5,18 @@ import SwiftUI
 public struct SparkleWindowConfigurator: NSViewRepresentable {
     public let palette: SparkleThemePalette
     public let allowFullScreen: Bool
+    public let allowResize: Bool
     public let onWindowResolved: (@MainActor (NSWindow) -> Void)?
 
     public init(
         palette: SparkleThemePalette,
         allowFullScreen: Bool = true,
+        allowResize: Bool = true,
         onWindowResolved: (@MainActor (NSWindow) -> Void)? = nil
     ) {
         self.palette = palette
         self.allowFullScreen = allowFullScreen
+        self.allowResize = allowResize
         self.onWindowResolved = onWindowResolved
     }
 
@@ -21,6 +24,7 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
         let view = SparkleWindowProbeView(frame: .zero)
         view.palette = palette
         view.allowFullScreen = allowFullScreen
+        view.allowResize = allowResize
         view.onWindowResolved = onWindowResolved
         return view
     }
@@ -28,6 +32,7 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
     public func updateNSView(_ nsView: SparkleWindowProbeView, context _: Context) {
         nsView.palette = palette
         nsView.allowFullScreen = allowFullScreen
+        nsView.allowResize = allowResize
         nsView.onWindowResolved = onWindowResolved
         nsView.applyWindowConfiguration()
     }
@@ -36,6 +41,7 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
     public final class SparkleWindowProbeView: NSView {
         var palette: SparkleThemePalette = SparkleThemeCatalog.defaultLight
         var allowFullScreen = true
+        var allowResize = true
         var onWindowResolved: (@MainActor (NSWindow) -> Void)?
         private let observerBox = WindowObserverBox()
         private var isConfiguring = false
@@ -56,14 +62,19 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
             guard !isConfiguring, let window else { return }
             let needsChromeUpdate = lastConfiguredWindowNumber != window.windowNumber
                 || lastConfiguredPalette != palette
-                || Self.needsWindowControlsEnforcement(window)
+                || Self.needsWindowControlsEnforcement(window, allowResize: allowResize)
             guard needsChromeUpdate else { return }
             isConfiguring = true
             defer { isConfiguring = false }
             lastConfiguredWindowNumber = window.windowNumber
             lastConfiguredPalette = palette
             onWindowResolved?(window)
-            Self.configure(window: window, palette: palette, allowFullScreen: allowFullScreen)
+            Self.configure(
+                window: window,
+                palette: palette,
+                allowFullScreen: allowFullScreen,
+                allowResize: allowResize
+            )
         }
 
         private func installWindowObservers() {
@@ -86,7 +97,7 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
                     Task { @MainActor [weak self] in
                         guard let probe = self,
                               let currentWindow = probe.window,
-                              Self.needsWindowControlsEnforcement(currentWindow)
+                              Self.needsWindowControlsEnforcement(currentWindow, allowResize: probe.allowResize)
                         else { return }
                         probe.applyWindowConfiguration()
                     }
@@ -96,16 +107,35 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
             observerBox.replace(with: nextTokens)
         }
 
-        private static func needsWindowControlsEnforcement(_ window: NSWindow) -> Bool {
-            let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
-            if !window.styleMask.isSuperset(of: requiredMask) {
-                return true
-            }
-            if window.maxSize.width < 10000 || window.maxSize.height < 10000 {
-                return true
-            }
-            for buttonKind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
-                if let button = window.standardWindowButton(buttonKind), button.isHidden || !button.isEnabled {
+        private static func needsWindowControlsEnforcement(_ window: NSWindow, allowResize: Bool) -> Bool {
+            if allowResize {
+                let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
+                if !window.styleMask.isSuperset(of: requiredMask) {
+                    return true
+                }
+                if window.maxSize.width < 10000 || window.maxSize.height < 10000 {
+                    return true
+                }
+                for buttonKind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+                    if let button = window.standardWindowButton(buttonKind), button.isHidden || !button.isEnabled {
+                        return true
+                    }
+                }
+            } else {
+                let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
+                if !window.styleMask.isSuperset(of: requiredMask) || window.styleMask.contains(.resizable) {
+                    return true
+                }
+                let targetFrame = window.frameRect(forContentRect: NSRect(x: 0, y: 0, width: 760, height: 600)).size
+                if window.maxSize.width > targetFrame.width || window.maxSize.height > targetFrame.height {
+                    return true
+                }
+                for buttonKind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton] {
+                    if let button = window.standardWindowButton(buttonKind), button.isHidden || !button.isEnabled {
+                        return true
+                    }
+                }
+                if let zoomButton = window.standardWindowButton(.zoomButton), zoomButton.isEnabled {
                     return true
                 }
             }
@@ -125,30 +155,66 @@ public struct SparkleWindowConfigurator: NSViewRepresentable {
             return titlebarIndex < contentIndex
         }
 
+        private static func configureStyleMaskAndBounds(
+            window: NSWindow,
+            allowResize: Bool,
+            allowFullScreen: Bool
+        ) {
+            if allowResize {
+                let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
+                if !window.styleMask.isSuperset(of: requiredMask) {
+                    window.styleMask.formUnion(requiredMask)
+                }
+                if window.maxSize.width < 10000 || window.maxSize.height < 10000 {
+                    window.maxSize = NSSize(
+                        width: CGFloat.greatestFiniteMagnitude,
+                        height: CGFloat.greatestFiniteMagnitude
+                    )
+                }
+                if allowFullScreen {
+                    window.collectionBehavior.insert(.fullScreenPrimary)
+                }
+                if let zoomButton = window.standardWindowButton(.zoomButton) {
+                    zoomButton.isHidden = false
+                    zoomButton.isEnabled = true
+                }
+                window.showsResizeIndicator = true
+            } else {
+                let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
+                if !window.styleMask.isSuperset(of: requiredMask) {
+                    window.styleMask.formUnion(requiredMask)
+                }
+                window.styleMask.remove(.resizable)
+                window.collectionBehavior.remove(.fullScreenPrimary)
+                if let zoomButton = window.standardWindowButton(.zoomButton) {
+                    zoomButton.isEnabled = false
+                }
+                window.showsResizeIndicator = false
+                let targetFrame = window.frameRect(forContentRect: NSRect(x: 0, y: 0, width: 760, height: 600)).size
+                if window.maxSize.width > targetFrame.width || window.maxSize.height > targetFrame.height {
+                    window.maxSize = targetFrame
+                }
+                if window.minSize.width < targetFrame.width || window.minSize.height < targetFrame.height {
+                    window.minSize = targetFrame
+                }
+            }
+        }
+
         public static func configure(
             window: NSWindow,
             palette: SparkleThemePalette,
-            allowFullScreen: Bool = true
+            allowFullScreen: Bool = true,
+            allowResize: Bool = true
         ) {
-            let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
-            if !window.styleMask.isSuperset(of: requiredMask) {
-                window.styleMask.formUnion(requiredMask)
-            }
-            if window.maxSize.width < 10000 || window.maxSize.height < 10000 {
-                window.maxSize = NSSize(
-                    width: CGFloat.greatestFiniteMagnitude,
-                    height: CGFloat.greatestFiniteMagnitude
-                )
-            }
-            if allowFullScreen {
-                window.collectionBehavior.insert(.fullScreenPrimary)
-            }
-            for buttonKind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+            configureStyleMaskAndBounds(window: window, allowResize: allowResize, allowFullScreen: allowFullScreen)
+
+            for buttonKind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton] {
                 if let button = window.standardWindowButton(buttonKind) {
                     button.isHidden = false
                     button.isEnabled = true
                 }
             }
+
             if isTitlebarCoveredByContent(in: window),
                let themeFrame = window.contentView?.superview,
                let titlebarContainer = window.standardWindowButton(.closeButton)?.superview?.superview {

@@ -142,6 +142,11 @@ extension AboutView {
                     detail: "Orthodox commander layout, 8 transfer conflict policies, "
                         + "XML/INI importers & command sanitization"
                 )
+                creditRow(
+                    "Configuration Vault & Archive Toolkit (v0.6.0)",
+                    detail: "AES-256-GCM + PBKDF2 600K iterations, safe multi-archive extraction "
+                        + "& O(N+M) high-speed directory diff"
+                )
             }
         }
     }
@@ -204,10 +209,13 @@ extension AboutView {
             ("Backspace / ⌘↑", "Open parent directory (File Pane)"),
             ("Space", "Quick Look preview (File Pane)"),
             ("⌘T / ⇧⌘T / ⌘W", "New Tab / Duplicate Tab / Close Active Tab or Window"),
+            ("⌘⇧P", "Command Palette (Spotlight-style action search)"),
             ("⌘⇧[ / ⌘⇧]", "Select Previous / Next Workspace Tab"),
             ("⌘U / ⇧⌘N / F7", "Upload or Download selected / New Folder"),
             ("⌘E / ⌘K", "Open Notepad2 Editor / Toggle Active Tab SSH Shell"),
             ("⌥⌘T / ⌥⌘L", "Standalone iTerm2-Style Terminal / Activity Log"),
+            ("⌥⌘D / ⌥⌘R", "Directory Comparison / Batch Rename Files"),
+            ("⌥⌘C / ⌥⌘A", "Checksum Multi-Hash Calculator / Archive Toolkit"),
             ("⇧⌘I / ⇧⌘E", "Import Connections / Export Connections (WinSCP/FileZilla/Vault)"),
             ("⌘, (Preferences)", "Settings Dialog with Fixed 2-Row Tabs"),
             ("⌘⇧S / ⌘R", "Directory Synchronize / Refresh directory"),

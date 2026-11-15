@@ -56,7 +56,7 @@ struct PreferencesAndDialogSizeTests {
             prefsWindow.close()
         }
 
-        assertTrafficLightsActive(in: prefsWindow)
+        assertFixedPreferencesWindowControls(in: prefsWindow)
         let initialContentSize = prefsWindow.contentLayoutRect.size
         #expect(abs(initialContentSize.width - 760) <= 1)
         #expect(abs(initialContentSize.height - 600) <= 1)
@@ -275,6 +275,26 @@ struct PreferencesAndDialogSizeTests {
 
 @MainActor
 private extension PreferencesAndDialogSizeTests {
+    func assertFixedPreferencesWindowControls(in window: NSWindow) {
+        let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
+        #expect(window.styleMask.isSuperset(of: requiredMask))
+        #expect(!window.styleMask.contains(.resizable))
+        #expect(!window.collectionBehavior.contains(.fullScreenPrimary))
+        let expectedFrame = window.frameRect(forContentRect: NSRect(x: 0, y: 0, width: 760, height: 600)).size
+        #expect(window.maxSize.width <= expectedFrame.width && window.maxSize.height <= expectedFrame.height)
+        #expect(window.minSize.width >= expectedFrame.width && window.minSize.height >= expectedFrame.height)
+        #expect(!window.showsResizeIndicator)
+        for kind: NSWindow.ButtonType in [.closeButton, .miniaturizeButton] {
+            let btn = window.standardWindowButton(kind)
+            #expect(btn != nil)
+            #expect(btn?.isHidden == false)
+            #expect(btn?.isEnabled == true)
+        }
+        if let zoomBtn = window.standardWindowButton(.zoomButton) {
+            #expect(!zoomBtn.isEnabled)
+        }
+    }
+
     func assertTrafficLightsActive(in window: NSWindow) {
         let requiredMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
         #expect(window.styleMask.isSuperset(of: requiredMask))

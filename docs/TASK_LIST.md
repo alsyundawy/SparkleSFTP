@@ -157,7 +157,7 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-115** Suppress accidental file/folder selection on trackpad scroll via 10.0pt movement threshold, deferred single-click selection, and `scrollWheel` cancellation guard.
 - [x] **T-116** Update keyboard shortcuts (⌥⌘T, ⌥⌘L, ⇧⌘I, ⇧⌘E, Esc, ⌘D, ⌘,) and expand external terminal search paths for iTerm2.
 - [x] **T-117** Verify 14 engineering review pillars, 157 tests in 45 suites passing (100% green), and 0 linter violations across all linters.
-- [x] **T-118** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `656f2144e16f9db3c1984147a0a94b207f52e06743d2240c9ed45e9152dd56db`).
+- [x] **T-118** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `6b72b63518969d388baddcafdc1f52b63b3668b470d685cb732a35717804235d`).
 
 ## Post-MVP / External Infrastructure Gates (Deferred)
 

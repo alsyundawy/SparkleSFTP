@@ -41,7 +41,7 @@ struct ToolchainAndConflictTests {
             ids == [
                 "niossh", "libcurl", "zlib", "libssh2", "openssl",
                 "openssh", "shell", "iterm", "sparkle", "swiftterm",
-                "sqlite", "security"
+                "sqlite", "security", "archive", "rsync"
             ]
         )
         #expect(report.libraries.first { $0.id == "zlib" }?.isAvailable == true)

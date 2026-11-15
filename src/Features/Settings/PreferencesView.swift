@@ -39,16 +39,9 @@ public struct PreferencesView: View {
             Divider().overlay(palette.borderColor)
             footerBar
         }
-        .frame(
-            minWidth: 760,
-            idealWidth: 760,
-            maxWidth: .infinity,
-            minHeight: 600,
-            idealHeight: 600,
-            maxHeight: .infinity
-        )
+        .frame(width: 760, height: 600)
         .sparkleWorkspaceSurface(palette)
-        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: true))
+        .background(SparkleWindowConfigurator(palette: palette, allowFullScreen: false, allowResize: false))
         .onReceive(NotificationCenter.default.publisher(for: .sparklePreferencesDidChange)) { notification in
             if (notification.object as? UUID) != appState.windowInstanceID {
                 appState.reloadPreferencesFromNotification()

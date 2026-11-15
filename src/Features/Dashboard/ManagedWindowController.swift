@@ -6,8 +6,28 @@ struct ManagedWindowDescriptor {
     let identifier: NSUserInterfaceItemIdentifier
     let defaultSize: NSSize
     let minSize: NSSize
+    let maxSize: NSSize?
     let allowFullScreen: Bool
+    let isResizable: Bool
     let shareAcrossAppStates: Bool
+
+    init(
+        identifier: NSUserInterfaceItemIdentifier,
+        defaultSize: NSSize,
+        minSize: NSSize,
+        maxSize: NSSize? = nil,
+        allowFullScreen: Bool = true,
+        isResizable: Bool = true,
+        shareAcrossAppStates: Bool = true
+    ) {
+        self.identifier = identifier
+        self.defaultSize = defaultSize
+        self.minSize = minSize
+        self.maxSize = maxSize
+        self.allowFullScreen = allowFullScreen
+        self.isResizable = isResizable
+        self.shareAcrossAppStates = shareAcrossAppStates
+    }
 }
 
 /// Shared AppKit window host for standalone SparkleSFTP utility and document windows.
@@ -29,43 +49,94 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
         @ViewBuilder content: () -> some View
     ) {
         if let existing = activeOrSharedWindow() {
-            existing.title = title
-            SparkleWindowConfigurator.SparkleWindowProbeView.configure(
-                window: existing,
-                palette: appState.activePalette,
-                allowFullScreen: descriptor.allowFullScreen
-            )
-            existing.makeKeyAndOrderFront(nil)
+            presentExistingWindow(existing, title: title, appState: appState)
             return
         }
 
         let hostingController = NSHostingController(rootView: content())
         hostingController.sizingOptions = [.minSize]
+        let newWindow = makeWindow(title: title, appState: appState, hostingController: hostingController)
+        window = newWindow
+        newWindow.makeKeyAndOrderFront(nil)
+    }
 
-        let newWindow = NSWindow(
+    private func presentExistingWindow(_ existing: NSWindow, title: String, appState: AppState) {
+        existing.title = title
+        if !descriptor.isResizable {
+            let bounds = NSRect(origin: .zero, size: descriptor.defaultSize)
+            let targetFrame = existing.frameRect(forContentRect: bounds).size
+            existing.maxSize = targetFrame
+            existing.minSize = targetFrame
+        }
+        SparkleWindowConfigurator.SparkleWindowProbeView.configure(
+            window: existing,
+            palette: appState.activePalette,
+            allowFullScreen: descriptor.allowFullScreen,
+            allowResize: descriptor.isResizable
+        )
+        existing.makeKeyAndOrderFront(nil)
+    }
+
+    private func instantiateWindow(styleMask: NSWindow.StyleMask) -> NSWindow {
+        if descriptor.isResizable {
+            return NSWindow(
+                contentRect: NSRect(origin: .zero, size: descriptor.defaultSize),
+                styleMask: styleMask,
+                backing: .buffered,
+                defer: false
+            )
+        }
+        let fixed = FixedManagedWindow(
             contentRect: NSRect(origin: .zero, size: descriptor.defaultSize),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: styleMask,
             backing: .buffered,
             defer: false
         )
+        fixed.fixedContentSize = descriptor.defaultSize
+        return fixed
+    }
+
+    private func makeWindow(
+        title: String,
+        appState: AppState,
+        hostingController: NSViewController
+    ) -> NSWindow {
+        let styleMask: NSWindow.StyleMask = descriptor.isResizable
+            ? [.titled, .closable, .miniaturizable, .resizable]
+            : [.titled, .closable, .miniaturizable]
+
+        let newWindow = instantiateWindow(styleMask: styleMask)
         newWindow.identifier = descriptor.identifier
         newWindow.title = title
         newWindow.minSize = descriptor.minSize
-        if descriptor.allowFullScreen {
+        if let max = descriptor.maxSize {
+            newWindow.maxSize = max
+        } else if !descriptor.isResizable {
+            newWindow.maxSize = descriptor.defaultSize
+        }
+        newWindow.showsResizeIndicator = descriptor.isResizable
+        if descriptor.allowFullScreen, descriptor.isResizable {
             newWindow.collectionBehavior = [.fullScreenPrimary]
         }
         SparkleWindowConfigurator.SparkleWindowProbeView.configure(
             window: newWindow,
             palette: appState.activePalette,
-            allowFullScreen: descriptor.allowFullScreen
+            allowFullScreen: descriptor.allowFullScreen,
+            allowResize: descriptor.isResizable
         )
         newWindow.isReleasedWhenClosed = false
         newWindow.contentViewController = hostingController
         newWindow.setContentSize(descriptor.defaultSize)
+        if !descriptor.isResizable {
+            let bounds = NSRect(origin: .zero, size: descriptor.defaultSize)
+            let targetFrame = newWindow.frameRect(forContentRect: bounds).size
+            newWindow.maxSize = targetFrame
+            newWindow.minSize = targetFrame
+            newWindow.showsResizeIndicator = false
+        }
         newWindow.center()
         newWindow.delegate = self
-        window = newWindow
-        newWindow.makeKeyAndOrderFront(nil)
+        return newWindow
     }
 
     private func activeOrSharedWindow() -> NSWindow? {
@@ -80,5 +151,33 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_: Notification) {
         // Window stays cached (`isReleasedWhenClosed = false`) for instant reopen.
+    }
+}
+
+final class FixedManagedWindow: NSWindow {
+    var fixedContentSize: NSSize = .zero
+
+    override var maxSize: NSSize {
+        get {
+            guard fixedContentSize.width > 0, fixedContentSize.height > 0 else { return super.maxSize }
+            return frameRect(forContentRect: NSRect(origin: .zero, size: fixedContentSize)).size
+        }
+        set {
+            if fixedContentSize.width == 0 {
+                super.maxSize = newValue
+            }
+        }
+    }
+
+    override var minSize: NSSize {
+        get {
+            guard fixedContentSize.width > 0, fixedContentSize.height > 0 else { return super.minSize }
+            return frameRect(forContentRect: NSRect(origin: .zero, size: fixedContentSize)).size
+        }
+        set {
+            if fixedContentSize.width == 0 {
+                super.minSize = newValue
+            }
+        }
     }
 }

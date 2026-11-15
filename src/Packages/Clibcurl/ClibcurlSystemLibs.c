@@ -26,7 +26,7 @@ int sparklesftp_curl_supports_zlib(void) {
     if (info == NULL) {
         return 0;
     }
-    return (info->features & CURL_VERSION_LIBZ) != 0 ? 1 : 0;
+    return (((unsigned int)info->features) & (unsigned int)CURL_VERSION_LIBZ) != 0U ? 1 : 0;
 }
 
 void sparklesftp_zlib_version(char *out_buffer, size_t capacity) {
@@ -229,7 +229,9 @@ int sparklesftp_probe_libssh2(char *out_version, size_t capacity, char *out_path
         }
         const void *sym = dlsym(handle, "libssh2_version");
         SparkleLibssh2VersionFn version_fn = NULL;
-        memcpy(&version_fn, &sym, sizeof(version_fn));
+        void *dest_ptr = (void *)&version_fn;
+        const void *src_ptr = (const void *)&sym;
+        memcpy(dest_ptr, src_ptr, sizeof(version_fn));
         if (version_fn != NULL) {
             const char *ver = version_fn(0);
             if (ver != NULL) {

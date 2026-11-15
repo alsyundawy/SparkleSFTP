@@ -287,7 +287,7 @@ extension ImportConnectionsSheet {
                 .frame(maxWidth: 480)
 
             HStack(spacing: 8) {
-                formatTag("WinSCP (.ini)")
+                formatTag("WinSCP (.ini) · SFTP")
                 formatTag("FileZilla (.xml)")
                 formatTag("SparkleSFTP (.sparklesftp / .json)")
             }
