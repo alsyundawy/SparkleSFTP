@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-11-14
+## [0.6.0] - 2026-11-15 (Released)
 
-### Added & Enhanced (Portability & Trust Release)
+### Added & Enhanced (Portability, Trust & Fixed Preferences Architecture Release)
 
+- **Fixed Preferences Geometry (760×600 pt) & Smooth Vertical Scrolling (`FixedManagedWindow`, `PreferencesView`, `PreferencesTransfersTab`, `PreferencesSyncBookmarksTab`)**:
+  - Implemented immutable `FixedManagedWindow: NSWindow` locking Preferences to fixed 760×600 pt geometry with disabled zoom, non-resizable styleMask, and hidden resize indicators.
+  - Added vertical `ScrollView` containers and modular subview decomposition across Transfers, Sync & Bookmarks, Security, Terminal, Network, Archives, and Editor tabs, resolving locked/clipped settings controls on fixed dialogs.
+  - Updated About tabs with v0.6.0 keyboard shortcuts (`⌘⇧P`, `⌥⌘D`, `⌥⌘R`, `⌥⌘C`, `⌥⌘A`), Configuration Vault credits, and toolchain probes (`bsdtar/zip`, `rsync`).
+  - Enhanced Import Connections dialog with explicit WinSCP format badges (`WinSCP (.ini) · SFTP`), automatic path candidate detection, and default SFTP protocol annotations.
 - **Native Configuration Bundles & Cryptographic Vault (F-01, `SparklePersistence`)**:
   - Introduced `.sparkleconfig` (portable JSON) and `.sparklevault` (AES-256-GCM authenticated binary archive).
   - Hardened key derivation via PBKDF2-HMAC-SHA256 with 600,000 iterations and in-place cryptographic memory zeroization.
@@ -82,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quality Gates, Test Suite & Universal 2 Release Packaging**:
   - 157 tests across 45 suites passing (100% green).
   - 0 SwiftLint violations across 278 Swift files, 0 SwiftFormat warnings, 0 Trunk issues (361 files).
-  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `6b72b63518969d388baddcafdc1f52b63b3668b470d685cb732a35717804235d`).
+  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`).
 
 ## [0.5.0] - 2026-11-14
 

@@ -150,7 +150,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.6.0-universal.dmg
-# SHA-256 Valid: 6b72b63518969d388baddcafdc1f52b63b3668b470d685cb732a35717804235d
+# SHA-256 Valid: 063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff
 ```
 
 ---

@@ -125,8 +125,9 @@ Tracks active execution of [`tasks/plan.md`](plan.md) and [`docs/TASK_LIST.md`](
 - [x] `T-090` Fixed 2-Row Preferences Tab Bar (`PreferencesView.swift`): Deterministic 2-row tab bar permanently preventing horizontal overflow and chevron menu clipping
 - [x] `T-091` WinSCP & FileZilla Export/Import Protocol Symmetry: Native WinSCP INI export, FileZilla 3 XML export, colored protocol badges, and expanded auto-candidate detection
 - [x] `T-092` Suppression of Accidental Touchpad Scroll Row Selection: 10.0pt drag movement threshold, deferred single-click selection, and scrollWheel cancellation guard
-- [x] `T-093` Universal 2 Packaging & 14-Pillar Verification: 157 tests in 45 suites passing (100% green), 0 linter violations, and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `6b72b63518969d388baddcafdc1f52b63b3668b470d685cb732a35717804235d`)
+- [x] `T-093` Universal 2 Packaging & 14-Pillar Verification: 157 tests in 45 suites passing (100% green), 0 linter violations, and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`)
 - [x] `T-094` Fixed Preferences Geometry & Explicit WinSCP Import UI: Permanent immutable `FixedManagedWindow` locking exact 760×600 geometry with disabled zoom and stripped `.resizable` styleMask, enhanced `ImportConnectionsSheet` featuring prominent WinSCP (.ini) format tags and default SFTP protocol badges, updated `AboutView` tabs with v0.6.0 keyboard shortcuts & credits, and expanded `ZlibAndLibraryProbes` toolchain inspection (bsdtar/zip, rsync).
+- [x] `T-095` Preferences Vertical Scrolling & Clean Subview Modularization: Embedded vertical `ScrollView` containers and modular subviews across Transfers, Sync & Bookmarks, Security, Terminal, Network, Archives, and Editor tabs, eliminating locked/clipped controls, updated `CHANGELOG.md` and `DOCNOTE.md` marking v0.6.0 as officially Released (2026-11-15), and synchronized release DMG.
 
 ## External Operational & Release Gates (Deferred to Release Environment)
 

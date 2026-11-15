@@ -11,64 +11,78 @@ struct PreferencesTerminalTab: View {
     }
 
     var body: some View {
-        Form {
-            Section(strings.t("prefs.terminal.typography")) {
-                TextField(strings.t("prefs.terminal.fontName"), text: $appState.extendedSettings.terminalFontName)
-                    .textFieldStyle(.roundedBorder)
-
-                Stepper(
-                    "\(strings.t("prefs.terminal.fontSize")): \(Int(appState.extendedSettings.terminalFontSize)) pt",
-                    value: $appState.extendedSettings.terminalFontSize,
-                    in: 9.0 ... 36.0,
-                    step: 1.0
-                )
-
-                Stepper(
-                    "\(strings.t("prefs.terminal.scrollback")): \(appState.extendedSettings.terminalScrollbackLines)",
-                    value: $appState.extendedSettings.terminalScrollbackLines,
-                    in: 500 ... 100_000,
-                    step: 500
-                )
+        ScrollView {
+            Form {
+                typographySection
+                behaviorSection
+                resetSection
             }
+            .padding(.horizontal, SparkleTheme.Spacing.medium)
+            .padding(.vertical, SparkleTheme.Spacing.small)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
-            Section(strings.t("prefs.terminal.behavior")) {
-                Picker(strings.t("prefs.terminal.bellMode"), selection: $appState.extendedSettings.terminalBellMode) {
-                    Text(strings.t("prefs.terminal.bellAudible")).tag("audible")
-                    Text(strings.t("prefs.terminal.bellVisual")).tag("visual")
-                    Text(strings.t("prefs.terminal.bellOff")).tag("off")
-                }
-
-                Toggle(strings.t("prefs.terminal.osc7Sync"), isOn: $appState.extendedSettings.terminalOsc7SyncEnabled)
-
-                Picker(
-                    strings.t("prefs.terminal.osc52Policy"),
-                    selection: $appState.extendedSettings.terminalOsc52Policy
-                ) {
-                    Text(strings.t("prefs.terminal.osc52Off")).tag("off")
-                    Text(strings.t("prefs.terminal.osc52Read")).tag("read")
-                    Text(strings.t("prefs.terminal.osc52Write")).tag("write")
-                    Text(strings.t("prefs.terminal.osc52ReadWrite")).tag("readwrite")
-                }
-
-                TextField(
-                    strings.t("prefs.terminal.shellPath"),
-                    text: $appState.extendedSettings.terminalLocalShellPath
-                )
+    private var typographySection: some View {
+        Section(strings.t("prefs.terminal.typography")) {
+            TextField(strings.t("prefs.terminal.fontName"), text: $appState.extendedSettings.terminalFontName)
                 .textFieldStyle(.roundedBorder)
 
-                Picker(strings.t("prefs.externalTerminal"), selection: $appState.externalTerminalApp) {
-                    ForEach(ExternalTerminalApp.allCases, id: \.self) { app in
-                        Text(app.displayName).tag(app)
-                    }
-                }
+            Stepper(
+                "\(strings.t("prefs.terminal.fontSize")): \(Int(appState.extendedSettings.terminalFontSize)) pt",
+                value: $appState.extendedSettings.terminalFontSize,
+                in: 9.0 ... 36.0,
+                step: 1.0
+            )
+
+            Stepper(
+                "\(strings.t("prefs.terminal.scrollback")): \(appState.extendedSettings.terminalScrollbackLines)",
+                value: $appState.extendedSettings.terminalScrollbackLines,
+                in: 500 ... 100_000,
+                step: 500
+            )
+        }
+    }
+
+    private var behaviorSection: some View {
+        Section(strings.t("prefs.terminal.behavior")) {
+            Picker(strings.t("prefs.terminal.bellMode"), selection: $appState.extendedSettings.terminalBellMode) {
+                Text(strings.t("prefs.terminal.bellAudible")).tag("audible")
+                Text(strings.t("prefs.terminal.bellVisual")).tag("visual")
+                Text(strings.t("prefs.terminal.bellOff")).tag("off")
             }
 
-            Section {
-                Button(strings.t("prefs.resetTab")) {
-                    appState.resetSettings(for: .terminal)
+            Toggle(strings.t("prefs.terminal.osc7Sync"), isOn: $appState.extendedSettings.terminalOsc7SyncEnabled)
+
+            Picker(
+                strings.t("prefs.terminal.osc52Policy"),
+                selection: $appState.extendedSettings.terminalOsc52Policy
+            ) {
+                Text(strings.t("prefs.terminal.osc52Off")).tag("off")
+                Text(strings.t("prefs.terminal.osc52Read")).tag("read")
+                Text(strings.t("prefs.terminal.osc52Write")).tag("write")
+                Text(strings.t("prefs.terminal.osc52ReadWrite")).tag("readwrite")
+            }
+
+            TextField(
+                strings.t("prefs.terminal.shellPath"),
+                text: $appState.extendedSettings.terminalLocalShellPath
+            )
+            .textFieldStyle(.roundedBorder)
+
+            Picker(strings.t("prefs.externalTerminal"), selection: $appState.externalTerminalApp) {
+                ForEach(ExternalTerminalApp.allCases, id: \.self) { app in
+                    Text(app.displayName).tag(app)
                 }
             }
         }
-        .padding(SparkleTheme.Spacing.small)
+    }
+
+    private var resetSection: some View {
+        Section {
+            Button(strings.t("prefs.resetTab")) {
+                appState.resetSettings(for: .terminal)
+            }
+        }
     }
 }

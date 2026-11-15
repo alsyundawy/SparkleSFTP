@@ -11,41 +11,46 @@ struct PreferencesNetworkTab: View {
     }
 
     var body: some View {
-        Form {
-            Section(strings.t("prefs.network.connectionSection")) {
-                Stepper(
-                    "\(strings.t("prefs.network.keepAlive")): \(appState.extendedSettings.networkKeepAliveSeconds) s",
-                    value: $appState.extendedSettings.networkKeepAliveSeconds,
-                    in: 0 ... 300,
-                    step: 5
-                )
+        ScrollView {
+            Form {
+                Section(strings.t("prefs.network.connectionSection")) {
+                    let keepAlive = appState.extendedSettings.networkKeepAliveSeconds
+                    Stepper(
+                        "\(strings.t("prefs.network.keepAlive")): \(keepAlive) s",
+                        value: $appState.extendedSettings.networkKeepAliveSeconds,
+                        in: 0 ... 300,
+                        step: 5
+                    )
 
-                Stepper(
-                    "\(strings.t("prefs.network.timeout")): \(appState.extendedSettings.networkConnectTimeout) s",
-                    value: $appState.extendedSettings.networkConnectTimeout,
-                    in: 5 ... 120,
-                    step: 5
-                )
+                    Stepper(
+                        "\(strings.t("prefs.network.timeout")): \(appState.extendedSettings.networkConnectTimeout) s",
+                        value: $appState.extendedSettings.networkConnectTimeout,
+                        in: 5 ... 120,
+                        step: 5
+                    )
 
-                Toggle(strings.t("prefs.network.ipv6"), isOn: $appState.extendedSettings.networkIpv6Preferred)
-            }
+                    Toggle(strings.t("prefs.network.ipv6"), isOn: $appState.extendedSettings.networkIpv6Preferred)
+                }
 
-            Section(strings.t("prefs.network.sshSection")) {
-                Toggle(strings.t("prefs.network.sshAgent"), isOn: $appState.extendedSettings.networkSshAgentEnabled)
+                Section(strings.t("prefs.network.sshSection")) {
+                    Toggle(strings.t("prefs.network.sshAgent"), isOn: $appState.extendedSettings.networkSshAgentEnabled)
 
-                TextField(
-                    strings.t("prefs.network.subsystem"),
-                    text: $appState.extendedSettings.networkSftpSubsystemPath
-                )
-                .textFieldStyle(.roundedBorder)
-            }
+                    TextField(
+                        strings.t("prefs.network.subsystem"),
+                        text: $appState.extendedSettings.networkSftpSubsystemPath
+                    )
+                    .textFieldStyle(.roundedBorder)
+                }
 
-            Section {
-                Button(strings.t("prefs.resetTab")) {
-                    appState.resetSettings(for: .network)
+                Section {
+                    Button(strings.t("prefs.resetTab")) {
+                        appState.resetSettings(for: .network)
+                    }
                 }
             }
+            .padding(.horizontal, SparkleTheme.Spacing.medium)
+            .padding(.vertical, SparkleTheme.Spacing.small)
         }
-        .padding(SparkleTheme.Spacing.small)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
