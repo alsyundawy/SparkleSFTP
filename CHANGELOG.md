@@ -9,57 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-11-19
+## [0.7.0] - 2026-11-20
 
 ### Added & Enhanced (Protocols, Linux Server Tools, Security Shielding & Dual-Pane Architecture)
 
-- **Enterprise FTPS & Cryptographic Preflight Parity (Tasks 4.1, 4.4, 4.5, 9.1, 9.4, `TD-10`)**:
-  - **Explicit FTPS `SecTrust` & OCSP/CRL Preflight (`TLSCertificateValidator.swift`, `FTPService.swift`, `Task 4.1`)**: Dynamically upgrades explicit FTPS connections over port 21 via `ExplicitFTPSFramer` (`NWProtocolFramerImplementation` + `prependApplicationProtocol`). Enforces `SecTrustEvaluateWithError` chain validation, hostname matching, expiry dates, and `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` revocation checks before any FTP control commands or credentials are exchanged.
-  - **Active Mode FTP Support (`PORT` / `EPRT`) (`CurlClientHelper.swift`, `Task 4.4`)**: Added `activeMode: Bool` to `CurlRequestContext` and configured `CURLOPT_FTPPORT` (`"-"`) enabling automated interface IP detection and `EPRT`/`PORT` negotiation behind non-NAT and VPN configurations.
-  - **FTP Character Set Fallback Negotiation (`FTPListingParser.swift`, `Task 4.5`)**: Multi-encoding fallback decoder: UTF-8 -> ISO-8859-1 (Latin1) -> Windows-1252 -> ASCII lossy conversion, ensuring robust directory parsing on non-UTF-8 FTP servers.
-  - **Interactive X.509 Visual Certificate Inspector & TOFU Pinning (`CertificateInspectorSheet.swift`, Tasks 9.1 & 9.2)**: Displays host, status badge (trusted/expiring/expired/untrusted), subject CN, issuer, validity window, copyable SHA-256 fingerprint, interactive "Trust Certificate (TOFU)" pinning action saving to `HostTrustStore`, and modal close button.
-  - **CRL & OCSP Revocation Verification (`Task 9.4`)**: Enforces `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` fail-closed verification on all TLS preflights.
-- **Advanced SSH & SFTP Protocol Architecture (Tasks 2.5, 3.6, 3.7, `TD-13`, `T-151`)**:
-  - **Multi-Hop OpenSSH ProxyJump Parser & Dynamic SOCKS5 Port Forwarding (`ProxyJumpParser.swift`, `PortForwardingManager.swift`, `Task 2.5`)**: Added `ProxyJumpParser` validating sequential bastion jump topologies (`jump1:22,bastion@jump2:2222,[::1]:2200`) with strict shell injection shielding (`CWE-78`). Added `-D` Dynamic SOCKS5 port forwarding mode in `PortForwardingRule.Direction` and `PortForwardingManager`.
-  - **Streaming `READDIR` AsyncSequence Generator (`SFTPService+Listing.swift`, `Task 3.6`, `TD-13`)**: Added `SFTPService.streamDirectory(at:batchSize:)` yielding `AsyncThrowingStream<[RemoteFile], Error>` in 500-item chunks with cooperative cancellation and memory-bounded flat profile across 100,000+ files.
-  - **Pipelined SFTP Upload Resume Block-Level Verification (`TransferQueue+Resume.swift`, `Task 3.7`, `T-151`)**: Verifies prefix 64 KB block SHA-256 against local source before appending, restarting clean from offset 0 if divergent to prevent corrupt spliced files.
-  - **Remote-to-Remote Transfer Engine (`TransferQueue+RemoteToRemote.swift`, `Task 6.6`)**: Added `TransferDirection.remoteToRemote` and `performRemoteToRemoteAttempt` streaming directly between two remote endpoints via an isolated temporary staging pipe with automatic `defer` cleanup, scaled 0-50% / 50-100% progress reporting, and cooperative cancellation checks.
-- **Code Quality, Structured Concurrency & Release Infrastructure (Tasks 17.2, 17.4, 17.6, 18.2, 18.5, 18.6, 18.7)**:
-  - **Persistent Inline Terminal Drawer & 16ms Frame Coalescing (`TerminalSessionManager.swift`, `TerminalWorkspaceView.swift`, `Task 17.2`, `TD-07`)**: Preserved persistent `TerminalView` AppKit instance across drawer collapse/expand toggles in `TerminalTabSession.getOrCreateTerminalView()`, retaining 10,000 lines of scrollback history. Coalesced PTY stdout chunks into 16ms buffers (~60 FPS) with 32 KB capacity-retained buffers in `attachPTYChannel`. Added inline Find bar (`magnifyingglass`) with query submission, previous/next match jumping, and live match counters (`1/5`).
-  - **iTerm2-Style Split Panes in Standalone Terminal (`StandaloneTerminalWindowView.swift`, `StandaloneTerminalSplitView.swift`, `Task 16.2`)**: Vertical Split (`⌘D`) and Horizontal Split (`⌘⇧D`) with independent PTY handles and scrollbacks, rendered recursively via `HSplitView` and `VSplitView`.
-  - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
-  - **Localization Parity (742 Synchronized Keys) (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with 100% parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
-  - **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 317 source files.
-  - **Full 14-Pillar Multi-Linter Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 317 files with 0 violations, and `shellcheck -s bash` passed with 0 warnings.
-
-- **Dual-Pane Commander Navigation & Ergonomics Enhancements**:
-  - **High-Performance Diffable File Pane Table View (`FilePaneTableView+Coordinator.swift`, `Task 6.1`, `TD-04`)**: Replaced full table reload flicker with fine-grained `CollectionDifference` animations for row updates ($\le 50$ changes). Animates with `.effectFade` inside `tableView.beginUpdates()` / `endUpdates()`, preserving row selection and scroll position during directory polling.
-  - **Native AppKit Drag-and-Drop File Transfers (`InteractiveFileTableSupport.swift`, `FilePaneTableView+Coordinator.swift`, `Task 6.5`)**: Implemented native `NSDraggingDestination` and `NSDraggingSource` on `InteractiveFileTableView`. Accepts incoming file drops directly from macOS Finder, broadcasting `.sparkleUploadDroppedFiles` to enqueue immediate transfers into `TransferQueue`. Supports outbound dragging of local file URLs.
-  - **Clickable Breadcrumbs Navigation Bar (`BreadcrumbsBarView.swift`, `Task 6.4`)**: Interactive segment-based folder navigation replacing raw text fields above local and remote panes. Single-click segment jumps to any parent directory, right-click copies path or prompts manual editing, and double-click switches to raw path entry.
-  - **Standard Commander Keyboard Shortcuts (F3–F8) (`CommanderFunctionKeyBar.swift`, `Task 6.2`)**: Implemented classic Midnight Commander / Total Commander function key bar with zero-unwrapped `KeyEquivalent` bindings: `F3 View` (QuickLook preview), `F4 Edit` (Internal editor), `F5 Copy` (Cross-pane transfer), `F6 Move` (Move/rename), `F7 Mkdir` (New folder), and `F8 Delete` (Delete with confirmation).
-  - **Synchronized Folder Browsing (`Task 6.3`)**: Added automated path synchronization between local and remote panes (`BookmarkManager.computeSynchronizedPath`) with unit test coverage.
-  - **Real-Time File Listing Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`, `Task 6.7`)**: Non-blocking in-memory filter bar supporting substrings, wildcard extensions (`*.log`, `*.conf`, `*.swift`), and hidden files (`.*`), with preset pills ("All", "Hidden", "Configs", "Logs", "Source") and match counters.
-- **Internal Text & Code Editor Advanced Tools (Tasks 13.1–13.4)**:
-  - **Standalone Find, Replace & Mark Hub (`FindReplaceDialogView.swift`, `Task 13.1`)**: Multi-tab dialog hub supporting case matching (`Aa`), whole-word regex boundaries (`\b`), full regex patterns (`.*`), wrap-around (`↩`), and bidirectional search (Up/Down).
-  - **Notepad++ Mark Subsystem (`EditorSessionManager+Search.swift`, `Task 13.2`)**: Added `markAllMatches`, `clearAllMarks`, `copyMarkedText` to macOS clipboard, and `bookmarkMatchingLines`.
-  - **Comprehensive Data Loss Prevention Guards (`NSAlert`, `Task 13.3`)**: Added `closeDocumentWithPrompt` intercepting tab close and window close with modal confirmation sheets ("Save", "Don't Save", "Cancel").
-  - **Modal Dialog Focus Ring Elimination (`ModalCloseButton.swift`, `Task 13.4`)**: Decoupled visible close glyph from zero-size key equivalent handler, eliminating blue focus ring artifacts across modal sheets.
-- **macOS System Integration & Progress Monitoring (`Task 10.5`, `Task 16.1`)**:
-  - **macOS Finder QuickActions, Services & URL Schemes (`AppDelegate.swift`, `AppState+Operations.swift`, `Info.plist`, `Task 16.1`)**: Registered `sftp://`, `ftps://`, and `ssh://` protocol URL schemes and macOS system service "Open in SparkleSFTP" for local files and directories (`public.file-url`, `NSFilenamesPboardType`). `handleExternalURL` seamlessly resolves paths or constructs connection profiles for immediate connection.
-  - **Application Dock Tile Progress Badge (`DockProgressController.swift`)**: Real-time dock badge displaying overall queue progress percentage (`42%`) or active count when transfers are in flight, clearing automatically upon queue completion.
-  - **Native Notification Center Alerts (`AppState+Connections.swift`)**: Emits notifications on batch transfer completions and transfer failures.
-- **High-Performance Transfer Engine & Queue Scheduler (Tasks 10.1–10.4)**:
-  - **Multi-Worker Dynamic Shortest-Job-First Transfer Scheduler (`TransferScheduler.swift`, `Task 10.1`)**: Dynamic worker scheduler prioritizing small files ($\le 1\text{ MB}$) ahead of multi-megabyte payloads under equal priority, eliminating head-of-line blocking during bulk directory syncs. Strictly enforces per-host concurrency caps (`maxPerHostConcurrent`) and global pool limits (`maxGlobalConcurrent`).
-- **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`, `Task 18.4`)**:
-  - Compiled Universal 2 fat binary (`lipo -archs` = `x86_64 arm64`) in release mode (`-O`).
-  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with SHA-256 verification hash: `58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69`.
-  - Automated Sparkle Ed25519 Appcast Feed Generation (`Tools/Release/generate-appcast.sh`, `Task 18.2`): Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length, and cryptographic signature verification.
-  - **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0). SwiftLint strict verification across 326 source files with 0 violations. ShellCheck strict verification across all tools scripts with 0 warnings.
-- **Embedded Sandboxed Lua Macro & Automation Engine (`EditorMacroEngine.swift`, `LuaConsoleSheet.swift`, `Task 12.2`)**:
+- **Dual-Pane Commander Architecture & Fine-Grained Diffable Animations (`FilePaneTableView+Coordinator.swift`, `InteractiveFileTableSupport.swift`, `Task 6.1–6.5`, `TD-04`)**:
+  - **Diffable Data Source (`FilePaneTableView+Coordinator.swift`)**: Replaced full table reload flicker with fine-grained `CollectionDifference` animations for row updates ($\le 50$ changes). Animates with `.effectFade` inside `tableView.beginUpdates()` / `endUpdates()`, preserving row selection and scroll position during directory polling.
+  - **Native AppKit Drag-and-Drop (`InteractiveFileTableSupport.swift`)**: Implemented native `NSDraggingDestination` and `NSDraggingSource` on `InteractiveFileTableView`. Accepts incoming file drops directly from macOS Finder, broadcasting `.sparkleUploadDroppedFiles` to enqueue immediate transfers into `TransferQueue`. Supports outbound dragging of local file URLs.
+  - **Breadcrumbs Navigation (`BreadcrumbsBarView.swift`)**: Clickable path segments for local and remote panes with path history, copy path actions, and inline text editing fallback.
+  - **Commander Keyboard Shortcuts (`CommanderFunctionKeyBar.swift`)**: Classic F3 (View), F4 (Edit), F5 (Cross-Pane Transfer), F6 (Move), F7 (Mkdir), and F8 (Delete) function key bar with zero-unwrapped key equivalents.
+  - **Real-Time Category & Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`)**: Substring, wildcard extension (`*.log`), and hidden file (`.*`) filtering with preset categories (All, Documents, Images, Archives, Code) and live badge counters.
+  - **Synchronized Folder Browsing**: Bilateral synchronized path mapping across local and remote directories (`BookmarkManager.compareAndSyncPaths`).
+  - **macOS Finder QuickActions & URL Schemes (`AppDelegate.swift`, `Info.plist`, `Task 16.1`)**: Registered `sftp://`, `ftps://`, and `ssh://` protocol scheme handlers and macOS system service "Open in SparkleSFTP".
+- **Internal Text & Code Editor Core Modernization (TextKit 2, 52+ Languages & Ergonomics)**:
+  - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
+  - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.
+  - **Permanent Dark Toolbar Invariant (`InternalEditorToolbar.swift`, `Task 11.4`)**: Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint.
+  - **Ergonomic Tab Bar & Badges (`InternalEditorTabBar.swift`, `Task 11.5`)**: Extracted modular tab bar with clean/dirty dots (`●` yellow `#e5c07b`), read-only badges (`lock.fill`), line ending (`CRLF`/`LF`), encoding (`UTF-8`), double-click new tab, and tab context menus.
+  - **Find & Replace Engine (`FindReplaceDialogView.swift`, `EditorSessionManager+Search.swift`)**: Added native Find/Replace dialog with case matching, whole-word matching, regular expressions, and match counters.
+  - **ADR-0013 Architectural Assessment (`docs/ADR/0013-internal-editor-core-engine-evaluation.md`)**: Formally accepted Pure Swift TextKit 2 Architecture (Option A) and rejected C++ Scintilla/Lexilla (Option B) for zero binary bloat and 100% native Swift 6 safety.
+- **Embedded Sandboxed Lua Macro & Automation Engine (`EditorMacroEngine.swift`, `LuaConsoleSheet.swift`, `Task 12.2`, `Task 13.1–13.4`)**:
   - Sandboxed execution engine exposing safe editor APIs: `editor.getText()`, `editor.setText()`, `editor.getSelection()`, `editor.replaceSelection()`, `editor.getLineCount()`, `editor.getCurrentLine()`, `editor.insertText()`, `editor.clear()`, `editor.zoomIn()`, `editor.zoomOut()`.
   - Built-in text mutations and codecs: upper/lower case transforms, line trimming, line deduplication, sequential line numbering, ascending/descending sorting, Base64 encode/decode, and formatted JSON prettification.
   - Strict sandbox isolation eliminating sandbox escape vectors (`CVE-2026-42214`): strips `os.execute`, `os.remove`, `io.*`, `package.loadlib`, `require`, `dofile`, `process`, `shell`, `eval`, `system`.
-  - Interactive Macro Console Sheet modal (`⌘K`) featuring preset selection, script editor, execution output drawer, and `ModalCloseButton`. Tested via `EditorMacroEngineTests.swift`.
+  - Interactive Macro Console Sheet modal (`⌘K`) featuring preset selection, script editor, execution output drawer, benchmark timer, and `ModalCloseButton`.
 - **Developer & Security Tools Hub (`EditorDeveloperTools.swift`, `Task 12.3`)**:
   - Pure Swift 6 high-performance text manipulation engine ported from NotepadMac:
     - Base64 Encode & Decode (`Data.base64EncodedString`)
@@ -68,24 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Cryptographic Hash Suite (SHA-256, SHA-512, MD5 using native `CryptoKit`)
     - Unix Epoch Timestamp <-> ISO8601 UTC bidirectional converter
     - Line Deduplication (`Set`-backed filter) & Empty Line Stripper
-- **FTPS Protocol Hardening & Session Resumption (`CurlClientHelper.swift`, `Task 4.2 & 4.3`)**:
-  - Enforced `CURLUSESSL_ALL` mandating SSL encryption for both control and data channels (`PBSZ 0` and `PROT P`).
-  - Enabled TLS Session Resumption (`CURLOPT_SSL_SESSIONID_CACHE = 1`) across data channels, preventing error 522 on strict vsftpd/ProFTPD servers.
-  - Enforced `CURLFTPSSL_CCC_NONE` preventing cleartext command channel downgrade attacks.
-- **Internal Text & Code Editor Core Modernization (TextKit 2, 52+ Languages & Ergonomics)**:
-  - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
-  - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.
-  - **Permanent Dark Toolbar Invariant (`InternalEditorToolbar.swift`, `Task 11.4`)**: Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint.
-  - **Ergonomic Tab Bar & Badges (`InternalEditorTabBar.swift`, `Task 11.5`)**: Extracted modular tab bar with clean/dirty dots (`●` yellow `#e5c07b`), read-only badges (`lock.fill`), line ending (`CRLF`/`LF`), encoding (`UTF-8`), double-click new tab, and tab context menus.
-  - **ADR-0013 Architectural Assessment (`docs/ADR/0013-internal-editor-core-engine-evaluation.md`, `Task 11.1 & 11.2`)**: Formally accepted Pure Swift TextKit 2 Architecture (Option A) and rejected C++ Scintilla/Lexilla (Option B) for zero binary bloat and 100% native Swift 6 safety.
-- **External Editor Workflow Wiring (`AppState+ExternalEditor.swift`, `Task 14.1`)**:
-  - Connected `ExternalEditorDetector` to Commander UI for both local and remote files.
-  - Downloads remote files to isolated secure temp directories, captures baseline hashes and inodes, opens with the detected external editor, and automatically uploads modifications back to the remote server via debounced file-system watching.
-- **Biometric Touch ID & Keychain Hardening (`KeychainService.swift`, `Task 16.4`)**:
-  - Added `evaluateTouchIDPreflight` and `isBiometricsAvailable` preflight checks.
-- **Dead Feature Flag Cleanup & Wiring (`RemoteServiceFactory.swift`, `AppState+Connections.swift`, `AppState+Imports.swift`, `TerminalWorkspaceView.swift`, `Task 17.5`, `TD-09`)**:
-  - Enforced `featureFlags.isSCPFallbackEnabled` in `RemoteServiceFactory.makeService`.
-  - Enforced `featureFlags.isPortForwardingEnabled` in `AppState.startPortForwarding` and `TerminalWorkspaceView`.
 - **Post-Quantum Cryptography & OpenSSH 10.x Standards (`SSHKeyExchangeAlgorithm`, `SSHClientService`)**:
   - Implemented hybrid Post-Quantum Key Exchange (PQ-KEX) algorithm classifiers:
     - `mlkem768x25519-sha256`: NIST FIPS 203 ML-KEM hybrid with X25519.
@@ -96,13 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented standard OpenSSH `known_hosts` codec parsing plain, comma-separated, and HMAC-SHA1 hashed (`|1|salt|hash`) host entries.
   - Added automated import from `~/.ssh/known_hosts` into `HostTrustStore` (`trusted_hosts.v1.json`) with TOFU isolation.
 - **SSH Agent Socket Forwarding & Validation (`SSHAgentSocketBridge`, `TASK-095`)**:
-  - Validates active `$SSH_AUTH_SOCK` Unix domain sockets with canonical `realpath` symlink resolution and `CWE-59` traversal checks.
-- **FIDO2 / U2F Security Key Token Detection (`PrivateKeyParser`, `TASK-096`)**:
-  - Added detection of hardware security key types (`sk-ssh-ed25519@openssh.com` and `sk-ecdsa-sha2-nistp256@openssh.com`) via `KeyMetadata.isSecurityKey`.
-  - Informs users when a hardware YubiKey or security key is present, guiding them to use agent socket forwarding or hardware-assisted tokens.
-- **Passphrase-Protected OpenSSH Key Inspection (`PrivateKeyParser`, `TD-15`)**:
+  - Validates active `/private/tmp/com.apple.launchd.UaTPZdUzbA/Listeners` Unix domain sockets with canonical `realpath` symlink resolution and `CWE-59` traversal checks.
+- **Passphrase-Protected OpenSSH Key & FIDO2/U2F Token Inspection (`PrivateKeyParser`, `TD-15`, `TASK-096`)**:
   - Added `inspectKeyMetadata` and `isPassphraseEncrypted` detecting `openssh-key-v1` cipher and KDF parameters.
-  - Improved diagnostic feedback guiding users to local `ssh-agent` or Keychain for encrypted keys.
+  - Added detection of hardware security key types (`sk-ssh-ed25519@openssh.com` and `sk-ecdsa-sha2-nistp256@openssh.com`) via `KeyMetadata.isSecurityKey`.
+  - Improved diagnostic feedback guiding users to local `ssh-agent` or Keychain for encrypted and hardware keys.
 - **OpenSSH Advanced SFTP Protocol Extensions (`SFTPOpenSSHExtensions`)**:
   - Added models and parsers for modern OpenSSH SFTP protocol extensions:
     - `limits@openssh.com`: dynamic buffer negotiation (max packet, read/write lengths, and max open handles).
@@ -110,9 +63,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `fsync@openssh.com`: server-side physical disk synchronization prior to file close.
     - `copy-data`: server-side zero-copy file duplication.
     - `md5-hash@openssh.com` & `sha256@openssh.com`: remote checksum verification without local file retrieval.
-- **Enterprise FTPS & Directory Listing Modernization (`FTPListingParser`, `TLSCertificateInfo`)**:
-  - Expanded `FTPListingParser` with Windows IIS format support (`MM-DD-YY HH:MM(AM|PM) <DIR>|size filename`), complementing RFC 3659 `MLSD` and Unix `ls -l`.
-  - Added real-time certificate expiration and health monitoring (`isExpired`, `daysUntilExpiration`, `isExpiringSoon`, `isCriticallyExpiring`) to `TLSCertificateInfo` for proactive 14/30-day expiry alerting.
+- **Enterprise FTPS & Cryptographic Preflight Parity (Tasks 4.1, 4.4, 4.5, 9.1, 9.4, `TD-10`)**:
+  - **Explicit FTPS Dynamic STARTTLS Framer (`TLSCertificateValidator.swift`, `FTPService.swift`, `Task 4.1`)**: Dynamically upgrades explicit FTPS connections over port 21 via `ExplicitFTPSFramer` (`NWProtocolFramerImplementation` + `prependApplicationProtocol`). Enforces `SecTrustEvaluateWithError` chain validation, hostname matching, expiry dates, and `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` revocation checks before any FTP control commands or credentials are exchanged.
+  - **Active Mode FTP Support (`PORT` / `EPRT`) (`CurlClientHelper.swift`, `Task 4.4`)**: Added `activeMode: Bool` to `CurlRequestContext` and configured `CURLOPT_FTPPORT` (`"-"`) enabling automated interface IP detection and `EPRT`/`PORT` negotiation behind non-NAT and VPN configurations.
+  - **FTP Character Set Fallback Negotiation (`FTPListingParser.swift`, `Task 4.5`)**: Multi-encoding fallback decoder: UTF-8 -> ISO-8859-1 (Latin1) -> Windows-1252 -> ASCII lossy conversion, ensuring robust directory parsing on non-UTF-8 FTP servers.
+  - **Windows IIS Directory Listing Support (`FTPListingParser.swift`)**: Added full regex and tabular support for Windows IIS FTP directory listings (`MM-DD-YY HH:MM(AM|PM) <DIR>|size filename`).
+  - **Interactive X.509 Visual Certificate Inspector (`CertificateInspectorSheet.swift`, `Task 9.1`)**: Displays host, status badge (trusted/expiring/expired/untrusted), subject CN, issuer, validity window, copyable SHA-256 fingerprint, and modal close button.
+  - **Trust On First Use (TOFU) Pinning Workflow (`Task 9.2`)**: Interactive "Trust Certificate (TOFU)" pinning action saving SHA-256 fingerprints to `HostTrustStore`.
+  - **CRL & OCSP Revocation Verification (`Task 9.4`)**: Enforces `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` fail-closed verification on all TLS preflights.
+  - **FTPS Protocol Hardening (`CurlClientHelper.swift`)**: Enforced `CURLUSESSL_ALL` (PROT P), enabled TLS Session Resumption (`CURLOPT_SSL_SESSIONID_CACHE = 1`), and enforced `CURLFTPSSL_CCC_NONE`.
+- **Advanced SSH & SFTP Protocol Architecture (Tasks 2.5, 3.6, 3.7, `TD-13`, `T-151`)**:
+  - **Multi-Hop OpenSSH ProxyJump Parser & Dynamic SOCKS5 Port Forwarding (`ProxyJumpParser.swift`, `PortForwardingManager.swift`, `Task 2.5`)**: Added `ProxyJumpParser` validating sequential bastion jump topologies (`jump1:22,bastion@jump2:2222,[::1]:2200`) with strict shell injection shielding (`CWE-78`). Added `-D` Dynamic SOCKS5 port forwarding mode in `PortForwardingRule.Direction` and `PortForwardingManager`.
+  - **Streaming `READDIR` AsyncSequence Generator (`SFTPService+Listing.swift`, `Task 3.6`, `TD-13`)**: Added `SFTPService.streamDirectory(at:batchSize:)` yielding `AsyncThrowingStream<[RemoteFile], Error>` in 500-item chunks with cooperative cancellation and memory-bounded flat profile across 100,000+ files.
 - **Modernized Streaming SCP Compatibility Engine (`SCPCompatibilityAdapter`, `Milestone 5`)**:
   - Implemented 64 KB chunked streaming directly to/from destination `FileHandle` eliminating memory exhaustion (`CWE-400`).
   - Added bounded decompression ceiling (max 2 MB compressed payload) guarding against zip bombs (`CWE-409`).
@@ -124,40 +86,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Docker container status inspector parsing tab-delimited docker output and generating sanitized `docker restart`, `docker stop`, and `docker logs --tail <n>` commands.
   - Remote live log viewer builder generating safe `tail -n <count> -f <path>` commands with standard Linux log paths (`/var/log/syslog`, `/var/log/nginx/error.log`, `/var/log/apache2/error.log`, `/var/log/auth.log`).
   - POSIX permission converter with bidirectional symbolic (`rwxr-xr-x`) <-> octal (`0755`) mapping, `chmod +x` executable toggle, and `0600` private security clamping.
-- **External Desktop Editor Ecosystem & CLI Wait Protocol (`ExternalEditorDetector`, `Milestone 14`)**:
-  - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
-  - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
-- **Network Diagnostics, TCP Port Probing & RTT Latency Meter (`PortChecker`, `HostLatencyProbe`, `RemoteNetworkDiagnostics`)**:
-  - Asynchronous TCP port probe service testing reachability and latency of common network ports (22 SSH/SFTP, 21 FTP, 990 FTPS, 80 HTTP, 443 HTTPS, 3306 MySQL/MariaDB, 5432 PostgreSQL, 6379 Redis) via `NWConnection` with bounded timeouts.
-  - Multi-sample host latency probe (`HostLatencyProbe`) calculating minimum, maximum, average RTT, and network jitter metrics.
-  - Remote network diagnostic command builder generating sanitized `ping`, `traceroute`, `ip route`, and `ss -tulpn` / `netstat -tulpn` commands.
-- **External Desktop Editor Ecosystem & Cache Inode Verification (`ExternalEditorDetector`, `ExternalEditSession`)**:
+- **Network Diagnostics & Built-in IPv4 Subnet Calculator (`PortChecker`, `HostLatencyProbe`, `IPSubnetCalculator`, `SubnetCalculatorSheet`, `⌘⌥S`)**:
+  - Asynchronous TCP port probe testing reachability and latency of common network ports (22, 21, 990, 80, 443, 3306, 5432, 6379) via `NWConnection`.
+  - Multi-sample host latency probe (`HostLatencyProbe`) calculating min, max, average RTT, and jitter metrics.
+  - Ported pure Swift 6 subnet calculation engine from `SubnetCalc for macOS` by `@alsyundawy` with native SwiftUI sheet (`⌘⌥S`).
+- **Transfer Engine, Scheduling & Resilience (`TransferScheduler`, `TransferQueue+Resume`, `TransferQueue+RemoteToRemote`, `DockProgressController`)**:
+  - Shortest-Job-First (SJF) transfer admission algorithm in `TransferScheduler` prioritizing smaller payloads to eliminate head-of-line blocking.
+  - Pipelined SFTP upload resume block-level verification (`TransferQueue+Resume.swift`): verifies prefix 64 KB block SHA-256 against local source before appending, restarting clean from offset 0 if divergent to prevent corrupt spliced files.
+  - Remote-to-remote direct streaming transfer engine (`TransferQueue+RemoteToRemote.swift`): streams directly between two remote endpoints via isolated temporary staging pipe with automatic `defer` cleanup.
+  - Dynamic macOS Dock transfer progress controller (`DockProgressController.swift`) updating dock icon badge and progress bar.
+  - Randomized jitter exponential backoff retry scheduler eliminating thundering herd synchronization.
+  - Transfer Journal SQLite corruption quarantine (`PRAGMA quick_check;` auto-quarantines to `.corrupt.<timestamp>`) and orphan `.sparklesftp.*.filepart` cleanup.
+- **Persistent Inline Terminal Drawer & Standalone Split Terminal (Tasks 16.2, 17.2, `TD-07`)**:
+  - Preserved persistent `TerminalView` AppKit instance across drawer collapse/expand toggles in `TerminalTabSession.getOrCreateTerminalView()`, retaining 10,000 lines of scrollback history. Coalesced PTY stdout chunks into 16ms buffers (~60 FPS) with 32 KB capacity-retained buffers in `attachPTYChannel`. Added inline Find bar (`magnifyingglass`) with query submission, previous/next match jumping, and live match counters (`1/5`).
+  - iTerm2-Style Split Panes in Standalone Terminal (`StandaloneTerminalWindowView.swift`, `StandaloneTerminalSplitView.swift`): Vertical Split (`⌘D`) and Horizontal Split (`⌘⇧D`) with independent PTY handles and scrollbacks, rendered recursively via `HSplitView` and `VSplitView`.
+- **External Desktop Editor Ecosystem & Cache Inode Verification (`ExternalEditorDetector`, `ExternalEditSession`, `Milestone 14`)**:
   - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
   - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
   - Inode verification and symlink traversal defense (`verifyCacheIntegrity()`) in `ExternalEditSession` guarding against file substitution attacks (`CWE-59`).
-- **Transfer Journal SQLite Corruption Quarantine & Orphan GC (`TransferJournal+Maintenance`, `TD-05`)**:
-  - Validates SQLite integrity with `PRAGMA quick_check;` on database initialization; automatically quarantines corrupted databases to `.corrupt.<timestamp>` and reinitializes a clean schema.
-  - Automated garbage collector (`cleanupOrphanFileparts`) purging orphaned `.sparklesftp.*.filepart` checkpoint files older than 7 days.
-- **Directory Synchronization, Comparison & Regex Batch Renamer (`SyncPlanner`, `DirectoryComparison`, `BatchRenamePlanner`)**:
-  - Comprehensive 3-mode synchronization planner (Mirror, Update, Two-Way) with interactive visual dry-run previews and timestamp drift tolerances.
-  - Linear $O(N+M)$ sorted directory comparison evaluating missing files, size differences, and mtime offsets across 10,000+ files in milliseconds.
-  - Regex batch file renamer with capture groups (`$1`), prefix/suffix insertion, sequence numbering (`#`), and live collision previews.
-- **Randomized Jitter Exponential Backoff (`RetryPolicy`, `TD-12`, `Milestone 17`)**:
-  - Full randomized bilateral jitter ($\text{Double.random}(\text{in}: 0.7 \dots 1.3) \times \text{baseDelay} \times 2^{\text{attempt}}$) eliminating thundering herd synchronization during concurrent transfer retries.
-- **Built-in IPv4 Subnet & CIDR Calculator Hub (`IPSubnetCalculator`, `SubnetCalculatorSheet`, `⌘⌥S`)**:
-  - Ported pure Swift 6 subnet calculation engine from `SubnetCalc for macOS` by `@alsyundawy`.
-  - Calculates network address, broadcast address, netmask, wildcard mask, usable host range, total hosts, IP class, and RFC 1918 scope.
-  - Added native SwiftUI sheet `SubnetCalculatorSheet` accessible via `⌘⌥S` with one-click copy buttons and theme integration.
-- **2025–2026 Security Vulnerability Shielding & Protocol Lockdown**:
-  - **CVE-2024-6387 (regreSSHion)**: Created `SSHServerAuditor` inspecting OpenSSH server identification strings during initial banner exchange, alerting sysadmins to unpatched `OpenSSH 8.5p1`–`9.7p1` servers.
-  - **CVE-2026-43798**: Pinned `apple/swift-nio-ssh` to `"0.15.1" ..< "0.16.0"` (`>= 0.14.1`), eliminating pre-auth stack write in ECDSA key exchange.
-  - **CVE-2026-28970**: Upgraded `apple/swift-nio` lower bound to `>= 2.100.0` preventing HTTP/1.1 CRLF injection in event loops.
-  - **CVE-2026-47122 / CVE-2025-10015 / CVE-2025-10016**: Hardened Sparkle update entitlements with Mach-lookup exceptions (`-spks`, `-spki`).
-  - **CVE-2026-8932**: Enforced `CURLOPT_FRESH_CONNECT = 1` and `CURLOPT_FORBID_REUSE = 1` across profile boundaries in `CurlClientHelper`.
-  - **CVE-2025-15224**: Locked allowed protocols to `kAllowedProtocols = "ftp,ftps"` on `CURLOPT_PROTOCOLS_STR`.
-  - **CVE-2026-52886 / CVE-2026-57233**: Enforced Zip-Slip rejection, symlink escape checks, 4 GB ceiling, and 50,000 entry limit in `ArchiveService`.
-  - **CVE-2026-105925**: Capped XML imports at 16 MB and disabled external DTD entity resolution in `ExternalImporters`.
-  - **Strict Invariants Maintained**: Zero Qt dependency (100% native Swift 6 / AppKit / SwiftUI) and Zero Icon Tampering (existing design tokens and SF Symbols 100% preserved).
+- **Biometric Touch ID & Keychain Hardening (`KeychainService.swift`, `Task 16.4`)**:
+  - Added `evaluateTouchIDPreflight` and `isBiometricsAvailable` preflight checks.
+- **Dead Feature Flag Cleanup & Wiring (`RemoteServiceFactory.swift`, `AppState+Connections.swift`, `AppState+Imports.swift`, `TerminalWorkspaceView.swift`, `Task 17.5`, `TD-09`)**:
+  - Enforced `featureFlags.isSCPFallbackEnabled` in `RemoteServiceFactory.makeService`.
+  - Enforced `featureFlags.isPortForwardingEnabled` in `AppState.startPortForwarding` and `TerminalWorkspaceView`.
+
+### Security & Shielding (2025–2026 CVE/CWE Mitigations)
+
+- **CVE-2024-6387 (regreSSHion)**: Created `SSHServerAuditor` inspecting OpenSSH server identification strings during initial banner exchange, alerting sysadmins to unpatched `OpenSSH 8.5p1`–`9.7p1` servers.
+- **CVE-2023-48795 (Terrapin Attack)**: Strict key-exchange sequence validation (`kex-strict-c-v00@openssh.com`) mitigating Terrapin prefix truncation attacks.
+- **CVE-2026-43798**: Pinned `apple/swift-nio-ssh` to `"0.15.1" ..< "0.16.0"` (`>= 0.14.1`), eliminating pre-auth stack write in ECDSA key exchange.
+- **CVE-2026-28970**: Upgraded `apple/swift-nio` lower bound to `>= 2.100.0` preventing HTTP/1.1 CRLF injection in event loops.
+- **CVE-2026-47122 / CVE-2025-10015 / CVE-2025-10016**: Hardened Sparkle update entitlements with Mach-lookup exceptions (`-spks`, `-spki`).
+- **CVE-2026-8932**: Enforced `CURLOPT_FRESH_CONNECT = 1` and `CURLOPT_FORBID_REUSE = 1` across profile boundaries in `CurlClientHelper`.
+- **CVE-2025-15224**: Locked allowed protocols to `kAllowedProtocols = "ftp,ftps"` on `CURLOPT_PROTOCOLS_STR`.
+- **CVE-2026-52886 / CVE-2026-57233**: Enforced Zip-Slip rejection, symlink escape checks, 4 GB ceiling, and 50,000 entry limit in `ArchiveService`.
+- **CVE-2026-105925**: Capped XML imports at 16 MB and disabled external DTD entity resolution in `ExternalImporters`.
+- **CVE-2026-42214**: Strict sandbox isolation in `EditorMacroEngine` preventing arbitrary process execution or filesystem manipulation via Lua scripts.
+- **Strict Architectural Invariants Maintained**: Zero Qt dependency (100% native Swift 6 / AppKit / SwiftUI) and Zero Icon Tampering (existing design tokens and SF Symbols 100% preserved).
+
+### Code Quality, Structured Concurrency & Release Infrastructure
+
+- **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
+- **100% Bilingual Parity across 742 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with complete parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
+- **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 326 source files.
+- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26255894`, and cryptographic signature verification.
+- **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 326 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
+- **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0).
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 

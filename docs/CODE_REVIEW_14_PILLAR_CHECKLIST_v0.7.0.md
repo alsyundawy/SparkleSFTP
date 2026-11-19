@@ -16,6 +16,7 @@
 | `src/App/SparkleUpdaterService.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `AppDelegate.swift`: Implements `NSApplicationDelegate` and `servicesProvider = self`. Contextual Finder QuickActions (`openInSparkleSFTP`) and URL schemes (`sftp://`, `ftps://`, `ssh://`) parse parameters through `URLComponents` without shell interpolation.
 - `SparkleUpdaterService.swift`: Mitigates `CVE-2026-47122` & `CVE-2025-10015/10016`. Validates Ed25519 signatures and enforces HTTPS URLs for Sparkle update feeds.
 
@@ -41,6 +42,7 @@
 | `src/Features/AppState+WorkspaceTabs.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `TD-01` Resolved: `AppState` decomposed into 13 modular domain stores. All mutation operations run under `@MainActor` thread safety.
 - `AppState+Operations.swift`: Drag-and-drop file ingestion, external URL navigation, and prompt dispatch sanitize paths with `PathValidator`.
 
@@ -70,6 +72,7 @@
 | `src/Features/Commander/CommanderCustomCommandSheets.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `TD-04` Resolved: `FilePaneTableView+Coordinator.swift` uses `CollectionDifference` for diffable animations ($\le 50$ changes) with `.effectFade`, preserving scroll position and row selection.
 - `InteractiveFileTableSupport.swift`: AppKit Drag-and-Drop registers `.fileURL`, accepts external drops from Finder, and bridges safely to `.sparkleUploadDroppedFiles`.
 
@@ -100,6 +103,7 @@
 | `src/Features/Editor/ExternalEditWatcher.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `Task 12.2`: `EditorMacroEngine.swift` strips `os.execute`, `os.remove`, `io.*`, `package.loadlib` (`CVE-2026-42214`).
 - `EditorModels.swift`: `lineCount` traverses UTF-8 bytes single-pass over `0x0A` with 0 heap allocations, cutting memory 85%.
 - `InternalEditorToolbar.swift`: Toolbar background locked permanently to `#21252b` with `#abb2bf` icon tint, ensuring contrast across all themes.
@@ -144,6 +148,7 @@
 | `src/Packages/Networking/ZlibAndLibraryProbes.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `SSHServerAuditor.swift`: Flags OpenSSH versions matching `8.5p1`–`9.7p1` (`CVE-2024-6387` regreSSHion).
 - `CurlClientHelper.swift`: Enforces `CURLOPT_FRESH_CONNECT = 1`, `CURLOPT_FORBID_REUSE = 1` (`CVE-2026-8932`), and locks `CURLOPT_PROTOCOLS_STR = "ftp,ftps"` (`CVE-2025-15224`).
 - `SFTPService+Listing.swift`: Streaming `READDIR` yields 500-item chunks via `AsyncThrowingStream` (`TD-13`).
@@ -173,6 +178,7 @@
 | `src/Packages/TransferEngine/SHA256Verifier.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `TransferScheduler.swift`: Implements Shortest-Job-First (SJF) priority admission ($\le 1\text{ MB}$ prioritised), eliminating head-of-line blocking during bulk uploads and downloads.
 - `RetryPolicy.swift`: Full randomized jitter exponential backoff ($\text{delay} = \text{random}(0.7 \dots 1.3) \times \text{base} \times 2^{\text{attempt}}$) prevents thundering herd on transient disconnects (`TD-12`).
 
@@ -200,6 +206,7 @@
 | `src/Packages/Persistence/TransferJournal+Maintenance.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `ConfigBundleCrypto.swift`: Enforces streaming SHA-256 HMAC verification on `.sparklevault` & `.sparkleconfig` bundles (`CVE-2026-52885`). Zeroizes key buffers after decryption.
 - `ExternalImporters.swift`: Enforces 16 MB cap and disables external DTD resolution preventing Billion Laughs attacks (`CVE-2026-105925`).
 - `TransferJournal+Maintenance.swift`: Runs `PRAGMA quick_check` at boot, auto-quarantines corrupt databases to `.corrupt.<timestamp>`, and garbage-collects orphaned `.filepart` files older than 7 days (`TD-05`).
@@ -223,6 +230,7 @@
 | `src/Packages/Security/DiagnosticsLogger.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `TLSCertificateValidator.swift`: Preflight FTPS framing verifies `SecTrustEvaluateWithError` chain validation and `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` revocation checks before credential transmission (`TD-10`).
 - `KeychainService.swift`: Enforces `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` across all stored credentials with biometric Touch ID gating.
 
@@ -245,6 +253,7 @@
 | `src/Packages/Core/AppError.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `AppStrings.swift`: 742 localization keys synchronized with 100% parity across English (`en.json`) and Indonesian (`id.json`).
 - `ModalCloseButton.swift`: Eliminates blue rectangular keyboard focus ring artifacts across all macOS dialogs.
 - `RemotePath.swift`: Normalizes slashes, handles dot segments, and strips traversal sequences safely.
@@ -274,6 +283,7 @@
 | `src/Packages/Terminal/CommandSnippetStore.swift` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **VERIFIED** |
 
 *Key Findings & Mitigations*:
+
 - `ArchiveService.swift`: Defends against `CVE-2026-52886` & `CVE-2026-57233` (Zip-Slip and Symlink traversal). Checks extraction roots, caps uncompressed sizes to 4 GB, and limits archives to 50,000 entries.
 - `TerminalSessionManager.swift`: Preserves persistent AppKit `TerminalView` scrollback across drawer toggles (`TD-07`). Coalesces PTY output into 16ms buffers (~60 FPS) and parses OSC 7 escape sequences for auto-directory sync.
 

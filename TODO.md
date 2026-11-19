@@ -156,6 +156,20 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Verify 14 engineering review pillars, 157 tests in 45 suites passing (100% green), and 0 linter violations across Trunk, SwiftLint, SwiftFormat, and MegaLinter (`T-117`, `T-118`, `T-131`)
 - [x] Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`) (`T-120`, `T-132`)
 - [x] Push commits to `origin/main` and `origin/0.6.0` and prepare official release (`T-121`, `T-133`)
+- [x] TextKit 2 internal code & text editor with 52+ programming languages, zero-allocation line count, permanent dark toolbar `#21252b`, and dirty/read-only badges (`Task 11.1–11.5`, `Task 12.1`)
+- [x] Embedded sandboxed Lua macro automation engine (`EditorMacroEngine.swift`, `LuaConsoleSheet.swift`, `⌘K`) with safe text mutations and escape prevention (`Task 12.2`, `Task 13.1–13.4`)
+- [x] Developer & security tools hub (Base64, URL encoding, JSON format, cryptographic hash suite, Unix timestamps) (`Task 12.3`)
+- [x] Dual-pane Commander ergonomics: CollectionDifference diffable animations, native Finder drag-and-drop, breadcrumbs bar, F3–F8 function keys, category filter bar, synchronized browsing (`Task 6.1–6.5`)
+- [x] Post-Quantum Cryptography: ML-KEM-768 (`mlkem768x25519-sha256`) and NTRU Prime (`sntrup761x25519-sha512@openssh.com`), OpenSSH known_hosts sync, SSH Agent socket bridge, FIDO2/U2F key detection, modern SFTP protocol extensions (`Task 2.1–2.4`, `Task 15.1–15.4`)
+- [x] Enterprise FTPS parity: Explicit FTPS STARTTLS framer with SecTrust & OCSP/CRL preflight, interactive X.509 Certificate Inspector with TOFU pinning, Active Mode FTP PORT/EPRT, Windows IIS directory listing parser, fallback charset negotiation (`Task 4.1–4.5`, `Task 9.1–9.4`)
+- [x] Remote Linux server administration: Systemd service controller, process explorer, Docker manager, remote log viewer, POSIX permission formatter (`Task 5.1–5.5`)
+- [x] Network diagnostics & Subnet Calculator: TCP port checker, host latency probe, native IPv4 Subnet & CIDR calculation hub `⌘⌥S` (`Task 15.5`, `Task 16.3`)
+- [x] High-performance transfer engine: Shortest-Job-First (SJF) scheduling, pipelined SFTP upload resume block SHA-256 verification, remote-to-remote streaming engine, macOS Dock progress bar, randomized jitter exponential backoff, SQLite corruption auto-quarantine & orphan checkpoint GC (`Task 3.1–3.7`, `Task 6.6`, `Task 17.1`)
+- [x] Persistent inline terminal drawer (10,000 lines scrollback, 16ms frame coalescing, search) and standalone split terminal `⌘⌥T` with vertical/horizontal split panes (`Task 16.2`, `Task 17.2`)
+- [x] Security vulnerability mitigations: CVE-2024-6387 regreSSHion audit, CVE-2023-48795 Terrapin mitigation, swift-nio-ssh pin gate, swift-nio CRLF injection defense, Zip-Slip immunity, XML entity limit, Lua sandbox isolation
+- [x] Quality gates: 218 tests in 55 suites passing (100% green), 0 SwiftLint violations across 326 files, 0 ShellCheck warnings, SonarQube report generator, 100% localization parity across 742 keys (`Task 17.6`, `Task 18.1–18.5`, `Task 18.7`)
+- [x] Universal 2 fat binary build (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69`) (`Task 18.6`)
+- [x] Push commits and tag `v0.7.0` to GitHub repository and release v0.7.0 (`Task 18.8`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)
 
