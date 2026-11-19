@@ -232,13 +232,7 @@ extension TransferQueue {
     }
 
     private func withResolvedTempOffset(_ req: UploadTransferAttemptRequest) async -> UploadTransferAttemptRequest {
-        let resumeOffset = await resolveUploadResumeOffset(
-            taskID: req.metadata.id,
-            tempRemotePath: req.targetPath,
-            localSize: req.localSize,
-            localModificationTime: req.localModified,
-            remoteFS: req.remoteFS
-        )
+        let resumeOffset = await resolveUploadResumeOffset(request: req)
         guard resumeOffset > 0 else { return req }
         return UploadTransferAttemptRequest(
             metadata: req.metadata,
@@ -321,33 +315,6 @@ extension TransferQueue {
         if let mtime = request.localModified {
             try? await request.remoteFS.setModificationTime(mtime, at: target)
         }
-    }
-
-    private func resolveUploadResumeOffset(
-        taskID: UUID,
-        tempRemotePath: RemotePath,
-        localSize: Int64,
-        localModificationTime: Date?,
-        remoteFS: any RemoteFileSystem
-    ) async -> Int64 {
-        guard let checkpoint = snapshots[taskID]?.checkpoint,
-              checkpoint.remoteSize == localSize
-        else {
-            return 0
-        }
-        if let expectedTime = checkpoint.remoteModificationTime,
-           let actualTime = localModificationTime,
-           abs(expectedTime.timeIntervalSince(actualTime)) > 1.0 {
-            return 0
-        }
-        guard let remotePartial = try? await remoteFS.metadata(at: tempRemotePath),
-              remotePartial.size > 0,
-              remotePartial.size <= localSize
-        else {
-            return 0
-        }
-        let verifiedOffset = min(checkpoint.bytesTransferred, remotePartial.size)
-        return verifiedOffset > 0 ? verifiedOffset : remotePartial.size
     }
 
     private func executeDownloadFlow(_ request: DownloadFlowRequest) async throws {

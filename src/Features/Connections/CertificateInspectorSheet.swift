@@ -3,13 +3,18 @@ import SparkleCore
 import SparkleDesignSystem
 import SwiftUI
 
-/// Interactive X.509 Visual Certificate Inspector Sheet (Task 9.1).
+/// Interactive X.509 Visual Certificate Inspector Sheet (Task 9.1 / Task 9.2).
 public struct CertificateInspectorSheet: View {
     let certificate: TLSCertificateInfo
+    var onTrust: ((TLSCertificateInfo) -> Void)?
     @Environment(\.dismiss) private var dismiss
 
-    public init(certificate: TLSCertificateInfo) {
+    public init(
+        certificate: TLSCertificateInfo,
+        onTrust: ((TLSCertificateInfo) -> Void)? = nil
+    ) {
         self.certificate = certificate
+        self.onTrust = onTrust
     }
 
     public var body: some View {
@@ -115,6 +120,13 @@ public struct CertificateInspectorSheet: View {
 
     private var footerSection: some View {
         HStack {
+            if let onTrust, !certificate.isTrusted, !certificate.sha256Fingerprint.isEmpty {
+                Button("Trust Certificate (TOFU)") {
+                    onTrust(certificate)
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+            }
             Spacer()
             Button("Done") { dismiss() }
                 .buttonStyle(.borderedProminent)
