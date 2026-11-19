@@ -119,7 +119,7 @@ actionlint
      - Formally accepted Pure Swift TextKit 2 Architecture (Option A) and rejected C++ Scintilla/Lexilla (Option B) in ADR-0013, achieving zero external binary dependencies and 100% native Swift 6 memory safety.
      - Implemented zero-allocation line traversal in `EditorDocument.lineCount` using single-pass UTF-8 byte scanning over `0x0A`, eliminating thousands of heap substring allocations.
      - Expanded syntax engine to 52 programming languages, file formats, and system configs (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`) with extension mapping and shebang detection.
-     - Extracted modular ergonomic tab bar (`InternalEditorTabBar.swift`) with dirty indicators (`●` yellow `#e5c07b`), read-only badges (`lock.fill`), line ending (`CRLF`/`LF`), encoding (`UTF-8`), double-click new tab, and tab context menus.
+     - Modular status bar (`InternalEditorBars.swift`) with line/column counter, read-only badges (`lock.fill`), line ending (`CRLF`/`LF`), encoding (`UTF-8`), and document zoom status.
      - Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint (`InternalEditorToolbar.swift`).
      - Added native Find & Replace sheet (`FindReplaceDialogView.swift`) with case-sensitivity, whole-word matching, regular expression evaluation, and match highlight counters.
    - **Embedded Sandboxed Lua Macro & Automation Engine (`EditorMacroEngine.swift`, `LuaConsoleSheet.swift`, `Task 12.2`, `Task 13.1–13.4`)**:
