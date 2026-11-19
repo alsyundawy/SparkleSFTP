@@ -328,5 +328,12 @@ private extension DualPaneCommanderView {
             }
         }
         .background(palette.canvasColor)
+        .onReceive(NotificationCenter.default.publisher(for: .sparkleUploadDroppedFiles)) { notif in
+            if let urls = notif.userInfo?["urls"] as? [URL] {
+                Task { @MainActor in
+                    await appState.uploadDroppedFiles(urls)
+                }
+            }
+        }
     }
 }

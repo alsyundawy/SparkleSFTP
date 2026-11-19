@@ -67,6 +67,12 @@ public struct MainWindowView: View {
                 await appState.syncRemotePaneToTerminalDirectory(dir)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .sparkleOpenExternalURL)) { notification in
+            guard let url = notification.userInfo?["url"] as? URL else { return }
+            Task { @MainActor in
+                await appState.handleExternalURL(url)
+            }
+        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 if appState.isQuickConnectAvailable {

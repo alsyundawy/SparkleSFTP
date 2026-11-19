@@ -95,10 +95,20 @@ struct PreferencesAndDialogSizeTests {
 
         let state = makeState(root: tmp)
         state.openAboutWindow()
-        try? await Task.sleep(for: .milliseconds(60))
 
         let aboutID = NSUserInterfaceItemIdentifier("sparkle.about")
-        let aboutWindow = try #require(NSApp.windows.first { $0.identifier == aboutID && $0.isVisible })
+        let deadline = ContinuousClock.now + .seconds(3)
+        var resolvedWindow: NSWindow?
+        while ContinuousClock.now < deadline {
+            if let win = NSApp.windows.first(where: {
+                ($0.identifier == aboutID || $0.title == state.strings.t("nav.about")) && $0.isVisible
+            }) {
+                resolvedWindow = win
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        let aboutWindow = try #require(resolvedWindow)
         defer {
             aboutWindow.orderOut(nil)
             aboutWindow.contentViewController = nil

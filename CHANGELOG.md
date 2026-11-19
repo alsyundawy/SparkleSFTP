@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Full 14-Pillar Multi-Linter Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 317 files with 0 violations, and `shellcheck -s bash` passed with 0 warnings.
 
 - **Dual-Pane Commander Navigation & Ergonomics Enhancements**:
+  - **High-Performance Diffable File Pane Table View (`FilePaneTableView+Coordinator.swift`, `Task 6.1`, `TD-04`)**: Replaced full table reload flicker with fine-grained `CollectionDifference` animations for row updates ($\le 50$ changes). Animates with `.effectFade` inside `tableView.beginUpdates()` / `endUpdates()`, preserving row selection and scroll position during directory polling.
+  - **Native AppKit Drag-and-Drop File Transfers (`InteractiveFileTableSupport.swift`, `FilePaneTableView+Coordinator.swift`, `Task 6.5`)**: Implemented native `NSDraggingDestination` and `NSDraggingSource` on `InteractiveFileTableView`. Accepts incoming file drops directly from macOS Finder, broadcasting `.sparkleUploadDroppedFiles` to enqueue immediate transfers into `TransferQueue`. Supports outbound dragging of local file URLs.
   - **Clickable Breadcrumbs Navigation Bar (`BreadcrumbsBarView.swift`, `Task 6.4`)**: Interactive segment-based folder navigation replacing raw text fields above local and remote panes. Single-click segment jumps to any parent directory, right-click copies path or prompts manual editing, and double-click switches to raw path entry.
   - **Standard Commander Keyboard Shortcuts (F3–F8) (`CommanderFunctionKeyBar.swift`, `Task 6.2`)**: Implemented classic Midnight Commander / Total Commander function key bar with zero-unwrapped `KeyEquivalent` bindings: `F3 View` (QuickLook preview), `F4 Edit` (Internal editor), `F5 Copy` (Cross-pane transfer), `F6 Move` (Move/rename), `F7 Mkdir` (New folder), and `F8 Delete` (Delete with confirmation).
   - **Synchronized Folder Browsing (`Task 6.3`)**: Added automated path synchronization between local and remote panes (`BookmarkManager.computeSynchronizedPath`) with unit test coverage.
@@ -42,13 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Notepad++ Mark Subsystem (`EditorSessionManager+Search.swift`, `Task 13.2`)**: Added `markAllMatches`, `clearAllMarks`, `copyMarkedText` to macOS clipboard, and `bookmarkMatchingLines`.
   - **Comprehensive Data Loss Prevention Guards (`NSAlert`, `Task 13.3`)**: Added `closeDocumentWithPrompt` intercepting tab close and window close with modal confirmation sheets ("Save", "Don't Save", "Cancel").
   - **Modal Dialog Focus Ring Elimination (`ModalCloseButton.swift`, `Task 13.4`)**: Decoupled visible close glyph from zero-size key equivalent handler, eliminating blue focus ring artifacts across modal sheets.
-- **macOS System Integration & Progress Monitoring (`Task 10.5`)**:
+- **macOS System Integration & Progress Monitoring (`Task 10.5`, `Task 16.1`)**:
+  - **macOS Finder QuickActions, Services & URL Schemes (`AppDelegate.swift`, `AppState+Operations.swift`, `Info.plist`, `Task 16.1`)**: Registered `sftp://`, `ftps://`, and `ssh://` protocol URL schemes and macOS system service "Open in SparkleSFTP" for local files and directories (`public.file-url`, `NSFilenamesPboardType`). `handleExternalURL` seamlessly resolves paths or constructs connection profiles for immediate connection.
   - **Application Dock Tile Progress Badge (`DockProgressController.swift`)**: Real-time dock badge displaying overall queue progress percentage (`42%`) or active count when transfers are in flight, clearing automatically upon queue completion.
   - **Native Notification Center Alerts (`AppState+Connections.swift`)**: Emits notifications on batch transfer completions and transfer failures.
-- **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`)**:
+- **High-Performance Transfer Engine & Queue Scheduler (Tasks 10.1–10.4)**:
+  - **Multi-Worker Dynamic Shortest-Job-First Transfer Scheduler (`TransferScheduler.swift`, `Task 10.1`)**: Dynamic worker scheduler prioritizing small files ($\le 1\text{ MB}$) ahead of multi-megabyte payloads under equal priority, eliminating head-of-line blocking during bulk directory syncs. Strictly enforces per-host concurrency caps (`maxPerHostConcurrent`) and global pool limits (`maxGlobalConcurrent`).
+- **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`, `Task 18.4`)**:
   - Compiled Universal 2 fat binary (`lipo -archs` = `x86_64 arm64`) in release mode (`-O`).
-  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `6e975227dd4eb8ece3287cf85c0e5a3fd2fe492ebc131ed30a907289a18f6718`.
+  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `2a5575eb6359ba28f1dee4f4584562aadc4c5d8db37c3593ef06bdb14634cf52`.
   - Automated Sparkle Ed25519 Appcast Feed Generation (`Tools/Release/generate-appcast.sh`, `Task 18.2`): Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length, and cryptographic signature verification.
+  - **Empirical Test Gate (`Task 18.4`)**: 210 unit and integration tests across 54 suites passing with 100% green status (exit code 0). SwiftLint strict verification across 323 source files with 0 violations. ShellCheck strict verification across all tools scripts with 0 warnings.
 - **Developer & Security Tools Hub (`EditorDeveloperTools.swift`, `Task 12.3`)**:
   - Pure Swift 6 high-performance text manipulation engine ported from NotepadMac:
     - Base64 Encode & Decode (`Data.base64EncodedString`)

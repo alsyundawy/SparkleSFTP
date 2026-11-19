@@ -46,11 +46,20 @@ struct WindowControlsAndShortcutsTests {
         let state = makeState(root: tmp)
         let controller = AboutWindowController()
         controller.present(appState: state)
-        try? await Task.sleep(for: .milliseconds(50))
 
-        let aboutWindow = try #require(
-            NSApp.windows.first { $0.title == state.strings.t("nav.about") && $0.isVisible }
-        )
+        let aboutID = NSUserInterfaceItemIdentifier("sparkle.about")
+        let deadline = ContinuousClock.now + .seconds(3)
+        var resolvedWindow: NSWindow?
+        while ContinuousClock.now < deadline {
+            if let win = NSApp.windows.first(where: {
+                ($0.identifier == aboutID || $0.title == state.strings.t("nav.about")) && $0.isVisible
+            }) {
+                resolvedWindow = win
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        let aboutWindow = try #require(resolvedWindow)
         defer {
             aboutWindow.orderOut(nil)
             aboutWindow.contentViewController = nil
@@ -256,9 +265,11 @@ struct WindowControlsAndShortcutsTests {
         await state.performQuickConnect()
         _ = await trustTask.value
     }
+}
 
+private extension WindowControlsAndShortcutsTests {
     @MainActor
-    private func pumpWindowLayout(window: NSWindow, hosting: NSViewController) async {
+    func pumpWindowLayout(window: NSWindow, hosting: NSViewController) async {
         for _ in 0 ..< 4 {
             window.layoutIfNeeded()
             hosting.view.layoutSubtreeIfNeeded()
@@ -267,7 +278,7 @@ struct WindowControlsAndShortcutsTests {
     }
 
     @MainActor
-    private func hasQuickConnectBar(hostPlaceholder: String, in view: NSView) -> Bool {
+    func hasQuickConnectBar(hostPlaceholder: String, in view: NSView) -> Bool {
         if view.accessibilityIdentifier() == "quickConnectBar" {
             return true
         }
@@ -278,7 +289,7 @@ struct WindowControlsAndShortcutsTests {
     }
 
     @MainActor
-    private func hasQuickConnectToggle(help: String, in view: NSView) -> Bool {
+    func hasQuickConnectToggle(help: String, in view: NSView) -> Bool {
         if let btn = view as? NSButton,
            !btn.isHidden,
            btn.isEnabled,
@@ -292,7 +303,7 @@ struct WindowControlsAndShortcutsTests {
     }
 
     @MainActor
-    private func makeState(root: URL) -> AppState {
+    func makeState(root: URL) -> AppState {
         let state = AppState(
             credentialStore: WinUITestCredStore(),
             hostTrustStore: HostTrustStore(backingStore: WinUITestTrustBacking()),

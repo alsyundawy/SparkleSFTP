@@ -267,10 +267,16 @@ struct FolderPermissionsTransferTests {
 
         await state.enqueueLocalItemUpload(url: localSrc, isDirectory: true, into: session)
         await waitUntilQueueIdle(state: state)
-        try? await Task.sleep(for: .milliseconds(350))
 
         let remoteLocked = remoteRoot.appendingPathComponent("locked-dir")
         let remoteInner = remoteLocked.appendingPathComponent("inner")
+        let modeDeadline = ContinuousClock.now + .seconds(3)
+        while ContinuousClock.now < modeDeadline {
+            if (try? posixMode(of: remoteLocked)) == 0o555 {
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(30))
+        }
         #expect(try posixMode(of: remoteLocked) == 0o555)
         #expect(try posixMode(of: remoteInner) == 0o555)
 

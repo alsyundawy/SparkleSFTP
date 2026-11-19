@@ -91,7 +91,9 @@
 - 🌲 **Bilah Sisi Pohon Direktori**: Penjelajah pohon folder berhierarki untuk panel lokal dan remote dengan pencegahan siklus rekursif symlink.
 - ⚡ **Super Adem & Hemat Daya (Zero Runaway CPU)**: Dirancang dengan notifikasi jendela AppKit presisi, menghentikan perulangan render sehingga konsumsi daya 0.0% saat santai (idle).
 - 🎨 **Seluruh 76 Tema Dipulihkan & Dimuat Lengkap**: Koleksi lengkap 76 tema bawaan dalam 26 rumpun yang memenuhi standar kontras WCAG 2.1 AA/AAA.
-- 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan daur ulang baris AppKit native.
+- 📂 **Arsitektur Dual-Pane Commander**: Menjelajah berkas lokal dan server secara berdampingan dengan daur ulang baris AppKit native, pembaruan baris beranimasi halus via `CollectionDifference` tanpa kedipan, dan dukungan seret-lepas (_drag-and-drop_) langsung ke/dari macOS Finder.
+- 🚀 **Penjadwal Transfer Dinamis Multi-Pekerja**: Pengelolaan antrean transfer cerdas dengan prioritas berkas berukuran kecil lebih dulu untuk mencegah hambatan antrean saat menyinkronkan direktori besar.
+- ⚡ **Integrasi macOS Finder QuickActions & Protokol URL**: Layanan sistem "Open in SparkleSFTP" serta penanganan skema URL `sftp://`, `ftps://`, dan `ssh://`.
 - 💻 **Terminal Mandiri Bergaya iTerm2 (`⌘⌥T`)**: Ruang kerja terminal multi-tab dengan pembagian jendela vertikal dan horizontal, koneksi SSH, serta sinkronisasi direktori OSC 7.
 - 🔐 **Keamanan Apple Keychain & Touch ID**: Tanpa server pihak ketiga (_Zero-cloud_), seluruh kredensial dan kunci privat SSH tersimpan aman di dalam Apple Keychain fisik Mac Anda.
 
@@ -165,7 +167,7 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
-# SHA-256 Valid: 6e975227dd4eb8ece3287cf85c0e5a3fd2fe492ebc131ed30a907289a18f6718
+# SHA-256 Valid: 2a5575eb6359ba28f1dee4f4584562aadc4c5d8db37c3593ef06bdb14634cf52
 ```
 
 ---

@@ -43,6 +43,13 @@ public actor TransferScheduler {
             if lhs.priority != rhs.priority {
                 return lhs.priority > rhs.priority
             }
+            // Dynamic worker allocation: prevent head-of-line blocking by prioritizing
+            // small files (< 1MB) while streaming large payloads
+            let lhsSmall = lhs.totalBytes > 0 && lhs.totalBytes < 1_048_576
+            let rhsSmall = rhs.totalBytes > 0 && rhs.totalBytes < 1_048_576
+            if lhsSmall != rhsSmall {
+                return lhsSmall && !rhsSmall
+            }
             return lhs.createdAt < rhs.createdAt
         }
     }

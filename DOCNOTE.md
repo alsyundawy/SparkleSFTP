@@ -179,7 +179,9 @@ actionlint
      - **CVE-2026-52886 / CVE-2026-57233**: Enforced Zip-Slip rejection, symlink escape checks, 4 GB ceiling, and 50,000 entry limit in `ArchiveService`.
      - **CVE-2026-105925**: Capped XML imports at 16 MB and disabled external DTD entity resolution in `ExternalImporters`.
      - **Strict Architectural Invariants Maintained**: Zero Qt dependency (100% native Swift 6 / AppKit / SwiftUI) and Zero Icon Tampering (existing design tokens and SF Symbols 100% preserved).
-   - **Dual-Pane Commander Navigation & Ergonomics (Tasks 6.2, 6.3, 6.4, 6.7)**:
+   - **Dual-Pane Commander Navigation & Ergonomics (Tasks 6.1–6.5, 6.7)**:
+     - **High-Performance Diffable Data Source (`FilePaneTableView+Coordinator.swift`, `Task 6.1`, `TD-04`)**: Replaced full table reload flicker with fine-grained `CollectionDifference` animations for row updates ($\le 50$ changes). Animates with `.effectFade` inside `tableView.beginUpdates()` / `endUpdates()`, preserving row selection and scroll position during directory polling.
+     - **Native AppKit Drag-and-Drop File Transfers (`InteractiveFileTableSupport.swift`, `FilePaneTableView+Coordinator.swift`, `Task 6.5`)**: Implemented native `NSDraggingDestination` and `NSDraggingSource` on `InteractiveFileTableView`. Accepts incoming file drops directly from macOS Finder, broadcasting `.sparkleUploadDroppedFiles` to enqueue immediate transfers into `TransferQueue`. Supports outbound dragging of local file URLs.
      - **Breadcrumbs Navigation (`BreadcrumbsBarView.swift`)**: Clickable path segments for local and remote panes with path history, copy path actions, and inline text editing fallback.
      - **Commander Keyboard Shortcuts (`CommanderFunctionKeyBar.swift`)**: Classic F3 (View), F4 (Edit), F5 (Copy), F6 (Move), F7 (Mkdir), F8 (Delete) function key bar with zero-unwrapped key equivalents.
      - **Real-Time Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`)**: Substring, wildcard extension (`*.log`), and hidden file (`.*`) filtering with preset categories and live badge counters.
@@ -189,10 +191,12 @@ actionlint
      - **Find, Replace & Mark Hub (`FindReplaceDialogView.swift`, `EditorSessionManager+Search.swift`)**: Multi-tab search hub with whole-word regex boundaries, Notepad++ mark subsystem (`markAllMatches`, `clearAllMarks`, `copyMarkedText`, `bookmarkMatchingLines`).
      - **Data Loss Prevention Guards (`NSAlert`)**: Guarded modal prompts preventing accidental close of unsaved buffers.
      - **Modal Focus Ring Elimination (`ModalCloseButton.swift`)**: Decoupled close button glyphs from key equivalent handlers to eliminate macOS blue focus rings.
-   - **System Integration & Release Packaging (Tasks 10.5, 18.2, 18.6)**:
+   - **System Integration & Release Packaging (Tasks 10.5, 16.1, 18.2, 18.4, 18.6)**:
+     - **macOS Finder QuickActions, Services & URL Schemes (`AppDelegate.swift`, `AppState+Operations.swift`, `Info.plist`, `Task 16.1`)**: Registered `sftp://`, `ftps://`, and `ssh://` protocol URL schemes and macOS system service "Open in SparkleSFTP" for local files and directories (`public.file-url`, `NSFilenamesPboardType`). `handleExternalURL` seamlessly resolves paths or constructs connection profiles for immediate connection.
      - **Dock Progress Badge (`DockProgressController.swift`)**: Live transfer percentage badge on the application dock icon during active queue operations.
      - **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`)**: Ed25519-signed Sparkle XML appcast generation for releases.
-     - **Universal 2 Release DMG**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with verified SHA-256 hash `6e975227dd4eb8ece3287cf85c0e5a3fd2fe492ebc131ed30a907289a18f6718`.
+     - **Universal 2 Release DMG**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with verified SHA-256 hash `2a5575eb6359ba28f1dee4f4584562aadc4c5d8db37c3593ef06bdb14634cf52`.
+     - **Empirical Test Suite Expansion (`Task 18.4`)**: 210 unit and integration tests across 54 suites passing with 100% green status (exit code 0). SwiftLint strict verification across 323 source files with 0 violations. ShellCheck strict verification across all tools scripts with 0 warnings.
      - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
      - **Localization Parity (742 Synchronized Keys) (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with 100% parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
    - **Enterprise FTPS & Cryptographic Preflight Parity (Tasks 4.1, 4.4, 4.5, 9.1, 9.4, `TD-10`)**:

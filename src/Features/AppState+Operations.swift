@@ -33,6 +33,44 @@ public extension AppState {
         await transferQueue.clearConflictRules()
     }
 
+    func handleExternalURL(_ url: URL) async {
+        if url.isFileURL {
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) {
+                if isDir.boolValue {
+                    await refreshLocalDirectory(url)
+                } else {
+                    await refreshLocalDirectory(url.deletingLastPathComponent())
+                    selectedLocalFileIDs = [url.path]
+                }
+            }
+        } else if let scheme = url.scheme?.lowercased(), ["sftp", "ftps", "ssh"].contains(scheme) {
+            guard let host = url.host, !host.isEmpty else { return }
+            let port = url.port ?? (scheme == "ftps" ? 990 : 22)
+            let user = url.user ?? ""
+            let rawPath = url.path.isEmpty ? "/" : url.path
+            let proto: ProtocolType = (scheme == "ftps") ? .ftpsExplicit : .sftp
+
+            if let existing = profiles.first(where: {
+                $0.host.lowercased() == host.lowercased() && $0.port == port && $0.username == user
+            }) {
+                selectedProfileID = existing.id
+            } else {
+                let profile = ConnectionProfile(
+                    name: "\(host):\(port)",
+                    protocolType: proto,
+                    host: host,
+                    port: port,
+                    username: user,
+                    defaultRemotePath: RemotePath(rawValue: rawPath)
+                )
+                try? await connectionStore.saveProfile(profile)
+                await refreshProfilesAndGroups()
+                selectedProfileID = profile.id
+            }
+        }
+    }
+
     func openInExternalTerminal(_ profile: ConnectionProfile) async {
         if externalTerminalApp == .internalTerminal {
             openStandaloneTerminal(sshProfile: profile)

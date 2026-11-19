@@ -91,7 +91,9 @@
 - 🌲 **Directory Tree Navigation Sidebar**: Collapsible tree navigation for both local and remote panes with cycle-safe symlink detection.
 - ⚡ **Zero Runaway CPU & Battery Coolness**: Engineered with precision AppKit window notifications, eliminating redraw loops so your Mac stays cool and battery usage drops to 0.0% at idle.
 - 🎨 **All 76 Themes Restored & Instant Eager Access**: Complete catalog of 76 curated themes meeting WCAG 2.1 AA/AAA contrast guidelines.
-- 📂 **Dual-Pane Commander Architecture**: High-speed side-by-side local and remote directory browsers with native AppKit cell reuse.
+- 📂 **Dual-Pane Commander Architecture**: High-speed side-by-side local and remote directory browsers with native AppKit cell reuse, fine-grained `CollectionDifference` diffable animations eliminating reload flicker, and native drag-and-drop to/from macOS Finder.
+- 🚀 **Multi-Worker Dynamic Transfer Scheduler**: Host-based connection pooling with shortest-job-first priority admission, eliminating head-of-line blocking by prioritizing small payloads while streaming large files.
+- ⚡ **macOS Finder QuickActions & URL Schemes**: Native system service "Open in SparkleSFTP" and registered `sftp://`, `ftps://`, and `ssh://` protocol scheme handlers.
 - 💻 **Standalone iTerm2-Style Terminal (`⌘⌥T`)**: Dedicated terminal workspace featuring split vertical and horizontal panes, remote SSH sessions, and OSC 7 directory sync.
 - 🔐 **Apple Keychain & Touch ID Security**: Zero-cloud local security storing credentials, passwords, and private SSH keys strictly inside macOS Keychain.
 
@@ -165,7 +167,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
-# Expected SHA-256: 6e975227dd4eb8ece3287cf85c0e5a3fd2fe492ebc131ed30a907289a18f6718
+# Expected SHA-256: 2a5575eb6359ba28f1dee4f4584562aadc4c5d8db37c3593ef06bdb14634cf52
 ```
 
 ---

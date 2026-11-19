@@ -15,6 +15,7 @@ final class InteractiveFileTableView: NSTableView {
     var onRightClickSelectRow: ((Int) -> Void)?
     var onContextActionShortcut: ((FilePaneContextAction) -> Void)?
     var onFocusRequested: (() -> Void)?
+    var onDropFiles: (([URL]) -> Void)?
 
     private(set) var isScrollingActive = false
     private var pendingMouseDownEvent: NSEvent?
@@ -23,6 +24,39 @@ final class InteractiveFileTableView: NSTableView {
     private let dragMovementThreshold: CGFloat = 10.0
     private var selectionAnchorRow: Int = -1
     private var scrollResetWorkItem: DispatchWorkItem?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) {
+            return .copy
+        }
+        return []
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) {
+            return .copy
+        }
+        return []
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        guard let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
+              !urls.isEmpty else {
+            return false
+        }
+        onDropFiles?(urls)
+        return true
+    }
 
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()

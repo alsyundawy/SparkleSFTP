@@ -13,8 +13,34 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         }
         configureApplicationIcon()
+        NSApplication.shared.servicesProvider = self
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
+    public func application(_: NSApplication, open urls: [URL]) {
+        for url in urls {
+            NotificationCenter.default.post(
+                name: .sparkleOpenExternalURL,
+                object: nil,
+                userInfo: ["url": url]
+            )
+        }
+    }
+
+    @objc public func openInSparkleSFTP(
+        _ pboard: NSPasteboard,
+        userData _: String?,
+        error _: AutoreleasingUnsafeMutablePointer<NSString?>?
+    ) {
+        guard let items = pboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] else { return }
+        for url in items {
+            NotificationCenter.default.post(
+                name: .sparkleOpenExternalURL,
+                object: nil,
+                userInfo: ["url": url]
+            )
+        }
     }
 
     private func configureApplicationIcon() {

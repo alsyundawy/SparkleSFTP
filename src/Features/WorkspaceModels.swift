@@ -7,6 +7,8 @@ public extension Notification.Name {
     static let sparklePreferencesDidChange = Notification.Name("sparkleSFTP.preferencesDidChange")
     static let sparkleRequestNewFolder = Notification.Name("sparkleSFTP.requestNewFolder")
     static let sparklePaneFocusRequested = Notification.Name("sparkleSFTP.paneFocusRequested")
+    static let sparkleUploadDroppedFiles = Notification.Name("sparkleSFTP.uploadDroppedFiles")
+    static let sparkleOpenExternalURL = Notification.Name("sparkleSFTP.openExternalURL")
 }
 
 /// Workspace tab pairing an independent local directory view with an optional remote session and 1:1 shell state.
