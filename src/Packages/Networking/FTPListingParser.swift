@@ -3,6 +3,24 @@ import SparkleCore
 
 /// Parses FTP `MLSD` (RFC 3659) and standard Unix `LIST -l` responses into `RemoteFile` items.
 public enum FTPListingParser {
+    public static func decodeListingData(_ data: Data) -> String {
+        if let utf8 = String(data: data, encoding: .utf8) {
+            return utf8
+        }
+        if let latin1 = String(data: data, encoding: .isoLatin1) {
+            return latin1
+        }
+        if let win1252 = String(data: data, encoding: .windowsCP1252) {
+            return win1252
+        }
+        return String(data: data, encoding: .ascii) ?? ""
+    }
+
+    public static func parse(data: Data, directory: RemotePath) -> [RemoteFile] {
+        let string = decodeListingData(data)
+        return parse(listing: string, directory: directory)
+    }
+
     public static func parse(listing: String, directory: RemotePath) -> [RemoteFile] {
         let lines = listing
             .components(separatedBy: .newlines)

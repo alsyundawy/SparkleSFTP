@@ -157,4 +157,16 @@ struct NetworkingTests {
         #expect(!files[1].isDirectory)
         #expect(files[1].size == 1048576)
     }
+
+    @Test("FTPListingParser decodes fallback character sets gracefully")
+    func ftpListingParserCharsetFallback() {
+        let text = "05-12-24  09:30AM  <DIR>  Docs\r\n"
+        let data = Data(text.utf8)
+        let decoded = FTPListingParser.decodeListingData(data)
+        #expect(decoded.contains("Docs"))
+
+        let latin1Data = "Café".data(using: .isoLatin1) ?? Data()
+        let latin1Decoded = FTPListingParser.decodeListingData(latin1Data)
+        #expect(!latin1Decoded.isEmpty)
+    }
 }

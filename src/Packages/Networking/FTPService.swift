@@ -271,7 +271,7 @@ private extension FTPService {
                     sparklesftp_curl_setopt_write_cb(handle, curlWriteToMemoryCallback, ptr)
                 }
             }
-            return String(data: box.data, encoding: .utf8) ?? ""
+            return FTPListingParser.decodeListingData(box.data)
         }
     }
 
