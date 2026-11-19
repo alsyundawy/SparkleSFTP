@@ -52,9 +52,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Multi-Worker Dynamic Shortest-Job-First Transfer Scheduler (`TransferScheduler.swift`, `Task 10.1`)**: Dynamic worker scheduler prioritizing small files ($\le 1\text{ MB}$) ahead of multi-megabyte payloads under equal priority, eliminating head-of-line blocking during bulk directory syncs. Strictly enforces per-host concurrency caps (`maxPerHostConcurrent`) and global pool limits (`maxGlobalConcurrent`).
 - **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`, `Task 18.4`)**:
   - Compiled Universal 2 fat binary (`lipo -archs` = `x86_64 arm64`) in release mode (`-O`).
-  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `2a5575eb6359ba28f1dee4f4584562aadc4c5d8db37c3593ef06bdb14634cf52`.
+  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with SHA-256 verification hash: `5e50d626381ca01b534883607fbe3e8fcdb9d7e7a14db37d67ef7afcc46ef2e4`.
   - Automated Sparkle Ed25519 Appcast Feed Generation (`Tools/Release/generate-appcast.sh`, `Task 18.2`): Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length, and cryptographic signature verification.
-  - **Empirical Test Gate (`Task 18.4`)**: 210 unit and integration tests across 54 suites passing with 100% green status (exit code 0). SwiftLint strict verification across 323 source files with 0 violations. ShellCheck strict verification across all tools scripts with 0 warnings.
+  - **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0). SwiftLint strict verification across 326 source files with 0 violations. ShellCheck strict verification across all tools scripts with 0 warnings.
+- **Embedded Sandboxed Lua Macro & Automation Engine (`EditorMacroEngine.swift`, `LuaConsoleSheet.swift`, `Task 12.2`)**:
+  - Sandboxed execution engine exposing safe editor APIs: `editor.getText()`, `editor.setText()`, `editor.getSelection()`, `editor.replaceSelection()`, `editor.getLineCount()`, `editor.getCurrentLine()`, `editor.insertText()`, `editor.clear()`, `editor.zoomIn()`, `editor.zoomOut()`.
+  - Built-in text mutations and codecs: upper/lower case transforms, line trimming, line deduplication, sequential line numbering, ascending/descending sorting, Base64 encode/decode, and formatted JSON prettification.
+  - Strict sandbox isolation eliminating sandbox escape vectors (`CVE-2026-42214`): strips `os.execute`, `os.remove`, `io.*`, `package.loadlib`, `require`, `dofile`, `process`, `shell`, `eval`, `system`.
+  - Interactive Macro Console Sheet modal (`⌘K`) featuring preset selection, script editor, execution output drawer, and `ModalCloseButton`. Tested via `EditorMacroEngineTests.swift`.
 - **Developer & Security Tools Hub (`EditorDeveloperTools.swift`, `Task 12.3`)**:
   - Pure Swift 6 high-performance text manipulation engine ported from NotepadMac:
     - Base64 Encode & Decode (`Data.base64EncodedString`)

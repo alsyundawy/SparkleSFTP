@@ -9,6 +9,7 @@ public final class EditorSessionManager: ObservableObject {
     @Published public var findQuery = EditorFindQuery()
     @Published public var isFindBarVisible = false
     @Published public var isFindReplaceDialogVisible = false
+    @Published public var isMacroConsoleVisible = false
     @Published public var isShowingGoToLine = false
     @Published public var wordWrap = true
     @Published public var showLineNumbers = true

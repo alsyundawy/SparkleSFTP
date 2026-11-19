@@ -107,6 +107,13 @@ struct InternalEditorToolbar: View {
         )
         .keyboardShortcut("h", modifiers: [.command])
 
+        toggleIcon(
+            "curlybraces",
+            isOn: $editorManager.isMacroConsoleVisible,
+            help: "Lua Macro & Automation Console (⌘K)"
+        )
+        .keyboardShortcut("k", modifiers: [.command])
+
         iconButton("arrow.right.to.line", help: strings.t("editor.goToLine")) {
             goToLineInput = "\(editorManager.activeDocument?.cursor.line ?? 1)"
             editorManager.isShowingGoToLine = true

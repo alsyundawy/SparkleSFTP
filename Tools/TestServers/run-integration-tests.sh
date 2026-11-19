@@ -22,4 +22,7 @@ printf 'Starting SparkleSFTP Docker test fixtures...\n'
 docker compose -f "${COMPOSE_FILE}" up -d --wait
 
 cd "${REPO_ROOT}"
-SPARKLESFTP_LIVE_DOCKER_TESTS=1 swift test
+SPARKLESFTP_LIVE_DOCKER_TESTS=1 swift test \
+  -Xswiftc -F/Library/Developer/CommandLineTools/Library/Developer/Frameworks \
+  -Xswiftc -Xfrontend -Xswiftc -disable-cross-import-overlays \
+  "$@"

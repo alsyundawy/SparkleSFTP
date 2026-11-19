@@ -101,6 +101,14 @@ public struct InternalEditorView: View {
                 isPresented: $editorManager.isFindReplaceDialogVisible
             )
         }
+        .sheet(isPresented: $editorManager.isMacroConsoleVisible) {
+            LuaConsoleSheet(
+                editorManager: editorManager,
+                palette: palette,
+                strings: strings,
+                isPresented: $editorManager.isMacroConsoleVisible
+            )
+        }
     }
 
     @ViewBuilder

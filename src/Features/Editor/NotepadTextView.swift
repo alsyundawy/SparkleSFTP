@@ -29,6 +29,13 @@ public final class NotepadTextViewProxy {
         textView?.paste(nil)
     }
 
+    public func selectedString() -> String {
+        guard let textView else { return "" }
+        let selectedRange = textView.selectedRange()
+        guard selectedRange.location != NSNotFound, selectedRange.length > 0 else { return "" }
+        return (textView.string as NSString).substring(with: selectedRange)
+    }
+
     public func selectAndReveal(range: NSRange) {
         guard let textView, range.location != NSNotFound else { return }
         let safeMax = (textView.string as NSString).length
