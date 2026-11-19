@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Rilis-v0.6.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.6.0"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Rilis-v0.7.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Rilis v0.7.0"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Ventura_%7C_Sonoma_%7C_Sequoia)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+"></a>
   <a href="https://github.com/alsyundawy/SparkleSFTP"><img src="https://img.shields.io/badge/Arsitektur-Universal_2_(arm64_%2B_x86__64)-purple?style=for-the-badge&logo=apple&logoColor=white" alt="Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Bahasa-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Bahasa: Swift 6"></a>
@@ -39,7 +39,7 @@
 
 <p align="center">
   <a href="#-panduan-unduh--instalasi-cepat">
-    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.6.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
+    <img src="https://img.shields.io/badge/🚀_Unduh_DMG-v0.7.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Unduh DMG">
   </a>
   <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest">
     <img src="https://img.shields.io/badge/🪞_Rilis_&_Catatan_Perubahan-GitHub-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Rilis & Catatan Perubahan">
@@ -68,8 +68,12 @@
 
 ---
 
-## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.6.0
+## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.7.0
 
+- ⚛️ **Kriptografi Pasca-Kuantum & Standar OpenSSH 10.x**: Pertukaran kunci hibrida Post-Quantum (PQ-KEX) ML-KEM-768 (`mlkem768x25519-sha256`, NIST FIPS 203) dan Streamlined NTRU Prime (`sntrup761x25519-sha512@openssh.com`) dengan lencana telemetri koneksi langsung di antarmuka.
+- 🖥️ **Administrasi Server Linux Jarak Jauh**: Pengontrol layanan systemd native (`systemctl status/restart/reload` untuk Nginx, Apache, PHP-FPM, MariaDB, Docker, dll.) dan telemetri sumber daya server langsung (`/proc/loadavg`, `free -m`, `df -h`).
+- 🔢 **Kalkulator Subnet & CIDR IPv4 Bawaan (`⌘⌥S`)**: Mesin kalkulasi subnet offline yang di-porting dari SubnetCalc for macOS dengan salin sekali klik, rentang host terpakai, dan analisis cakupan RFC 1918.
+- 🛡️ **Perlindungan Protokol & Mitigasi CVE 2025–2026**: Audit versi proaktif untuk CVE-2024-6387 (regreSSHion), mitigasi serangan Terrapin (CVE-2023-48795), penguncian versi swift-nio-ssh (CVE-2026-43798), dan kekebalan Zip-Slip (CVE-2026-52886/57233).
 - 🔒 **Bundel Konfigurasi & Vault Kriptografis Native (`.sparkleconfig` / `.sparklevault`)**: Cadangkan dan pulihkan profil dengan enkripsi autentikasi AES-256-GCM, PBKDF2-HMAC-SHA256 (600.000 iterasi), pengikatan header AAD, dan pembersihan memori kunci zero-knowledge. Impor berkas FileZilla XML, WinSCP INI, dan OpenSSH config dengan 4 kebijakan konflik.
 - ⚙️ **Registri Pengaturan 10 Tab & Pencarian Universal (`⌘,`)**: Registri preferensi terpusat dengan pencarian dinamis, atur ulang bawaan per tab, dan ekspor/impor kamus pengaturan JSON di seluruh 10 tab.
 - 🔍 **Perbandingan Direktori Berkecepatan Tinggi**: Perbandingan instan $O(N+M)$ mendeteksi berkas identik, perbedaan ukuran, selisih waktu modifikasi, dan berkas hilang di antara 10.000+ berkas dalam hitungan milidetik.

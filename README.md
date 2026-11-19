@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Release-v0.6.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v0.6.0"></a>
+  <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest"><img src="https://img.shields.io/badge/Release-v0.7.0-2ea44f?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v0.7.0"></a>
   <a href="https://apple.com/macos"><img src="https://img.shields.io/badge/Platform-macOS_13%2B_(Ventura_%7C_Sonoma_%7C_Sequoia)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform: macOS 13+"></a>
   <a href="https://github.com/alsyundawy/SparkleSFTP"><img src="https://img.shields.io/badge/Architecture-Universal_2_(arm64_%2B_x86__64)-purple?style=for-the-badge&logo=apple&logoColor=white" alt="Universal 2"></a>
   <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift_6-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Language: Swift 6"></a>
@@ -39,7 +39,7 @@
 
 <p align="center">
   <a href="#-quick-download--installation-guide">
-    <img src="https://img.shields.io/badge/🚀_Download_DMG-v0.6.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Download DMG">
+    <img src="https://img.shields.io/badge/🚀_Download_DMG-v0.7.0-238636?style=for-the-badge&logo=cloudsmith&logoColor=white" alt="Download DMG">
   </a>
   <a href="https://github.com/alsyundawy/SparkleSFTP/releases/latest">
     <img src="https://img.shields.io/badge/🪞_Releases_&_Changelog-GitHub-0284c7?style=for-the-badge&logo=github&logoColor=white" alt="Releases & Changelog">
@@ -70,6 +70,10 @@
 
 ## 🌟 Key Highlights & What Makes SparkleSFTP Special
 
+- ⚛️ **Post-Quantum Cryptography & OpenSSH 10.x Standards**: Hybrid ML-KEM-768 (`mlkem768x25519-sha256`, NIST FIPS 203) and Streamlined NTRU Prime (`sntrup761x25519-sha512@openssh.com`) key exchange with real-time post-quantum connection telemetry badges.
+- 🖥️ **Remote Linux Server Administration**: Native Systemd service controller (`systemctl status/restart/reload` for Nginx, Apache, PHP-FPM, MariaDB, Docker, etc.) and real-time server telemetry (`/proc/loadavg`, `free -m`, `df -h`).
+- 🔢 **Built-in IPv4 Subnet & CIDR Calculator (`⌘⌥S`)**: Offline subnet calculation engine ported from SubnetCalc for macOS with one-click copy, usable host ranges, and RFC 1918 scope analysis.
+- 🛡️ **2025–2026 CVE Protocol Shielding**: Proactive version audit for CVE-2024-6387 (regreSSHion), strict Terrapin attack mitigation (CVE-2023-48795), swift-nio-ssh pin gate (CVE-2026-43798), and Zip-Slip traversal defense (CVE-2026-52886/57233).
 - 🔒 **Native Configuration Bundles & Vault (`.sparkleconfig` / `.sparklevault`)**: Securely backup and restore profiles with AES-256-GCM encryption, PBKDF2-HMAC-SHA256 (600,000 iterations), AAD header binding, and zero-knowledge memory zeroization. Import FileZilla XML, WinSCP INI, and OpenSSH configs with 4 conflict policies.
 - ⚙️ **Comprehensive 10-Tab Settings Registry & Universal Search (`⌘,`)**: Centralized preferences registry featuring dynamic search, per-tab reset, and settings dictionary import/export across all 10 tabs.
 - 🔍 **High-Performance Directory Comparison**: Instant $O(N+M)$ comparison detecting identical files, size mismatches, modification time differences, and missing items across 10,000+ files in milliseconds.

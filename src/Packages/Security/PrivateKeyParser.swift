@@ -33,7 +33,39 @@ public enum PrivateKeyParser {
     private static let openSSHEnd = "-----END OPENSSH PRIVATE KEY-----"
     private static let openSSHMagic = Array("openssh-key-v1\0".utf8)
 
-    public static func parsePrivateKey(pemString: String) throws -> NIOSSHPrivateKey {
+    public struct KeyMetadata: Sendable, Equatable {
+        public let cipher: String
+        public let kdf: String
+        public let isEncrypted: Bool
+
+        public init(cipher: String, kdf: String, isEncrypted: Bool) {
+            self.cipher = cipher
+            self.kdf = kdf
+            self.isEncrypted = isEncrypted
+        }
+    }
+
+    /// Determines if an OpenSSH private key PEM payload is passphrase-protected.
+    public static func isPassphraseEncrypted(pemString: String) throws -> Bool {
+        let meta = try inspectKeyMetadata(pemString: pemString)
+        return meta.isEncrypted
+    }
+
+    /// Inspects the OpenSSH header metadata for cipher, kdf, and encryption status.
+    public static func inspectKeyMetadata(pemString: String) throws -> KeyMetadata {
+        let raw = try extractOpenSSHBinary(from: pemString)
+        var reader = BinaryReader(data: raw)
+        let magic = try reader.readBytes(count: openSSHMagic.count)
+        guard magic == openSSHMagic else {
+            throw AppError.invalidPrivateKey(reason: "Missing openssh-key-v1 header.")
+        }
+        let cipherName = try reader.readSSHStringAsString()
+        let kdfName = try reader.readSSHStringAsString()
+        let isEncrypted = cipherName != "none" || kdfName != "none"
+        return KeyMetadata(cipher: cipherName, kdf: kdfName, isEncrypted: isEncrypted)
+    }
+
+    private static func extractOpenSSHBinary(from pemString: String) throws -> Data {
         let trimmed = pemString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.contains(openSSHBegin), trimmed.contains(openSSHEnd) else {
             throw AppError.invalidPrivateKey(
@@ -50,7 +82,11 @@ public enum PrivateKeyParser {
         guard let raw = Data(base64Encoded: body) else {
             throw AppError.invalidPrivateKey(reason: "Base64 decoding failed.")
         }
+        return raw
+    }
 
+    public static func parsePrivateKey(pemString: String) throws -> NIOSSHPrivateKey {
+        let raw = try extractOpenSSHBinary(from: pemString)
         return try parseOpenSSHBinary(raw)
     }
 

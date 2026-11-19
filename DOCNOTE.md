@@ -106,3 +106,36 @@ actionlint
    - **Elimination of Accidental File/Folder Selection on Trackpad Scroll (`InteractiveFileTableSupport`)**: 10.0pt drag movement threshold (`dragMovementThreshold`), deferred selection to `mouseUp` for single clicks, direct double-click pass-through, and immediate state reset in `scrollWheel`.
    - **Keyboard Shortcuts & iTerm2 Integration (`AboutView+Tabs`, `ZlibAndLibraryProbes`)**: Added `⌥⌘T`, `⌥⌘L`, `⇧⌘I`, `⇧⌘E`, `Esc`, `⌘D`, `⌘,`, dynamic Upload/Download action, and expanded search paths for `/Applications/iTerm2.app` and `~/Applications/iTerm.app`.
    - **100% Bilingual Parity, Quality Gates & Universal 2 Release Packaging**: 691 localized strings in `en.json` and `id.json` with 100% key parity; test suite expanded to 157 tests across 45 suites with 100% green status; 0 SwiftLint violations across 278 Swift files; 0 SwiftFormat warnings; 0 Trunk issues (361 files); packaged `SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`).
+
+9. **Next-Gen Protocols, Linux Server Tools, Post-Quantum Cryptography & Security Shielding (`v0.7.0 - Released 2026-11-19`)**:
+   - **Post-Quantum Cryptography & OpenSSH 10.x Standards (`SSHKeyExchangeAlgorithm`, `SSHClientService`)**:
+     - Integrated hybrid Post-Quantum Key Exchange (PQ-KEX) algorithm classifiers: `mlkem768x25519-sha256` (NIST FIPS 203 ML-KEM hybrid with X25519) and `sntrup761x25519-sha512@openssh.com` (Streamlined NTRU Prime hybrid).
+     - Added visual Post-Quantum badge status indicators for active SSH connections.
+     - Implemented periodic SSH keepalive heartbeat (`keepalive@openssh.com` every 30s) preventing stateful NAT firewall drops.
+   - **OpenSSH Known Hosts Bidirectional Synchronization (`KnownHostsCodec`, `HostTrustStore+Sync`)**:
+     - Implemented standard OpenSSH `known_hosts` codec parsing plain, comma-separated, and HMAC-SHA1 hashed (`|1|salt|hash`) host entries.
+     - Added automated import from `~/.ssh/known_hosts` into `HostTrustStore` (`trusted_hosts.v1.json`) with TOFU isolation.
+   - **SSH Agent Socket Forwarding & Validation (`SSHAgentSocketBridge`, `TASK-095`)**:
+     - Validates active `$SSH_AUTH_SOCK` Unix domain sockets with canonical `realpath` symlink resolution and `CWE-59` traversal checks.
+   - **Passphrase-Protected OpenSSH Key Inspection (`PrivateKeyParser`, `TD-15`)**:
+     - Added `inspectKeyMetadata` and `isPassphraseEncrypted` detecting `openssh-key-v1` cipher and KDF parameters.
+     - Improved diagnostic feedback guiding users to local `ssh-agent` or Keychain for encrypted keys.
+   - **OpenSSH Advanced SFTP Protocol Extensions (`SFTPOpenSSHExtensions`)**:
+     - Added models and parsers for modern OpenSSH SFTP protocol extensions: `limits@openssh.com` (dynamic buffer negotiation), `statvfs@openssh.com` (remote filesystem capacity and inode telemetry), `fsync@openssh.com` (server-side physical disk synchronization), `copy-data` (zero-copy server-side duplication), and `md5-hash` / `sha256` (remote checksums).
+   - **Remote Linux Server Administration & System Diagnostics (`RemoteSystemManager`)**:
+     - Sanitized `systemctl` command builder for allowed services (`nginx`, `apache2`, `php-fpm`, `mariadb`, `mysql`, `postgresql`, `docker`, `sshd`, `named`, `ufw`, `fail2ban`) preventing arbitrary shell injection (`CWE-78`).
+     - Remote telemetry parsers for `/proc/loadavg` (1m/5m/15m load average), `free -m` (memory metrics and utilization), and `df -h` (disk partitions and quota).
+   - **Built-in IPv4 Subnet & CIDR Calculator Hub (`IPSubnetCalculator`, `SubnetCalculatorSheet`, `⌘⌥S`)**:
+     - Ported pure Swift 6 subnet calculation engine from `SubnetCalc for macOS` by `@alsyundawy`.
+     - Calculates network address, broadcast address, netmask, wildcard mask, usable host range, total hosts, IP class, and RFC 1918 scope.
+     - Added native SwiftUI sheet `SubnetCalculatorSheet` accessible via `⌘⌥S` with one-click copy buttons and theme integration.
+   - **2025–2026 Security Vulnerability Shielding & Protocol Lockdown**:
+     - **CVE-2024-6387 (regreSSHion)**: Created `SSHServerAuditor` inspecting OpenSSH server identification strings during initial banner exchange, alerting sysadmins to unpatched `OpenSSH 8.5p1`–`9.7p1` servers.
+     - **CVE-2026-43798**: Pinned `apple/swift-nio-ssh` to `"0.15.1" ..< "0.16.0"` (`>= 0.14.1`), eliminating pre-auth stack write in ECDSA key exchange.
+     - **CVE-2026-28970**: Upgraded `apple/swift-nio` lower bound to `>= 2.100.0` preventing HTTP/1.1 CRLF injection in event loops.
+     - **CVE-2026-47122 / CVE-2025-10015 / CVE-2025-10016**: Hardened Sparkle update entitlements with Mach-lookup exceptions (`-spks`, `-spki`).
+     - **CVE-2026-8932**: Enforced `CURLOPT_FRESH_CONNECT = 1` and `CURLOPT_FORBID_REUSE = 1` across profile boundaries in `CurlClientHelper`.
+     - **CVE-2025-15224**: Locked allowed protocols to `kAllowedProtocols = "ftp,ftps"` on `CURLOPT_PROTOCOLS_STR`.
+     - **CVE-2026-52886 / CVE-2026-57233**: Enforced Zip-Slip rejection, symlink escape checks, 4 GB ceiling, and 50,000 entry limit in `ArchiveService`.
+     - **CVE-2026-105925**: Capped XML imports at 16 MB and disabled external DTD entity resolution in `ExternalImporters`.
+     - **Strict Architectural Invariants Maintained**: Zero Qt dependency (100% native Swift 6 / AppKit / SwiftUI) and Zero Icon Tampering (existing design tokens and SF Symbols 100% preserved).
