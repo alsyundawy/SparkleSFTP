@@ -320,10 +320,9 @@ public extension AppState {
 
         Task { [weak self] in
             guard let self else { return }
-            if self.profiles.contains(where: { $0.id == updatedProfile.id }) {
+            if let idx = self.profiles.firstIndex(where: { $0.id == updatedProfile.id }) {
+                self.profiles[idx] = updatedProfile
                 try? await self.connectionStore.saveProfile(updatedProfile)
-                await self.refreshProfilesAndGroups()
-                self.broadcastConnectionsDidChange()
             }
             let hosts = await self.hostTrustStore.allTrustedHosts()
             await MainActor.run {

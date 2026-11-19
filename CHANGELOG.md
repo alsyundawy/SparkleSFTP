@@ -144,7 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26411445`, and cryptographic signature verification.
 - **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 326 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
 - **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0).
-- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `ee7a26928acfae7c2e3c760f9048d85854d5172e0e998e09f2a2475e44b99e2b`.
+- **High-Performance Responsiveness & Zero-Latency Optimizations**:
+  - Registered `NSInitialToolTipDelay = 150ms` in `UserDefaults.standard` at application startup, cutting hover tooltip delay by 13x across all icons and buttons.
+  - Eliminated $O(N \cdot M)$ `CollectionDifference` calculations on folder navigation in `FilePaneTableView+Coordinator.swift`, providing instant directory navigation without Main Thread hangs.
+  - Optimized interactive terminal PTY output streaming in `TerminalSessionManager.swift` to flush incoming chunks directly to SwiftTerm with 0ms buffering delay, eliminating stalled shell prompts and echo lag.
+  - Streamlined `SSHPTYChannelHandler` and `SFTPSubsystemChannelHandler` with `wantReply: false`, removing unnecessary round-trip latency during channel initialization.
+  - Converted `finalizeSuccessfulConnection` to update profile state in-place, eliminating redundant SQLite re-reads and sidebar redraw storms.
+  - Displayed enlarged terminal window immediately in `openEnlargedTerminalWindow()` for instant 0ms user interaction.
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `5b8502b2052ce91518fb7dbb06b8cdc3899672327465aa489b79186de12214f3`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 

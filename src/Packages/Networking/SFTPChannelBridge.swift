@@ -276,7 +276,7 @@ final class SFTPSubsystemChannelHandler: ChannelInboundHandler {
     }
 
     func channelActive(context: ChannelHandlerContext) {
-        let req = SSHChannelRequestEvent.SubsystemRequest(subsystem: "sftp", wantReply: true)
+        let req = SSHChannelRequestEvent.SubsystemRequest(subsystem: "sftp", wantReply: false)
         context.triggerUserOutboundEvent(req, promise: nil)
     }
 

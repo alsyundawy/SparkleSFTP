@@ -364,7 +364,7 @@ final class SSHPTYChannelHandler: ChannelInboundHandler {
 
     func channelActive(context: ChannelHandlerContext) {
         let pty = SSHChannelRequestEvent.PseudoTerminalRequest(
-            wantReply: true,
+            wantReply: false,
             term: term,
             terminalCharacterWidth: cols,
             terminalRowHeight: rows,
@@ -373,7 +373,7 @@ final class SSHPTYChannelHandler: ChannelInboundHandler {
             terminalModes: SSHTerminalModes([:])
         )
         context.triggerUserOutboundEvent(pty, promise: nil)
-        context.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(wantReply: true), promise: nil)
+        context.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(wantReply: false), promise: nil)
     }
 
     func channelRead(context _: ChannelHandlerContext, data: NIOAny) {

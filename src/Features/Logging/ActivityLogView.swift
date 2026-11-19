@@ -132,9 +132,7 @@ public struct ActivityLogView: View {
             .background(palette.canvasColor)
             .onChange(of: logger.entries.count) { _ in
                 if logger.isAutoScrollEnabled, let lastID = filteredEntries.last?.id {
-                    withAnimation {
-                        proxy.scrollTo(lastID, anchor: .bottom)
-                    }
+                    proxy.scrollTo(lastID, anchor: .bottom)
                 }
             }
         }

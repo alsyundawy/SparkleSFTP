@@ -250,6 +250,13 @@ struct SparkleSFTPApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let environment = AppEnvironment()
 
+    init() {
+        UserDefaults.standard.register(defaults: [
+            "NSInitialToolTipDelay": 150
+        ])
+        UserDefaults.standard.set(150, forKey: "NSInitialToolTipDelay")
+    }
+
     private var isShowcaseGalleryRequested: Bool {
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains("--showcase-gallery") || arguments.contains("--mockup-gallery")

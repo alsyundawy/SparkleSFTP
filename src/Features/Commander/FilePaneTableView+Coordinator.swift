@@ -103,8 +103,14 @@ public extension FilePaneTableView {
                 tableView.reloadData()
                 return
             }
+            let oldParent = oldFiles.first?.path.parent
+            let newParent = files.first?.path.parent
+            if oldParent != newParent || abs(oldFiles.count - files.count) > 15 || files.count > 100 {
+                tableView.reloadData()
+                return
+            }
             let diff = files.difference(from: oldFiles)
-            if diff.count <= 50 {
+            if diff.count <= 30 {
                 var removals = IndexSet()
                 var insertions = IndexSet()
                 for change in diff {

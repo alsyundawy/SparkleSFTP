@@ -77,6 +77,9 @@ public extension AppState {
     }
 
     func openEnlargedTerminalWindow() async {
+        isTerminalEnlarged = true
+        enlargedTerminalWindowController.present(appState: self)
+
         if let session = currentSession, let sshClient = session.sshClient {
             let tabID = currentTab?.id ?? activeTabID
             if terminalManager.sessions.isEmpty || terminalManager.session(forWorkspaceTabID: tabID)?.isActive != true {
@@ -92,8 +95,6 @@ public extension AppState {
                 }
             }
         }
-        isTerminalEnlarged = true
-        enlargedTerminalWindowController.present(appState: self)
     }
 
     func closeEnlargedTerminalWindow() {

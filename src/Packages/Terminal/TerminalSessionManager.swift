@@ -109,29 +109,11 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     public func attachPTYChannel(_ channel: SSHPTYChannel) {
         isActive = true
         let task = Task { [weak self, weak view = terminalView] in
-            var buffer: [UInt8] = []
-            var lastFlush = ContinuousClock.now
-            let flushInterval = Duration.milliseconds(16)
-            let maxChunkSize = 32 * 1024
-
             for await bytes in channel.outputStream {
                 if Task.isCancelled { break }
-                buffer.append(contentsOf: bytes)
-                let elapsed = ContinuousClock.now - lastFlush
-                if elapsed >= flushInterval || buffer.count >= maxChunkSize {
-                    let chunk = buffer
-                    buffer.removeAll(keepingCapacity: true)
-                    lastFlush = ContinuousClock.now
-                    await MainActor.run {
-                        self?.flushBufferedOutput(chunk, fallbackView: view)
-                    }
-                }
-            }
-            if !buffer.isEmpty {
-                let chunk = buffer
-                buffer.removeAll(keepingCapacity: false)
+                guard !bytes.isEmpty else { continue }
                 await MainActor.run {
-                    self?.flushBufferedOutput(chunk, fallbackView: view)
+                    self?.flushBufferedOutput(bytes, fallbackView: view)
                 }
             }
             await MainActor.run {
