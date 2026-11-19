@@ -9,19 +9,19 @@ import SwiftUI
 struct EnlargedTerminalWindowView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var terminalManager: TerminalSessionManager
-    @State private var isShowingSnippets = false
-    @State private var isShowingForwarding = false
-    @State private var isShowingFind = false
-    @State private var findQuery = ""
-    @State private var findSummary = ""
-    @State private var fontSize: CGFloat = 13.0
+    @State var isShowingSnippets = false
+    @State var isShowingForwarding = false
+    @State var isShowingFind = false
+    @State var findQuery = ""
+    @State var findSummary = ""
+    @State var fontSize: CGFloat = 13.0
 
     init(appState: AppState) {
         self.appState = appState
         self.terminalManager = appState.terminalManager
     }
 
-    private var activeSession: TerminalTabSession? {
+    var activeSession: TerminalTabSession? {
         if let selID = terminalManager.selectedSessionID,
            let found = terminalManager.sessions.first(where: { $0.id == selID }) {
             return found
@@ -56,141 +56,132 @@ struct EnlargedTerminalWindowView: View {
             PortForwardingSheet(appState: appState)
         }
     }
+}
 
-    private func topBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+// MARK: - Subviews & Layout Extensions
+
+extension EnlargedTerminalWindowView {
+    func topBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
         HStack(spacing: 8) {
-            if let session = appState.currentSession {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(SparkleTheme.Colors.success)
-                        .frame(width: 8, height: 8)
-                    Text("\(session.profile.username)@\(session.profile.host):\(session.profile.port)")
-                        .font(SparkleTheme.Typography.headline)
-                        .foregroundStyle(palette.primaryTextColor)
-                    Text("(\(strings.t("term.connectedSSH")))")
-                        .font(SparkleTheme.Typography.caption)
-                        .foregroundStyle(SparkleTheme.Colors.success)
-                }
-            } else {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(palette.secondaryTextColor)
-                        .frame(width: 8, height: 8)
-                    Text(strings.t("term.disconnectedSSH"))
-                        .font(SparkleTheme.Typography.headline)
-                        .foregroundStyle(palette.secondaryTextColor)
-                }
-            }
-
+            topBarConnectionStatus(palette: palette, strings: strings)
             Spacer()
-
-            if let sshClient = appState.currentSession?.sshClient {
-                Button {
-                    Task {
-                        do {
-                            let count = terminalManager.sessions.count + 1
-                            let name = "\(appState.currentSession?.profile.name ?? "SSH") (\(count))"
-                            _ = try await terminalManager.openSession(title: name, sshClient: sshClient)
-                        } catch {
-                            appState.reportNonCancellationError(error)
-                        }
-                    }
-                } label: {
-                    Label(strings.t("term.newSSHTab"), systemImage: "plus")
-                }
-                .buttonStyle(.bordered)
-                .help(strings.t("term.newSSHTab"))
-            }
-
-            Button {
-                isShowingSnippets = true
-            } label: {
-                Label(strings.t("nav.snippets"), systemImage: "text.quote")
-            }
-            .buttonStyle(.bordered)
-            .help(strings.t("nav.snippets"))
-
-            if appState.featureFlags.isPortForwardingEnabled {
-                Button {
-                    isShowingForwarding = true
-                } label: {
-                    Label(strings.t("nav.tunnels"), systemImage: SparkleTheme.Symbols.tunnel)
-                }
-                .buttonStyle(.bordered)
-                .help(strings.t("nav.tunnels"))
-            }
-
-            Button {
-                isShowingFind.toggle()
-            } label: {
-                Image(systemName: "magnifyingglass")
-            }
-            .buttonStyle(.bordered)
-            .keyboardShortcut("f", modifiers: .command)
-            .help(strings.t("term.find"))
-
-            HStack(spacing: 2) {
-                Button {
-                    fontSize = max(9.0, fontSize - 1.0)
-                    activeSession?.setFontSize(fontSize)
-                } label: {
-                    Image(systemName: "minus.magnifyingglass")
-                }
-                .buttonStyle(.bordered)
-                .keyboardShortcut("-", modifiers: .command)
-
-                Button("\(Int(fontSize))pt") {
-                    fontSize = 13.0
-                    activeSession?.setFontSize(13.0)
-                }
-                .buttonStyle(.bordered)
-                .keyboardShortcut("0", modifiers: .command)
-
-                Button {
-                    fontSize = min(28.0, fontSize + 1.0)
-                    activeSession?.setFontSize(fontSize)
-                } label: {
-                    Image(systemName: "plus.magnifyingglass")
-                }
-                .buttonStyle(.bordered)
-                .keyboardShortcut("=", modifiers: .command)
-            }
+            topBarActionButtons(palette: palette, strings: strings)
+            topBarZoomControls()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(palette.windowColor)
     }
 
-    private func tabBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+    @ViewBuilder
+    private func topBarConnectionStatus(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+        if let session = appState.currentSession {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(SparkleTheme.Colors.success)
+                    .frame(width: 8, height: 8)
+                Text("\(session.profile.username)@\(session.profile.host):\(session.profile.port)")
+                    .font(SparkleTheme.Typography.headline)
+                    .foregroundStyle(palette.primaryTextColor)
+                Text("(\(strings.t("term.connectedSSH")))")
+                    .font(SparkleTheme.Typography.caption)
+                    .foregroundStyle(SparkleTheme.Colors.success)
+            }
+        } else {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(palette.secondaryTextColor)
+                    .frame(width: 8, height: 8)
+                Text(strings.t("term.disconnectedSSH"))
+                    .font(SparkleTheme.Typography.headline)
+                    .foregroundStyle(palette.secondaryTextColor)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func topBarActionButtons(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+        if let sshClient = appState.currentSession?.sshClient {
+            Button {
+                Task {
+                    do {
+                        let count = terminalManager.sessions.count + 1
+                        let name = "\(appState.currentSession?.profile.name ?? "SSH") (\(count))"
+                        _ = try await terminalManager.openSession(title: name, sshClient: sshClient)
+                    } catch {
+                        appState.reportNonCancellationError(error)
+                    }
+                }
+            } label: {
+                Label(strings.t("term.newSSHTab"), systemImage: "plus")
+            }
+            .buttonStyle(.bordered)
+            .help(strings.t("term.newSSHTab"))
+        }
+
+        Button {
+            isShowingSnippets = true
+        } label: {
+            Label(strings.t("nav.snippets"), systemImage: "text.quote")
+        }
+        .buttonStyle(.bordered)
+        .help(strings.t("nav.snippets"))
+
+        if appState.featureFlags.isPortForwardingEnabled {
+            Button {
+                isShowingForwarding = true
+            } label: {
+                Label(strings.t("nav.tunnels"), systemImage: SparkleTheme.Symbols.tunnel)
+            }
+            .buttonStyle(.bordered)
+            .help(strings.t("nav.tunnels"))
+        }
+
+        Button {
+            isShowingFind.toggle()
+        } label: {
+            Image(systemName: "magnifyingglass")
+        }
+        .buttonStyle(.bordered)
+        .keyboardShortcut("f", modifiers: .command)
+        .help(strings.t("term.find"))
+    }
+
+    private func topBarZoomControls() -> some View {
+        HStack(spacing: 2) {
+            Button {
+                fontSize = max(9.0, fontSize - 1.0)
+                activeSession?.setFontSize(fontSize)
+            } label: {
+                Image(systemName: "minus.magnifyingglass")
+            }
+            .buttonStyle(.bordered)
+            .keyboardShortcut("-", modifiers: .command)
+
+            Button("\(Int(fontSize))pt") {
+                fontSize = 13.0
+                activeSession?.setFontSize(13.0)
+            }
+            .buttonStyle(.bordered)
+            .keyboardShortcut("0", modifiers: .command)
+
+            Button {
+                fontSize = min(28.0, fontSize + 1.0)
+                activeSession?.setFontSize(fontSize)
+            } label: {
+                Image(systemName: "plus.magnifyingglass")
+            }
+            .buttonStyle(.bordered)
+            .keyboardShortcut("=", modifiers: .command)
+        }
+    }
+
+    func tabBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
                 ForEach(terminalManager.sessions) { sess in
                     let isSelected = (sess.id == (terminalManager.selectedSessionID ?? activeSession?.id))
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
-                            .frame(width: 6, height: 6)
-                        Text(sess.title)
-                            .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
-                            .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
-                        if terminalManager.sessions.count > 1 {
-                            Button {
-                                terminalManager.closeSession(id: sess.id)
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 9, weight: .bold))
-                            }
-                            .buttonStyle(.borderless)
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(isSelected ? palette.canvasColor : palette.windowColor)
-                    .cornerRadius(5)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        terminalManager.selectedSessionID = sess.id
-                    }
+                    tabChip(sess: sess, isSelected: isSelected, palette: palette)
                 }
             }
             .padding(.horizontal, 8)
@@ -199,7 +190,35 @@ struct EnlargedTerminalWindowView: View {
         .background(palette.windowColor.opacity(0.8))
     }
 
-    private func searchBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+    private func tabChip(sess: TerminalTabSession, isSelected: Bool, palette: SparkleThemePalette) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
+                .frame(width: 6, height: 6)
+            Text(sess.title)
+                .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
+            if terminalManager.sessions.count > 1 {
+                Button {
+                    terminalManager.closeSession(id: sess.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(isSelected ? palette.canvasColor : palette.windowColor)
+        .cornerRadius(5)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            terminalManager.selectedSessionID = sess.id
+        }
+    }
+
+    func searchBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
         HStack(spacing: SparkleTheme.Spacing.tiny) {
             Image(systemName: "magnifyingglass")
                 .font(.caption)
@@ -242,7 +261,7 @@ struct EnlargedTerminalWindowView: View {
     }
 
     @ViewBuilder
-    private func mainBody(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+    func mainBody(palette: SparkleThemePalette, strings: AppStrings) -> some View {
         if let session = activeSession {
             let termTheme = TerminalThemeColors(
                 backgroundHex: palette.canvasHex,
@@ -273,7 +292,7 @@ struct EnlargedTerminalWindowView: View {
         }
     }
 
-    private func footerBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
+    func footerBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
         HStack(spacing: 12) {
             if let session = activeSession {
                 Label(session.title, systemImage: "terminal.fill")
@@ -286,7 +305,10 @@ struct EnlargedTerminalWindowView: View {
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
-                Text(session.isActive ? strings.t("terminal.standalone.running") : strings.t("terminal.standalone.exited"))
+                let statusText = session.isActive
+                    ? strings.t("terminal.standalone.running")
+                    : strings.t("terminal.standalone.exited")
+                Text(statusText)
                     .font(.caption2)
                     .foregroundStyle(session.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.warning)
             }

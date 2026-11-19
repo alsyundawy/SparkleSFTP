@@ -24,15 +24,15 @@ During architectural planning for release v0.7.0, an exhaustive technical evalua
 
 The two options were benchmarked across latency, memory usage, binary footprint, Swift 6 strict concurrency compatibility, and long-term maintenance overhead on macOS Intel (x86_64) and Apple Silicon (arm64):
 
-| Metric / Dimension | Option A: Pure Swift TextKit 2 | Option B: Native Cocoa Scintilla (`ScintillaCocoa.mm`) |
-| :--- | :--- | :--- |
-| **Keystroke-to-Pixel Latency** | **< 1.8 ms** (Direct Metal-backed AppKit compositor) | ~ 2.4 ms (Scintilla custom CoreGraphics software blit) |
-| **Initial Buffer Allocation (10 MB file)** | **~ 14 MB RAM** (Lazy non-contiguous text fragments) | ~ 28 MB RAM (Dual gap-buffer + styled run array) |
-| **Zero-Allocation Line Count** | **O(N) UTF-8 single-pass** (`0x0A` byte scan, 0 heap alloc) | Requires traversing Scintilla line vector table |
-| **Binary Footprint Overhead** | **0 KB** (Included in macOS System frameworks) | **+ 4.8 MB** (Compiled C++ Scintilla + Lexilla dylib/staticlib) |
-| **Swift 6 Strict Concurrency** | **100% Compliant** (`@MainActor` & `Sendable` value types) | Non-trivial `@Sendable` boundaries; manual C++ thread locks |
-| **macOS Native System Features** | Native macOS text checking, Dictation, VoiceOver, Services | Non-standard event loop; accessibility requires custom AXBridge |
-| **C++ / Qt Runtime Leakage** | **Zero C++ runtime dependencies**; 100% Native Swift | Introduces C++ toolchain requirements; risk of ABI drift |
+| Metric / Dimension                         | Option A: Pure Swift TextKit 2                              | Option B: Native Cocoa Scintilla (`ScintillaCocoa.mm`)          |
+| :----------------------------------------- | :---------------------------------------------------------- | :-------------------------------------------------------------- |
+| **Keystroke-to-Pixel Latency**             | **< 1.8 ms** (Direct Metal-backed AppKit compositor)        | ~ 2.4 ms (Scintilla custom CoreGraphics software blit)          |
+| **Initial Buffer Allocation (10 MB file)** | **~ 14 MB RAM** (Lazy non-contiguous text fragments)        | ~ 28 MB RAM (Dual gap-buffer + styled run array)                |
+| **Zero-Allocation Line Count**             | **O(N) UTF-8 single-pass** (`0x0A` byte scan, 0 heap alloc) | Requires traversing Scintilla line vector table                 |
+| **Binary Footprint Overhead**              | **0 KB** (Included in macOS System frameworks)              | **+ 4.8 MB** (Compiled C++ Scintilla + Lexilla dylib/staticlib) |
+| **Swift 6 Strict Concurrency**             | **100% Compliant** (`@MainActor` & `Sendable` value types)  | Non-trivial `@Sendable` boundaries; manual C++ thread locks     |
+| **macOS Native System Features**           | Native macOS text checking, Dictation, VoiceOver, Services  | Non-standard event loop; accessibility requires custom AXBridge |
+| **C++ / Qt Runtime Leakage**               | **Zero C++ runtime dependencies**; 100% Native Swift        | Introduces C++ toolchain requirements; risk of ABI drift        |
 
 ## Decision
 
