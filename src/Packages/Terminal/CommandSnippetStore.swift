@@ -30,7 +30,14 @@ public actor CommandSnippetStore {
         securitySnippets +
         databaseSnippets +
         devopsSnippets +
-        fileSnippets
+        fileSnippets +
+        gitSnippets +
+        webServerSnippets +
+        networkProbesSnippets +
+        observabilitySnippets +
+        containerOrchestrationSnippets +
+        databaseCloudSnippets +
+        systemHardeningSnippets
 
     public func loadSnippets() async throws -> [CommandSnippet] {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
