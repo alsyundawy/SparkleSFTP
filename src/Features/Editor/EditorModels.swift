@@ -17,10 +17,14 @@ public enum EditorLineEnding: String, Sendable, CaseIterable, Identifiable {
     }
 
     public static func detect(in text: String) -> EditorLineEnding {
-        text.contains("\r\n") ? .windowsCRLF : .unixLF
+        let sample = text.prefix(8192)
+        return sample.contains("\r\n") ? .windowsCRLF : .unixLF
     }
 
     public static func normalize(_ text: String, to target: EditorLineEnding) -> String {
+        guard text.contains("\r") || (target == .windowsCRLF && text.contains("\n")) else {
+            return text
+        }
         let lfText = text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
@@ -40,17 +44,17 @@ public enum EditorTextEncoding: String, Sendable, CaseIterable, Identifiable {
 
     public static func decode(_ data: Data) -> (text: String, encoding: EditorTextEncoding) {
         if data.starts(with: [0xFF, 0xFE]),
-           let utf16 = String(bytes: Data(data.dropFirst(2)), encoding: .utf16LittleEndian) {
+           let utf16 = String(data: data.dropFirst(2), encoding: .utf16LittleEndian) {
             return (utf16, .utf16LE)
         }
         if data.starts(with: [0xEF, 0xBB, 0xBF]),
-           let utf8 = String(bytes: Data(data.dropFirst(3)), encoding: .utf8) {
+           let utf8 = String(data: data.dropFirst(3), encoding: .utf8) {
             return (utf8, .utf8BOM)
         }
-        if let utf8 = String(bytes: data, encoding: .utf8) {
+        if let utf8 = String(data: data, encoding: .utf8) {
             return (utf8, .utf8)
         }
-        let fallback = String(bytes: data, encoding: .isoLatin1) ?? ""
+        let fallback = String(data: data, encoding: .isoLatin1) ?? ""
         return (fallback, .utf8)
     }
 
@@ -128,18 +132,22 @@ public struct EditorCursorLocation: Sendable, Equatable {
     }
 
     public static func locate(in text: String, utf16Offset: Int) -> EditorCursorLocation {
-        let clamped = max(0, min(utf16Offset, text.utf16.count))
-        let targetIndex = text.utf16.index(text.utf16.startIndex, offsetBy: clamped)
+        let utf16 = text.utf16
+        let clamped = max(0, min(utf16Offset, utf16.count))
+        guard clamped > 0 else { return EditorCursorLocation(line: 1, column: 1) }
+
         var line = 1
-        var col = 1
-        for char in text[..<targetIndex] {
-            if char == "\n" {
+        var lineStart = 0
+        var current = 0
+        for codeUnit in utf16 {
+            if current >= clamped { break }
+            if codeUnit == 10 {
                 line += 1
-                col = 1
-            } else {
-                col += 1
+                lineStart = current + 1
             }
+            current += 1
         }
+        let col = max(1, clamped - lineStart + 1)
         return EditorCursorLocation(line: line, column: col)
     }
 }
@@ -252,9 +260,16 @@ public struct EditorDocument: Identifiable, Sendable, Equatable {
         self.remoteProfileID = remoteProfileID
         self.remoteHost = remoteHost
         self.remotePath = remotePath
-        let normalizedContent = EditorLineEnding.normalize(content, to: .unixLF)
+        let normalizedContent: String
+        if content.contains("\r") {
+            normalizedContent = EditorLineEnding.normalize(content, to: .unixLF)
+        } else {
+            normalizedContent = content
+        }
         self.content = normalizedContent
-        self.savedContent = savedContent.map { EditorLineEnding.normalize($0, to: .unixLF) } ?? normalizedContent
+        self.savedContent = savedContent.map {
+            $0.contains("\r") ? EditorLineEnding.normalize($0, to: .unixLF) : $0
+        } ?? normalizedContent
         self.encoding = encoding
         self.lineEnding = lineEnding ?? EditorLineEnding.detect(in: content)
         self.syntax = syntax ?? EditorSyntaxLanguage.detect(from: title)

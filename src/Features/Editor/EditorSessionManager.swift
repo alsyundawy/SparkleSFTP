@@ -91,6 +91,34 @@ public final class EditorSessionManager: ObservableObject {
         }
     }
 
+    public func openRemoteDocumentPreDecoded(
+        _ spec: RemoteOpenSpec,
+        text: String,
+        encoding: EditorTextEncoding
+    ) {
+        if let existing = documents.first(where: {
+            $0.remoteProfileID == spec.profileID && $0.remotePath == spec.remotePath
+        }) {
+            activeDocumentID = existing.id
+            return
+        }
+        let doc = EditorDocument(
+            title: spec.title,
+            localURL: spec.localStagingURL,
+            stagingTempDir: spec.stagingTempDir,
+            remoteProfileID: spec.profileID,
+            remoteHost: spec.host,
+            remotePath: spec.remotePath,
+            content: text,
+            savedContent: text,
+            encoding: encoding,
+            lineEnding: EditorLineEnding.detect(in: text),
+            syntax: .auto
+        )
+        documents.append(doc)
+        activeDocumentID = doc.id
+    }
+
     public func openRemoteDocument(_ spec: RemoteOpenSpec) throws {
         if let existing = documents.first(where: {
             $0.remoteProfileID == spec.profileID && $0.remotePath == spec.remotePath
@@ -100,21 +128,7 @@ public final class EditorSessionManager: ObservableObject {
         }
         let data = try Data(contentsOf: spec.localStagingURL)
         let decoded = EditorTextEncoding.decode(data)
-        let doc = EditorDocument(
-            title: spec.title,
-            localURL: spec.localStagingURL,
-            stagingTempDir: spec.stagingTempDir,
-            remoteProfileID: spec.profileID,
-            remoteHost: spec.host,
-            remotePath: spec.remotePath,
-            content: decoded.text,
-            savedContent: decoded.text,
-            encoding: decoded.encoding,
-            lineEnding: EditorLineEnding.detect(in: decoded.text),
-            syntax: .auto
-        )
-        documents.append(doc)
-        activeDocumentID = doc.id
+        openRemoteDocumentPreDecoded(spec, text: decoded.text, encoding: decoded.encoding)
     }
 
     public func closeDocument(id: UUID) {

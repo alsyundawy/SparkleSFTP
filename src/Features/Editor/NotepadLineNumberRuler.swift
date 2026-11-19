@@ -11,19 +11,23 @@ final class NotepadLineNumberRulerView: NSRulerView {
         didSet { needsDisplay = true }
     }
 
+    private var cachedNewlineOffsets: [Int] = []
+    private var lastIndexedLength: Int = -1
+    private var needsReindex = true
+
     init(scrollView: NSScrollView, textView: NSTextView) {
         super.init(scrollView: scrollView, orientation: .verticalRuler)
         clientView = textView
         ruleThickness = 44
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(handleTextOrBoundsChanged(_:)),
+            selector: #selector(handleTextChanged(_:)),
             name: NSText.didChangeNotification,
             object: textView
         )
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(handleTextOrBoundsChanged(_:)),
+            selector: #selector(handleBoundsChanged(_:)),
             name: NSView.boundsDidChangeNotification,
             object: scrollView.contentView
         )
@@ -38,7 +42,12 @@ final class NotepadLineNumberRulerView: NSRulerView {
         NotificationCenter.default.removeObserver(self)
     }
 
-    @objc private func handleTextOrBoundsChanged(_: Notification) {
+    @objc private func handleTextChanged(_: Notification) {
+        needsReindex = true
+        needsDisplay = true
+    }
+
+    @objc private func handleBoundsChanged(_: Notification) {
         needsDisplay = true
     }
 
@@ -48,40 +57,69 @@ final class NotepadLineNumberRulerView: NSRulerView {
               let textContainer = textView.textContainer
         else { return }
 
-        let gutterBG = NSColor(hex: palette.windowHex)
-        let borderCol = NSColor(hex: palette.borderHex)
-        let numCol = NSColor(hex: palette.secondaryTextHex)
-
-        gutterBG.setFill()
-        bounds.fill()
-
-        borderCol.setFill()
-        NSRect(x: bounds.width - 1, y: 0, width: 1, height: bounds.height).fill()
+        let nsText = textView.string as NSString
+        rebuildNewlineIndexIfNeeded(for: nsText)
+        updateThickness(for: cachedNewlineOffsets.count + 1)
+        drawGutterBackground()
 
         let visibleRect = scrollView?.contentView.bounds ?? textView.visibleRect
         let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
         let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 
-        let nsText = textView.string as NSString
-        var lineNumber = countNewlines(in: nsText, upTo: charRange.location) + 1
-        var index = charRange.location
-        let maxIndex = min(nsText.length, charRange.location + charRange.length)
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: max(10, font.pointSize - 1), weight: .regular),
-            .foregroundColor: numCol
-        ]
-
         if nsText.length == 0 {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: max(10, font.pointSize - 1), weight: .regular),
+                .foregroundColor: NSColor(hex: palette.secondaryTextHex)
+            ]
             drawLabel("1", atY: textView.textContainerOrigin.y, attrs: attrs, scrollOffset: visibleRect.origin.y)
             return
         }
+
+        renderLineNumbers(
+            textView: textView,
+            layoutManager: layoutManager,
+            charRange: charRange,
+            visibleRect: visibleRect
+        )
+    }
+
+    private func updateThickness(for lineCount: Int) {
+        let requiredDigits = max(3, String(lineCount).count)
+        let dynamicThickness = max(44, CGFloat(requiredDigits * 9 + 18))
+        if abs(ruleThickness - dynamicThickness) > 0.5 {
+            ruleThickness = dynamicThickness
+        }
+    }
+
+    private func drawGutterBackground() {
+        NSColor(hex: palette.windowHex).setFill()
+        bounds.fill()
+        NSColor(hex: palette.borderHex).setFill()
+        NSRect(x: bounds.width - 1, y: 0, width: 1, height: bounds.height).fill()
+    }
+
+    private func renderLineNumbers(
+        textView: NSTextView,
+        layoutManager: NSLayoutManager,
+        charRange: NSRange,
+        visibleRect: NSRect
+    ) {
+        let nsText = textView.string as NSString
+        let containerOriginY = textView.textContainerOrigin.y
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: max(10, font.pointSize - 1), weight: .regular),
+            .foregroundColor: NSColor(hex: palette.secondaryTextHex)
+        ]
+        var lineNumber = countNewlines(upTo: charRange.location) + 1
+        var index = charRange.location
+        let maxIndex = min(nsText.length, charRange.location + charRange.length)
 
         while index <= maxIndex, index < nsText.length {
             let lineRange = nsText.lineRange(for: NSRange(location: min(index, nsText.length), length: 0))
             let glyphIndex = layoutManager.glyphIndexForCharacter(at: lineRange.location)
             guard glyphIndex < layoutManager.numberOfGlyphs else { break }
             var lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
-            lineRect.origin.y += textView.textContainerOrigin.y
+            lineRect.origin.y += containerOriginY
             drawLabel("\(lineNumber)", atY: lineRect.origin.y + 1, attrs: attrs, scrollOffset: visibleRect.origin.y)
 
             lineNumber += 1
@@ -101,14 +139,43 @@ final class NotepadLineNumberRulerView: NSRulerView {
         }
     }
 
-    private func countNewlines(in text: NSString, upTo limit: Int) -> Int {
-        guard limit > 0 else { return 0 }
-        let safeLimit = min(limit, text.length)
-        var count = 0
-        for idx in 0 ..< safeLimit where text.character(at: idx) == 10 {
-            count += 1
+    private func rebuildNewlineIndexIfNeeded(for text: NSString) {
+        let length = text.length
+        guard needsReindex || length != lastIndexedLength else { return }
+        needsReindex = false
+        lastIndexedLength = length
+
+        guard length > 0 else {
+            cachedNewlineOffsets.removeAll(keepingCapacity: true)
+            return
         }
-        return count
+
+        var offsets: [Int] = []
+        offsets.reserveCapacity(min(16_384, length / 40))
+        var index = 0
+        while index < length {
+            let searchRange = NSRange(location: index, length: length - index)
+            let found = text.range(of: "\n", options: .literal, range: searchRange)
+            guard found.location != NSNotFound else { break }
+            offsets.append(found.location)
+            index = found.location + 1
+        }
+        cachedNewlineOffsets = offsets
+    }
+
+    private func countNewlines(upTo limit: Int) -> Int {
+        guard limit > 0, !cachedNewlineOffsets.isEmpty else { return 0 }
+        var low = 0
+        var high = cachedNewlineOffsets.count
+        while low < high {
+            let mid = low + (high - low) / 2
+            if cachedNewlineOffsets[mid] < limit {
+                low = mid + 1
+            } else {
+                high = mid
+            }
+        }
+        return low
     }
 
     private func drawLabel(

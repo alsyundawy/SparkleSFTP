@@ -19,8 +19,22 @@ extension AppState {
         do {
             let tempDir = try SecureTempDirectory.createIsolatedWorkingDirectory(prefix: "SparkleNotepad")
             let localCopy = try PathValidator.safeLocalDestination(filename: file.name, baseDirectory: tempDir)
-            try await session.service.fileSystem.download(from: file.path, to: localCopy) { _ in }
-            try editorManager.openRemoteDocument(
+            statusBannerMessage = "\(strings.t("transfers.downloading")): \(file.name)..."
+            try await session.service.fileSystem.download(from: file.path, to: localCopy) { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let pct = Int(progress.percentage * 100)
+                    self.statusBannerMessage = "\(self.strings.t("transfers.downloading")): \(file.name) (\(pct)%)"
+                }
+            }
+            statusBannerMessage = "\(strings.t("editor.opening")): \(file.name)..."
+            let (decodedText, encoding) = try await Task.detached(priority: .userInitiated) {
+                let data = try Data(contentsOf: localCopy)
+                let decoded = EditorTextEncoding.decode(data)
+                return (decoded.text, decoded.encoding)
+            }.value
+
+            editorManager.openRemoteDocumentPreDecoded(
                 EditorSessionManager.RemoteOpenSpec(
                     title: file.name,
                     localStagingURL: localCopy,
@@ -28,10 +42,14 @@ extension AppState {
                     profileID: session.profile.id,
                     host: session.profile.host,
                     remotePath: file.path
-                )
+                ),
+                text: decodedText,
+                encoding: encoding
             )
+            statusBannerMessage = nil
             editorWindowController.present(appState: self)
         } catch {
+            statusBannerMessage = nil
             reportNonCancellationError(error)
         }
     }

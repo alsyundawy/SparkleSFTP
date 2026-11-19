@@ -199,6 +199,7 @@
     "editor.newFile": "New File",
     "editor.openExternal": "Open External App",
     "editor.openFile": "Open Local...",
+    "editor.opening": "Opening...",
     "editor.paste": "Paste",
     "editor.readOnly": "Read-Only",
     "editor.redo": "Redo",

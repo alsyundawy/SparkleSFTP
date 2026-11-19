@@ -4,7 +4,7 @@ import SparkleDesignSystem
 
 /// Lightweight regex-based syntax highlighter styled directly from the active `SparkleThemePalette`.
 public enum EditorSyntaxHighlighter {
-    private static let maxHighlightCharacters = 256_000
+    private static let maxHighlightCharacters = 64_000
 
     public static func applyHighlighting(
         to textStorage: NSTextStorage,

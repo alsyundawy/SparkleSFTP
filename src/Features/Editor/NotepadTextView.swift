@@ -133,6 +133,7 @@ public struct NotepadTextView: NSViewRepresentable {
         textView.textContainerInset = NSSize(width: 8, height: 10)
         textView.autoresizingMask = [.width]
         textView.delegate = context.coordinator
+        textView.layoutManager?.allowsNonContiguousLayout = true
 
         scrollView.documentView = textView
         let ruler = NotepadLineNumberRulerView(scrollView: scrollView, textView: textView)
@@ -170,19 +171,11 @@ public struct NotepadTextView: NSViewRepresentable {
         let switchedDocument = coordinator.lastDocumentID != documentID
         var needsHighlight = forceHighlight || switchedDocument
 
-        if switchedDocument || textView.string != content {
-            coordinator.isProgrammaticChange = true
-            let previousSelection = textView.selectedRange()
-            textView.string = content
-            if switchedDocument {
-                textView.setSelectedRange(NSRange(location: 0, length: 0))
-            } else {
-                let len = (textView.string as NSString).length
-                let loc = min(previousSelection.location, len)
-                textView.setSelectedRange(NSRange(location: loc, length: min(previousSelection.length, len - loc)))
-            }
-            coordinator.lastDocumentID = documentID
-            coordinator.isProgrammaticChange = false
+        if textView.layoutManager?.allowsNonContiguousLayout != true {
+            textView.layoutManager?.allowsNonContiguousLayout = true
+        }
+
+        if updateContentIfNeeded(textView: textView, coordinator: coordinator, switchedDocument: switchedDocument) {
             needsHighlight = true
         }
 
@@ -197,6 +190,48 @@ public struct NotepadTextView: NSViewRepresentable {
             needsHighlight = true
         }
 
+        applyStylingAndLayout(textView: textView, scrollView: scrollView, coordinator: coordinator, font: font)
+
+        if needsHighlight, let storage = textView.textStorage {
+            EditorSyntaxHighlighter.applyHighlighting(
+                to: storage,
+                language: syntax,
+                palette: palette,
+                font: font
+            )
+        }
+    }
+
+    private func updateContentIfNeeded(
+        textView: NSTextView,
+        coordinator: Coordinator,
+        switchedDocument: Bool
+    ) -> Bool {
+        guard switchedDocument || textView.string != content else { return false }
+        coordinator.isProgrammaticChange = true
+        let previousSelection = textView.selectedRange()
+        textView.undoManager?.disableUndoRegistration()
+        textView.string = content
+        textView.undoManager?.enableUndoRegistration()
+        if switchedDocument {
+            textView.undoManager?.removeAllActions()
+            textView.setSelectedRange(NSRange(location: 0, length: 0))
+        } else {
+            let len = (textView.string as NSString).length
+            let loc = min(previousSelection.location, len)
+            textView.setSelectedRange(NSRange(location: loc, length: min(previousSelection.length, len - loc)))
+        }
+        coordinator.lastDocumentID = documentID
+        coordinator.isProgrammaticChange = false
+        return true
+    }
+
+    private func applyStylingAndLayout(
+        textView: NSTextView,
+        scrollView: NSScrollView,
+        coordinator: Coordinator,
+        font: NSFont
+    ) {
         textView.isEditable = !isReadOnly
         textView.backgroundColor = NSColor(hex: palette.canvasHex)
         textView.insertionPointColor = NSColor(hex: palette.accentHex)
@@ -211,15 +246,6 @@ public struct NotepadTextView: NSViewRepresentable {
         coordinator.rulerView?.palette = palette
         coordinator.rulerView?.font = font
         coordinator.rulerView?.needsDisplay = true
-
-        if needsHighlight, let storage = textView.textStorage {
-            EditorSyntaxHighlighter.applyHighlighting(
-                to: storage,
-                language: syntax,
-                palette: palette,
-                font: font
-            )
-        }
     }
 
     private func configureWordWrap(textView: NSTextView, scrollView: NSScrollView, wrap: Bool) {
