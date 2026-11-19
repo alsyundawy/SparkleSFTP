@@ -29,18 +29,7 @@ public actor TransferJournal: TransferJournalProtocol {
 
     public init(databaseURL: URL = TransferJournal.defaultDatabaseURL()) throws {
         self.databaseURL = databaseURL
-        try Self.ensureParentDirectory(for: databaseURL)
-
-        var handle: OpaquePointer?
-        let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
-        let openResult = sqlite3_open_v2(databaseURL.path, &handle, flags, nil)
-        guard openResult == SQLITE_OK, let opened = handle else {
-            let message = handle.flatMap { String(cString: sqlite3_errmsg($0)) } ?? "sqlite3_open_v2 failed"
-            if let handle {
-                sqlite3_close(handle)
-            }
-            throw AppError.persistenceFailure(reason: message)
-        }
+        let opened = try Self.openAndValidateDatabase(at: databaseURL)
         dbBox = SQLiteDatabaseBox(handle: opened)
         try Self.executeSQL("PRAGMA journal_mode = WAL;", on: opened)
         try Self.executeSQL("PRAGMA synchronous = NORMAL;", on: opened)
@@ -199,7 +188,7 @@ public actor TransferJournal: TransferJournalProtocol {
         String(cString: sqlite3_errmsg(database))
     }
 
-    private static func ensureParentDirectory(for url: URL) throws {
+    static func ensureParentDirectory(for url: URL) throws {
         let dir = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(
             at: dir,

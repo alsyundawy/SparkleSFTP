@@ -72,4 +72,49 @@ struct ExternalEditorTests {
         let fallback = ExternalEditorDetector.resolveEditor(savedPath: nil, available: testEditors)
         #expect(fallback?.id == "sublime")
     }
+
+    @Test("ExternalEditSession detects cache tampering and inode substitution")
+    func testCacheIntegrity() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("EditIntegrity-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("doc.txt")
+        try Data("content".utf8).write(to: file)
+        let attrs = try FileManager.default.attributesOfItem(atPath: file.path)
+        let inode = (attrs[.systemFileNumber] as? UInt64) ?? 12345
+
+        let baseline = ExternalEditBaseline(
+            localMtime: Date(),
+            localSize: 7,
+            localSHA256: "hash",
+            remoteMtime: Date(),
+            remoteSize: 7,
+            localInode: inode
+        )
+        let remoteFile = RemoteFile(name: "doc.txt", path: RemotePath("/doc.txt"), size: 7, isDirectory: false)
+        let session = ExternalEditSession(
+            remoteFile: remoteFile,
+            localCacheURL: file,
+            sessionDirectoryURL: dir,
+            baseline: baseline
+        )
+        #expect(session.verifyCacheIntegrity() == true)
+
+        let badBaseline = ExternalEditBaseline(
+            localMtime: Date(),
+            localSize: 7,
+            localSHA256: "hash",
+            remoteMtime: Date(),
+            remoteSize: 7,
+            localInode: inode + 999
+        )
+        let badSession = ExternalEditSession(
+            remoteFile: remoteFile,
+            localCacheURL: file,
+            sessionDirectoryURL: dir,
+            baseline: badBaseline
+        )
+        #expect(badSession.verifyCacheIntegrity() == false)
+    }
 }

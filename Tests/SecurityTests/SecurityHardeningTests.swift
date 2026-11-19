@@ -108,4 +108,25 @@ struct SecurityHardeningTests {
         guard let string = String(data: data, encoding: .utf8) else { return }
         #expect(string.contains("0.15.1"))
     }
+
+    @Test("PrivateKeyParser KeyMetadata detects FIDO2/U2F security key tokens")
+    func keyMetadataDetectsSecurityKeys() {
+        let plainMeta = PrivateKeyParser.KeyMetadata(
+            cipher: "none",
+            kdf: "none",
+            isEncrypted: false,
+            keyType: "ssh-ed25519",
+            isSecurityKey: false
+        )
+        #expect(!plainMeta.isSecurityKey)
+
+        let skMeta = PrivateKeyParser.KeyMetadata(
+            cipher: "none",
+            kdf: "none",
+            isEncrypted: false,
+            keyType: "sk-ssh-ed25519@openssh.com",
+            isSecurityKey: true
+        )
+        #expect(skMeta.isSecurityKey)
+    }
 }

@@ -167,4 +167,28 @@ struct PersistenceTests {
         #expect(scpSessions.count == 1)
         #expect(scpSessions[0].profile.protocolType == .scp)
     }
+
+    @Test("TransferJournal cleans up orphaned fileparts older than threshold")
+    func transferJournalOrphanFilepartPruning() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("FilepartTest-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let oldFile = dir.appendingPathComponent(".sparklesftp.old.filepart")
+        let recentFile = dir.appendingPathComponent(".sparklesftp.new.filepart")
+        let nonPartFile = dir.appendingPathComponent("regular.txt")
+
+        try Data("old".utf8).write(to: oldFile)
+        try Data("new".utf8).write(to: recentFile)
+        try Data("reg".utf8).write(to: nonPartFile)
+
+        let tenDaysAgo = Date().addingTimeInterval(-10 * 86400)
+        try FileManager.default.setAttributes([.modificationDate: tenDaysAgo], ofItemAtPath: oldFile.path)
+
+        let pruned = TransferJournal.cleanupOrphanFileparts(inDirectory: dir, maxAgeDays: 7)
+        #expect(pruned == 1)
+        #expect(!FileManager.default.fileExists(atPath: oldFile.path))
+        #expect(FileManager.default.fileExists(atPath: recentFile.path))
+        #expect(FileManager.default.fileExists(atPath: nonPartFile.path))
+    }
 }

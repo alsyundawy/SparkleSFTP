@@ -44,4 +44,10 @@ struct NetworkDiagnosticsTests {
         let res = await PortChecker.probePort(host: "", port: 22, serviceName: "SSH")
         #expect(res.status == .failed("Invalid host or port"))
     }
+
+    @Test("HostLatencyProbe returns nil for unreachable or invalid hosts")
+    func testHostLatencyProbeInvalidHost() async {
+        let metrics = await HostLatencyProbe.probe(host: "", port: 22, sampleCount: 1)
+        #expect(metrics == nil)
+    }
 }

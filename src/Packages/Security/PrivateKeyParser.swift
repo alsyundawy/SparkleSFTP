@@ -37,11 +37,21 @@ public enum PrivateKeyParser {
         public let cipher: String
         public let kdf: String
         public let isEncrypted: Bool
+        public let keyType: String
+        public let isSecurityKey: Bool
 
-        public init(cipher: String, kdf: String, isEncrypted: Bool) {
+        public init(
+            cipher: String,
+            kdf: String,
+            isEncrypted: Bool,
+            keyType: String = "unknown",
+            isSecurityKey: Bool = false
+        ) {
             self.cipher = cipher
             self.kdf = kdf
             self.isEncrypted = isEncrypted
+            self.keyType = keyType
+            self.isSecurityKey = isSecurityKey
         }
     }
 
@@ -61,8 +71,26 @@ public enum PrivateKeyParser {
         }
         let cipherName = try reader.readSSHStringAsString()
         let kdfName = try reader.readSSHStringAsString()
+        _ = try? reader.readSSHString()
+        let numberOfKeys = (try? reader.readUInt32()) ?? 0
+        var detectedKeyType = "unknown"
+        if numberOfKeys > 0, let pubBlob = try? reader.readSSHString() {
+            var pubReader = BinaryReader(data: pubBlob)
+            if let type = try? pubReader.readSSHStringAsString() {
+                detectedKeyType = type
+            }
+        }
         let isEncrypted = cipherName != "none" || kdfName != "none"
-        return KeyMetadata(cipher: cipherName, kdf: kdfName, isEncrypted: isEncrypted)
+        let isSecurityKey = detectedKeyType.hasPrefix("sk-") ||
+            pemString.contains("sk-ssh-") ||
+            pemString.contains("sk-ecdsa-")
+        return KeyMetadata(
+            cipher: cipherName,
+            kdf: kdfName,
+            isEncrypted: isEncrypted,
+            keyType: detectedKeyType,
+            isSecurityKey: isSecurityKey
+        )
     }
 
     private static func extractOpenSSHBinary(from pemString: String) throws -> Data {

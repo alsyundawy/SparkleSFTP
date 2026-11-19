@@ -117,9 +117,10 @@ actionlint
      - Added automated import from `~/.ssh/known_hosts` into `HostTrustStore` (`trusted_hosts.v1.json`) with TOFU isolation.
    - **SSH Agent Socket Forwarding & Validation (`SSHAgentSocketBridge`, `TASK-095`)**:
      - Validates active `$SSH_AUTH_SOCK` Unix domain sockets with canonical `realpath` symlink resolution and `CWE-59` traversal checks.
-   - **Passphrase-Protected OpenSSH Key Inspection (`PrivateKeyParser`, `TD-15`)**:
+   - **Passphrase-Protected OpenSSH Key & FIDO2/U2F Token Inspection (`PrivateKeyParser`, `TD-15`, `TASK-096`)**:
      - Added `inspectKeyMetadata` and `isPassphraseEncrypted` detecting `openssh-key-v1` cipher and KDF parameters.
-     - Improved diagnostic feedback guiding users to local `ssh-agent` or Keychain for encrypted keys.
+     - Implemented hardware security key token detection (`sk-ssh-ed25519@openssh.com` and `sk-ecdsa-sha2-nistp256@openssh.com`) via `KeyMetadata.isSecurityKey`.
+     - Improved diagnostic feedback guiding users to local `ssh-agent` or Keychain for encrypted and hardware keys.
    - **OpenSSH Advanced SFTP Protocol Extensions (`SFTPOpenSSHExtensions`)**:
      - Added models and parsers for modern OpenSSH SFTP protocol extensions: `limits@openssh.com` (dynamic buffer negotiation), `statvfs@openssh.com` (remote filesystem capacity and inode telemetry), `fsync@openssh.com` (server-side physical disk synchronization), `copy-data` (zero-copy server-side duplication), and `md5-hash` / `sha256` (remote checksums).
    - **Modernized Streaming SCP Compatibility Engine (`SCPCompatibilityAdapter`, `Milestone 5`)**:
@@ -133,12 +134,21 @@ actionlint
      - Docker container status inspector parsing tab-delimited docker output and generating sanitized `docker restart`, `docker stop`, and `docker logs --tail <n>` commands.
      - Remote live log viewer builder generating safe `tail -n <count> -f <path>` commands with standard Linux log paths (`/var/log/syslog`, `/var/log/nginx/error.log`, `/var/log/apache2/error.log`, `/var/log/auth.log`).
      - POSIX permission converter with bidirectional symbolic (`rwxr-xr-x`) <-> octal (`0755`) mapping, `chmod +x` executable toggle, and `0600` private security clamping.
-   - **External Desktop Editor Ecosystem & CLI Wait Protocol (`ExternalEditorDetector`, `Milestone 14`)**:
+   - **External Desktop Editor Ecosystem & Cache Inode Verification (`ExternalEditorDetector`, `ExternalEditSession`, `Milestone 14`)**:
      - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
      - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
-   - **Network Diagnostics & TCP Port Reachability Checker (`PortChecker`, `RemoteNetworkDiagnostics`, `Milestone 15`)**:
+     - Inode verification and symlink traversal defense (`verifyCacheIntegrity()`) in `ExternalEditSession` guarding against file substitution attacks (`CWE-59`).
+   - **Network Diagnostics, TCP Port Probing & RTT Latency Meter (`PortChecker`, `HostLatencyProbe`, `RemoteNetworkDiagnostics`, `Milestone 15`)**:
      - Asynchronous TCP port probe service testing reachability and latency of common network ports (22 SSH/SFTP, 21 FTP, 990 FTPS, 80 HTTP, 443 HTTPS, 3306 MySQL/MariaDB, 5432 PostgreSQL, 6379 Redis) via `NWConnection` with bounded timeouts.
+     - Multi-sample host latency probe (`HostLatencyProbe`) calculating minimum, maximum, average RTT, and network jitter metrics.
      - Remote network diagnostic command builder generating sanitized `ping`, `traceroute`, `ip route`, and `ss -tulpn` / `netstat -tulpn` commands.
+   - **Transfer Journal SQLite Corruption Quarantine & Orphan GC (`TransferJournal+Maintenance`, `TD-05`)**:
+     - Validates SQLite integrity with `PRAGMA quick_check;` on database initialization; automatically quarantines corrupted databases to `.corrupt.<timestamp>` and reinitializes a clean schema.
+     - Automated garbage collector (`cleanupOrphanFileparts`) purging orphaned `.sparklesftp.*.filepart` checkpoint files older than 7 days.
+   - **Directory Synchronization, Comparison & Regex Batch Renamer (`SyncPlanner`, `DirectoryComparison`, `BatchRenamePlanner`)**:
+     - Comprehensive 3-mode synchronization planner (Mirror, Update, Two-Way) with interactive visual dry-run previews and timestamp drift tolerances.
+     - Linear $O(N+M)$ sorted directory comparison evaluating missing files, size differences, and mtime offsets across 10,000+ files in milliseconds.
+     - Regex batch file renamer with capture groups (`$1`), prefix/suffix insertion, sequence numbering (`#`), and live collision previews.
    - **Randomized Jitter Exponential Backoff (`RetryPolicy`, `TD-12`, `Milestone 17`)**:
      - Full randomized bilateral jitter ($\text{Double.random}(\text{in}: 0.7 \dots 1.3) \times \text{baseDelay} \times 2^{\text{attempt}}$) eliminating thundering herd synchronization during concurrent transfer retries.
    - **Built-in IPv4 Subnet & CIDR Calculator Hub (`IPSubnetCalculator`, `SubnetCalculatorSheet`, `⌘⌥S`)**:

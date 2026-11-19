@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added automated import from `~/.ssh/known_hosts` into `HostTrustStore` (`trusted_hosts.v1.json`) with TOFU isolation.
 - **SSH Agent Socket Forwarding & Validation (`SSHAgentSocketBridge`, `TASK-095`)**:
   - Validates active `$SSH_AUTH_SOCK` Unix domain sockets with canonical `realpath` symlink resolution and `CWE-59` traversal checks.
+- **FIDO2 / U2F Security Key Token Detection (`PrivateKeyParser`, `TASK-096`)**:
+  - Added detection of hardware security key types (`sk-ssh-ed25519@openssh.com` and `sk-ecdsa-sha2-nistp256@openssh.com`) via `KeyMetadata.isSecurityKey`.
+  - Informs users when a hardware YubiKey or security key is present, guiding them to use agent socket forwarding or hardware-assisted tokens.
 - **Passphrase-Protected OpenSSH Key Inspection (`PrivateKeyParser`, `TD-15`)**:
   - Added `inspectKeyMetadata` and `isPassphraseEncrypted` detecting `openssh-key-v1` cipher and KDF parameters.
   - Improved diagnostic feedback guiding users to local `ssh-agent` or Keychain for encrypted keys.
@@ -51,9 +54,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **External Desktop Editor Ecosystem & CLI Wait Protocol (`ExternalEditorDetector`, `Milestone 14`)**:
   - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
   - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
-- **Network Diagnostics & TCP Port Reachability Checker (`PortChecker`, `RemoteNetworkDiagnostics`, `Milestone 15`)**:
+- **Network Diagnostics, TCP Port Probing & RTT Latency Meter (`PortChecker`, `HostLatencyProbe`, `RemoteNetworkDiagnostics`)**:
   - Asynchronous TCP port probe service testing reachability and latency of common network ports (22 SSH/SFTP, 21 FTP, 990 FTPS, 80 HTTP, 443 HTTPS, 3306 MySQL/MariaDB, 5432 PostgreSQL, 6379 Redis) via `NWConnection` with bounded timeouts.
+  - Multi-sample host latency probe (`HostLatencyProbe`) calculating minimum, maximum, average RTT, and network jitter metrics.
   - Remote network diagnostic command builder generating sanitized `ping`, `traceroute`, `ip route`, and `ss -tulpn` / `netstat -tulpn` commands.
+- **External Desktop Editor Ecosystem & Cache Inode Verification (`ExternalEditorDetector`, `ExternalEditSession`)**:
+  - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
+  - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
+  - Inode verification and symlink traversal defense (`verifyCacheIntegrity()`) in `ExternalEditSession` guarding against file substitution attacks (`CWE-59`).
+- **Transfer Journal SQLite Corruption Quarantine & Orphan GC (`TransferJournal+Maintenance`, `TD-05`)**:
+  - Validates SQLite integrity with `PRAGMA quick_check;` on database initialization; automatically quarantines corrupted databases to `.corrupt.<timestamp>` and reinitializes a clean schema.
+  - Automated garbage collector (`cleanupOrphanFileparts`) purging orphaned `.sparklesftp.*.filepart` checkpoint files older than 7 days.
+- **Directory Synchronization, Comparison & Regex Batch Renamer (`SyncPlanner`, `DirectoryComparison`, `BatchRenamePlanner`)**:
+  - Comprehensive 3-mode synchronization planner (Mirror, Update, Two-Way) with interactive visual dry-run previews and timestamp drift tolerances.
+  - Linear $O(N+M)$ sorted directory comparison evaluating missing files, size differences, and mtime offsets across 10,000+ files in milliseconds.
+  - Regex batch file renamer with capture groups (`$1`), prefix/suffix insertion, sequence numbering (`#`), and live collision previews.
 - **Randomized Jitter Exponential Backoff (`RetryPolicy`, `TD-12`, `Milestone 17`)**:
   - Full randomized bilateral jitter ($\text{Double.random}(\text{in}: 0.7 \dots 1.3) \times \text{baseDelay} \times 2^{\text{attempt}}$) eliminating thundering herd synchronization during concurrent transfer retries.
 - **Built-in IPv4 Subnet & CIDR Calculator Hub (`IPSubnetCalculator`, `SubnetCalculatorSheet`, `⌘⌥S`)**:

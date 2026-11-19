@@ -9,19 +9,22 @@ public struct ExternalEditBaseline: Sendable, Equatable {
     public let localSHA256: String
     public let remoteMtime: Date?
     public let remoteSize: Int64
+    public let localInode: UInt64
 
     public init(
         localMtime: Date,
         localSize: Int64,
         localSHA256: String,
         remoteMtime: Date?,
-        remoteSize: Int64
+        remoteSize: Int64,
+        localInode: UInt64 = 0
     ) {
         self.localMtime = localMtime
         self.localSize = localSize
         self.localSHA256 = localSHA256
         self.remoteMtime = remoteMtime
         self.remoteSize = remoteSize
+        self.localInode = localInode
     }
 }
 
@@ -66,6 +69,20 @@ public final class ExternalEditSession: Identifiable,
         guard let currentData = try? Data(contentsOf: localCacheURL) else { return false }
         let currentHash = SHA256.hash(data: currentData).map { String(format: "%02x", $0) }.joined()
         return currentHash != baseline.localSHA256
+    }
+
+    /// Verifies cache file has not been swapped via symlink traversal (CWE-59).
+    public func verifyCacheIntegrity() -> Bool {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: localCacheURL.path) else {
+            return false
+        }
+        if let type = attrs[.type] as? FileAttributeType, type == .typeSymbolicLink {
+            return false
+        }
+        if baseline.localInode != 0, let currentInode = attrs[.systemFileNumber] as? UInt64 {
+            return currentInode == baseline.localInode
+        }
+        return true
     }
 
     /// Safely terminates session and removes sandboxed cache files (CWE-59 / CWE-732).
