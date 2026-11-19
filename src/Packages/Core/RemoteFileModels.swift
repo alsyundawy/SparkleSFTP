@@ -182,4 +182,25 @@ public struct TLSCertificateInfo: Sendable, Equatable {
         self.validUntil = validUntil
         self.isTrusted = isTrusted
     }
+
+    public var isExpired: Bool {
+        guard let validUntil else { return false }
+        return validUntil < Date()
+    }
+
+    public var daysUntilExpiration: Int? {
+        guard let validUntil else { return nil }
+        let diff = Calendar.current.dateComponents([.day], from: Date(), to: validUntil)
+        return diff.day
+    }
+
+    public var isExpiringSoon: Bool {
+        guard let days = daysUntilExpiration else { return false }
+        return days <= 30
+    }
+
+    public var isCriticallyExpiring: Bool {
+        guard let days = daysUntilExpiration else { return false }
+        return days <= 14
+    }
 }

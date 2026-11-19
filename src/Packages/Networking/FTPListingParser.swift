@@ -13,7 +13,10 @@ public enum FTPListingParser {
             if line.contains(";"), let mlsd = parseMLSDLine(line, directory: directory) {
                 return mlsd
             }
-            return parseUnixListLine(line, directory: directory)
+            if let unix = parseUnixListLine(line, directory: directory) {
+                return unix
+            }
+            return parseWindowsIISLine(line, directory: directory)
         }
     }
 
@@ -103,6 +106,26 @@ public enum FTPListingParser {
             isSymlink: isSymlink,
             symlinkTarget: symlinkTarget,
             permissions: permissions
+        )
+    }
+
+    private static func parseWindowsIISLine(_ line: String, directory: RemotePath) -> RemoteFile? {
+        let tokens = line.split(maxSplits: 3, omittingEmptySubsequences: true) { $0 == " " || $0 == "\t" }
+        guard tokens.count == 4 else { return nil }
+        let sizeOrDir = String(tokens[2])
+        let filename = String(tokens[3]).trimmingCharacters(in: .whitespaces)
+        guard !filename.isEmpty, filename != ".", filename != ".." else { return nil }
+
+        let isDir = sizeOrDir.uppercased() == "<DIR>"
+        let size = isDir ? 0 : (Int64(sizeOrDir) ?? 0)
+        guard let itemPath = try? directory.appending(filename) else { return nil }
+
+        return RemoteFile(
+            name: filename,
+            path: itemPath,
+            size: size,
+            isDirectory: isDir,
+            permissions: isDir ? 0o755 : 0o644
         )
     }
 

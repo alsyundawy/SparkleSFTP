@@ -141,4 +141,20 @@ struct NetworkingTests {
             try channel.throwIfErrorCaught()
         }
     }
+
+    @Test("FTPListingParser parses Windows IIS directory listing format")
+    func ftpListingParserWindowsIIS() {
+        let iisListing = """
+        05-12-24  09:30AM       <DIR>          Documents
+        05-12-24  09:35AM             1048576  backup.zip
+        """
+        let root = RemotePath("/inetpub")
+        let files = FTPListingParser.parse(listing: iisListing, directory: root)
+        #expect(files.count == 2)
+        #expect(files[0].name == "Documents")
+        #expect(files[0].isDirectory)
+        #expect(files[1].name == "backup.zip")
+        #expect(!files[1].isDirectory)
+        #expect(files[1].size == 1048576)
+    }
 }

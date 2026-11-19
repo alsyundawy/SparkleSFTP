@@ -148,13 +148,24 @@ public struct TLSCertificateValidator: Sendable {
         let digest = SHA256.hash(data: derData)
         let fingerprint = digest.map { String(format: "%02X", $0) }.joined(separator: ":")
 
+        var validFrom: Date?
+        var validUntil: Date?
+        if #available(macOS 15.0, *) {
+            if let fromCF = SecCertificateCopyNotValidBeforeDate(leaf) {
+                validFrom = fromCF as Date
+            }
+            if let untilCF = SecCertificateCopyNotValidAfterDate(leaf) {
+                validUntil = untilCF as Date
+            }
+        }
+
         return TLSCertificateInfo(
             host: host,
             subject: subject,
             issuer: issuer,
             sha256Fingerprint: fingerprint,
-            validFrom: nil,
-            validUntil: nil,
+            validFrom: validFrom,
+            validUntil: validUntil,
             isTrusted: isTrusted
         )
     }
