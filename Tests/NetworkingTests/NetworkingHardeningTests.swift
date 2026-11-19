@@ -71,6 +71,29 @@ struct NetworkingHardeningTests {
         #expect(CurlClientHelper.kAllowedProtocols == "ftp,ftps")
     }
 
+    @Test("CurlRequestContext initializes active and passive FTP modes correctly (Task 4.4)")
+    func curlRequestContextFTPModes() {
+        let passiveCtx = CurlRequestContext(
+            urlString: "ftp://127.0.0.1:21/",
+            protocolType: .ftp,
+            username: "anonymous",
+            password: nil,
+            proxy: ProxyConfiguration(),
+            activeMode: false
+        )
+        #expect(passiveCtx.activeMode == false)
+
+        let activeCtx = CurlRequestContext(
+            urlString: "ftp://127.0.0.1:21/",
+            protocolType: .ftp,
+            username: "anonymous",
+            password: nil,
+            proxy: ProxyConfiguration(),
+            activeMode: true
+        )
+        #expect(activeCtx.activeMode == true)
+    }
+
     @Test("SSHServerAuditor flags OpenSSH 8.5p1–9.7p1 as vulnerable to CVE-2024-6387 regreSSHion")
     func sshServerAuditorFlagsRegreSSHionVersions() {
         let vulnBanners = [

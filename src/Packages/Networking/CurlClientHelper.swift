@@ -8,6 +8,23 @@ struct CurlRequestContext: Sendable {
     let username: String
     let password: String?
     let proxy: ProxyConfiguration
+    let activeMode: Bool
+
+    init(
+        urlString: String,
+        protocolType: ProtocolType,
+        username: String,
+        password: String?,
+        proxy: ProxyConfiguration,
+        activeMode: Bool = false
+    ) {
+        self.urlString = urlString
+        self.protocolType = protocolType
+        self.username = username
+        self.password = password
+        self.proxy = proxy
+        self.activeMode = activeMode
+    }
 }
 
 enum CurlClientHelper {
@@ -43,6 +60,21 @@ enum CurlClientHelper {
         }
         defer { curl_easy_cleanup(handle) }
 
+        configureBasicOptions(handle, context: context)
+        try configureProxy(handle, proxy: context.proxy)
+        configureTLS(handle, protocolType: context.protocolType)
+
+        try configure(handle)
+
+        if performAutomatically {
+            let result = curl_easy_perform(handle)
+            if result != CURLE_OK {
+                throw mapCurlError(result, protocolType: context.protocolType)
+            }
+        }
+    }
+
+    private static func configureBasicOptions(_ handle: UnsafeMutableRawPointer, context: CurlRequestContext) {
         sparklesftp_curl_setopt_string(handle, CURLOPT_URL, context.urlString)
         sparklesftp_curl_setopt_string(handle, CURLOPT_PROTOCOLS_STR, kAllowedProtocols)
         sparklesftp_curl_setopt_long(handle, CURLOPT_FRESH_CONNECT, 1)
@@ -61,38 +93,33 @@ enum CurlClientHelper {
         sparklesftp_curl_setopt_long(handle, CURLOPT_BUFFERSIZE, 262_144)
         sparklesftp_curl_setopt_long(handle, CURLOPT_UPLOAD_BUFFERSIZE, 262_144)
         sparklesftp_curl_setopt_long(handle, CURLOPT_FTP_SKIP_PASV_IP, 0)
-
-        if context.proxy.kind != .none, !context.proxy.host.isEmpty {
-            let scheme = context.proxy.kind == .socks5 ? "socks5h" : "http"
-            let rawHost = context.proxy.host.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !rawHost.contains("@"),
-                  !rawHost.contains("/"),
-                  !rawHost.contains(where: \.isWhitespace) else {
-                throw AppError.invalidConfiguration("Invalid proxy host")
-            }
-            let formattedHost = (rawHost.contains(":") && !rawHost.hasPrefix("[")) ? "[\(rawHost)]" : rawHost
-            let proxyURL = "\(scheme)://\(formattedHost):\(context.proxy.port)"
-            sparklesftp_curl_setopt_string(handle, CURLOPT_PROXY, proxyURL)
+        if context.activeMode {
+            sparklesftp_curl_setopt_string(handle, CURLOPT_FTPPORT, "-")
         }
+    }
 
-        if context.protocolType == .ftpsExplicit || context.protocolType == .ftpsImplicit {
-            // Mandatory TLS 1.2+ & strict cert verification with ZERO downgrade to plaintext FTP (SEC-001, Task 4.2/4.3)
-            sparklesftp_curl_setopt_long(handle, CURLOPT_USE_SSL, Int(CURLUSESSL_ALL.rawValue))
-            sparklesftp_curl_setopt_long(handle, CURLOPT_SSLVERSION, Int(CURL_SSLVERSION_TLSv1_2))
-            sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_VERIFYPEER, 1)
-            sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_VERIFYHOST, 2)
-            sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_SESSIONID_CACHE, 1)
-            sparklesftp_curl_setopt_long(handle, CURLOPT_FTP_SSL_CCC, Int(CURLFTPSSL_CCC_NONE.rawValue))
+    private static func configureProxy(_ handle: UnsafeMutableRawPointer, proxy: ProxyConfiguration) throws {
+        guard proxy.kind != .none, !proxy.host.isEmpty else { return }
+        let scheme = proxy.kind == .socks5 ? "socks5h" : "http"
+        let rawHost = proxy.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawHost.contains("@"),
+              !rawHost.contains("/"),
+              !rawHost.contains(where: \.isWhitespace) else {
+            throw AppError.invalidConfiguration("Invalid proxy host")
         }
+        let formattedHost = (rawHost.contains(":") && !rawHost.hasPrefix("[")) ? "[\(rawHost)]" : rawHost
+        let proxyURL = "\(scheme)://\(formattedHost):\(proxy.port)"
+        sparklesftp_curl_setopt_string(handle, CURLOPT_PROXY, proxyURL)
+    }
 
-        try configure(handle)
-
-        if performAutomatically {
-            let result = curl_easy_perform(handle)
-            if result != CURLE_OK {
-                throw mapCurlError(result, protocolType: context.protocolType)
-            }
-        }
+    private static func configureTLS(_ handle: UnsafeMutableRawPointer, protocolType: ProtocolType) {
+        guard protocolType == .ftpsExplicit || protocolType == .ftpsImplicit else { return }
+        sparklesftp_curl_setopt_long(handle, CURLOPT_USE_SSL, Int(CURLUSESSL_ALL.rawValue))
+        sparklesftp_curl_setopt_long(handle, CURLOPT_SSLVERSION, Int(CURL_SSLVERSION_TLSv1_2))
+        sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_VERIFYPEER, 1)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_VERIFYHOST, 2)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_SESSIONID_CACHE, 1)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_FTP_SSL_CCC, Int(CURLFTPSSL_CCC_NONE.rawValue))
     }
 
     static func mapCurlError(_ code: CURLcode, protocolType: ProtocolType) -> AppError {
