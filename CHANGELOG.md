@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Zero Password Prompts**: Eliminates subprocess `/usr/bin/ssh` credential prompts by multiplexing an interactive PTY channel directly over the active authenticated `SSHClientService` connection.
     - Features multi-tab support, search bar (`⌘F`), interactive font zoom (`⌘+`/`⌘-`/`⌘0`), Command Snippets runner, and SSH Port Forwarding / Tunnels manager.
     - Seamless drawer detachment: when enlarged, the main window terminal drawer presents a sleek notice with "Bring to Front" and "Reattach to Bottom Panel" buttons.
+  - **Expanded Command Snippets Catalog & Modern SRE Snippets Suite (`CommandSnippetStore.swift`, `CommandSnippetStore+SystemDefaults.swift`, `CommandSnippetStore+OpsDefaults.swift`, `SnippetsSheet.swift`)**:
+    - Expanded built-in defaults from 5 snippets to **80 production-grade command snippets** organized into 10 categories:
+      - **System (10 snippets)**: Disk space, system load & uptime, memory breakdown, top CPU/memory processes, CPU cores, OS/kernel versions, reboot-required indicator, ulimits, and virtual memory statistics.
+      - **Network (10 snippets)**: Listening ports (`ss -tulpn`), interface IPs, routing tables, public IP, DNS queries (`dig`), curl headers, socket summaries, route tracing, port reachability checks, and ICMP latency.
+      - **Containers (10 snippets)**: Docker ps, container stats, system prune, tail logs, shell exec, Docker Compose up/logs, volume lists, and container IP inspection.
+      - **Kubernetes (8 snippets)**: Cluster-wide pods, crashing/pending pod filters, CPU utilization sort, cluster events, pod log tailing, restart counters, rollout restarts, and interactive pod shells.
+      - **Services (8 snippets)**: Failed systemd units, Nginx restart & verify, daemon reload, critical service checks, enabled unit files, active timers, safe SSH restart, and journalctl log vacuuming.
+      - **Diagnostics (8 snippets)**: System journal tail/follow, failed SSH login attempt extraction, Nginx error/access log analysis, kernel warnings (`dmesg`), user sessions (`w`/`last`), and disk I/O metrics.
+      - **Security (8 snippets)**: UFW status, Fail2Ban bans, listening process sockets, sudo privileges, SSL/TLS certificate expiration probe (`openssl s_client`), random token generation, SHA-256 verification, and SUID binary discovery.
+      - **Databases (6 snippets)**: MySQL/MariaDB ping & processlist, PostgreSQL active backends & database sizes, and Redis ping/memory/dbsize.
+      - **DevOps (6 snippets)**: Git status & upstream branches, compact commit graphs, recent changes, dry-run clean, CI/CD commit HEAD, and filtered environment variables.
+      - **Files (6 snippets)**: Large file discovery (>100MB), recently modified files, web directory permission normalization (`755`/`644`), tar archive creation/extraction, and directory size rankings.
+    - **Enhanced Snippets Sheet UI (`SnippetsSheet.swift`)**: Real-time search query filtering, horizontal category selector chips, one-click clipboard copying (`NSPasteboard`) with visual feedback, terminal command injection, snippet deletion, and catalog reset/restore defaults.
+    - **Automatic Migration**: `CommandSnippetStore.loadSnippets()` intelligently merges newly added built-in defaults into existing user configurations without overwriting custom snippets.
   - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
   - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.
   - **Permanent Dark Toolbar Invariant (`InternalEditorToolbar.swift`, `Task 11.4`)**: Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint.
@@ -139,11 +153,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Code Quality, Structured Concurrency & Release Infrastructure
 
 - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
-- **100% Bilingual Parity across 742 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with complete parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
-- **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 326 source files.
-- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26411445`, and cryptographic signature verification.
-- **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 326 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
-- **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0).
+- **100% Bilingual Parity across 752 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 752 keys with complete parity across English and Indonesian catalogs covering Command Snippets categories, TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
+- **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 332 source files.
+- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `27113427`, and cryptographic signature verification.
+- **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 332 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
+- **Empirical Test Gate (`Task 18.4`)**: 221 unit and integration tests across 56 suites passing with 100% green status (exit code 0).
 - **High-Performance Responsiveness & Zero-Latency Optimizations**:
   - Registered `NSInitialToolTipDelay = 150ms` in `UserDefaults.standard` at application startup, cutting hover tooltip delay by 13x across all icons and buttons.
   - Eliminated $O(N \cdot M)$ `CollectionDifference` calculations on folder navigation in `FilePaneTableView+Coordinator.swift`, providing instant directory navigation without Main Thread hangs.
@@ -151,7 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streamlined `SSHPTYChannelHandler` and `SFTPSubsystemChannelHandler` with `wantReply: false`, removing unnecessary round-trip latency during channel initialization.
   - Converted `finalizeSuccessfulConnection` to update profile state in-place, eliminating redundant SQLite re-reads and sidebar redraw storms.
   - Displayed enlarged terminal window immediately in `openEnlargedTerminalWindow()` for instant 0ms user interaction.
-- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `968b29954fedd3c13c828bd4d01ce73934c7d3828e88b36df1515d93ee0a435f`.
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `955a4b2b221681909160f5c24cd6821ed9fe88859fc0b3e7580484eae0d50e90`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 

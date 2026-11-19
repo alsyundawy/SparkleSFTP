@@ -169,7 +169,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
-# Expected SHA-256: cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3
+# Expected SHA-256: 955a4b2b221681909160f5c24cd6821ed9fe88859fc0b3e7580484eae0d50e90
 ```
 
 ---

@@ -20,28 +20,40 @@ public actor CommandSnippetStore {
             .appendingPathComponent("snippets.v1.json", isDirectory: false)
     }
 
-    public static let builtInDefaults: [CommandSnippet] = [
-        CommandSnippet(title: "Disk Usage", command: "df -h", category: "System"),
-        CommandSnippet(
-            title: "System Load & Uptime",
-            command: "uptime && top -b -n 1 | head -n 15",
-            category: "System"
-        ),
-        CommandSnippet(
-            title: "Docker Containers",
-            command: "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'",
-            category: "Containers"
-        ),
-        CommandSnippet(title: "Recent System Logs", command: "journalctl -n 50 --no-pager", category: "Diagnostics"),
-        CommandSnippet(title: "Listening Ports", command: "ss -tulpn", category: "Network")
-    ]
+    public static let builtInDefaults: [CommandSnippet] =
+        systemSnippets +
+        networkSnippets +
+        containerSnippets +
+        kubernetesSnippets +
+        serviceSnippets +
+        diagnosticSnippets +
+        securitySnippets +
+        databaseSnippets +
+        devopsSnippets +
+        fileSnippets
 
     public func loadSnippets() async throws -> [CommandSnippet] {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return Self.builtInDefaults
         }
         let data = try Data(contentsOf: fileURL)
-        return try decoder.decode([CommandSnippet].self, from: data)
+        let loaded = try decoder.decode([CommandSnippet].self, from: data)
+        var existingCommands = Set(loaded.map(\.command))
+        var merged = loaded
+        for def in Self.builtInDefaults where !existingCommands.contains(def.command) {
+            merged.append(def)
+            existingCommands.insert(def.command)
+        }
+        if merged.count != loaded.count {
+            try? await saveSnippets(merged)
+        }
+        return merged
+    }
+
+    public func resetToDefaults() async throws -> [CommandSnippet] {
+        let defaults = Self.builtInDefaults
+        try await saveSnippets(defaults)
+        return defaults
     }
 
     public func saveSnippets(_ snippets: [CommandSnippet]) async throws {

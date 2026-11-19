@@ -2,6 +2,7 @@ import Foundation
 import SparkleCore
 import SparklePersistence
 import SparkleSynchronization
+import SparkleTerminal
 
 public extension AppState {
     func openTerminalTab() async {
@@ -136,6 +137,14 @@ public extension AppState {
     func deleteSnippet(id: UUID) async {
         snippets.removeAll { $0.id == id }
         try? await snippetStore.saveSnippets(snippets)
+    }
+
+    func resetSnippetsToDefaults() async {
+        if let defaults = try? await snippetStore.resetToDefaults() {
+            snippets = defaults
+        } else {
+            snippets = CommandSnippetStore.builtInDefaults
+        }
     }
 
     func importFromSSHConfig() async {

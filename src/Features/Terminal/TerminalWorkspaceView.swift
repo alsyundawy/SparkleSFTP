@@ -213,68 +213,6 @@ public struct TerminalWorkspaceView: View {
     }
 }
 
-public struct SnippetsSheet: View {
-    @ObservedObject var appState: AppState
-    @Environment(\.dismiss) private var dismiss
-    @State private var newTitle = ""
-    @State private var newCommand = ""
-
-    public init(appState: AppState) {
-        self.appState = appState
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            HStack {
-                Text(appState.strings.t("nav.snippets")).font(SparkleTheme.Typography.title)
-                Spacer()
-                Button(appState.strings.t("common.close")) { dismiss() }
-            }
-
-            HStack {
-                TextField("Title", text: $newTitle)
-                TextField("Command", text: $newCommand)
-                Button(appState.strings.t("common.add")) {
-                    let title = newTitle
-                    let cmd = newCommand
-                    newTitle = ""
-                    newCommand = ""
-                    Task { await appState.addSnippet(title: title, command: cmd) }
-                }
-                .disabled(newTitle.isEmpty || newCommand.isEmpty)
-            }
-
-            List(appState.snippets) { snippet in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(snippet.title).font(SparkleTheme.Typography.headline)
-                        Text(snippet.command).font(SparkleTheme.Typography.monoSmall)
-                    }
-                    Spacer()
-                    Button("Run") {
-                        let active = appState.terminalManager.session(forWorkspaceTabID: appState.activeTabID)
-                        active?.sendCommand(snippet.command)
-                        dismiss()
-                    }
-                    .disabled(appState.terminalManager.session(forWorkspaceTabID: appState.activeTabID) == nil)
-                    Button(role: .destructive) {
-                        Task { await appState.deleteSnippet(id: snippet.id) }
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                }
-                .listRowBackground(appState.activePalette.canvasColor)
-            }
-            .scrollContentBackground(.hidden)
-            .background(appState.activePalette.canvasColor)
-        }
-        .padding()
-        .frame(width: 540, height: 400)
-        .sparkleWorkspaceSurface(appState.activePalette)
-    }
-}
-
 public struct PortForwardingSheet: View {
     @ObservedObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
