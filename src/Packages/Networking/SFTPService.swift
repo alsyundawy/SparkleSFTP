@@ -50,60 +50,7 @@ public actor SFTPService: RemoteConnection, RemoteFileSystem {
         try await sshClient.disconnect(policy: policy)
     }
 
-    public func listDirectory(at path: RemotePath) async throws -> [RemoteFile] {
-        let sftp = try requireBridge()
-        let openReqID = sftp.allocateRequestID()
-        let openResp = try await sftp.send(.opendir(requestID: openReqID, path: path.rawValue))
-        let handle = try extractHandle(from: openResp, path: path.rawValue)
-
-        var items: [RemoteFile] = []
-        do {
-            while true {
-                try Task.checkCancellation()
-                let readResp = try await sftp.send(.readdir(requestID: sftp.allocateRequestID(), handle: handle))
-                switch readResp {
-                case let .name(_, entries):
-                    for entry in entries where entry.filename != "." && entry.filename != ".." {
-                        guard let safeChild = try? PathValidator.canonicalizeRemote(
-                            entry.filename,
-                            relativeTo: path
-                        ) else {
-                            continue
-                        }
-                        let defaultPerms: UInt32 = entry.attributes.isDirectory ? 0o755 : 0o644
-                        let perms = entry.attributes.permissions ?? defaultPerms
-                        let mtime = entry.attributes.modificationTime
-                            .map { Date(timeIntervalSince1970: TimeInterval($0)) }
-                        items.append(
-                            RemoteFile(
-                                name: entry.filename,
-                                path: safeChild,
-                                size: Int64(entry.attributes.size ?? 0),
-                                isDirectory: entry.attributes.isDirectory,
-                                isSymlink: entry.attributes.isSymlink,
-                                permissions: perms & 0o7777,
-                                modificationTime: mtime,
-                                ownerID: entry.attributes.uid,
-                                groupID: entry.attributes.gid
-                            )
-                        )
-                    }
-                case .status(_, .eof, _, _):
-                    await closeHandle(handle, on: sftp)
-                    return items
-                case let .status(_, code, msg, _):
-                    throw Self.mapStatusError(code: code, message: msg, path: path.rawValue)
-                default:
-                    throw AppError.protocolError(code: -1, message: "Unexpected READDIR response")
-                }
-            }
-        } catch {
-            await closeHandle(handle, on: sftp)
-            throw error
-        }
-    }
-
-    private func closeHandle(_ handle: Data, on bridge: SFTPChannelBridge) async {
+    func closeHandle(_ handle: Data, on bridge: SFTPChannelBridge) async {
         _ = try? await bridge.send(.close(requestID: bridge.allocateRequestID(), handle: handle))
     }
 
