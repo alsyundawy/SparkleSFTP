@@ -111,6 +111,7 @@ public actor SSHClientService {
     var rootChannel: Channel?
     private var jumpTunnel: SSHJumpTunnelHandle?
     public private(set) var connectionState: ConnectionState = .disconnected
+    public internal(set) var serverAuditReport: SSHServerAuditReport?
 
     public init(
         profile: ConnectionProfile,
@@ -263,6 +264,10 @@ public actor SSHClientService {
             jumpTunnel = attempt.activeJump
             eventLoopGroup = attempt.group
             rootChannel = channel
+            if let banner = attempt.handshakeBox.serverBanner {
+                let report = SSHServerAuditor.audit(banner: banner)
+                setServerAuditReport(report)
+            }
             connectionState = .connected(connectedAt: Date())
             let connectedHost = profile.host
             let connectedPort = profile.port

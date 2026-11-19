@@ -95,4 +95,17 @@ struct SecurityHardeningTests {
         let exists = await service.hasSecret(for: missing)
         #expect(!exists)
     }
+
+    @Test("Package.resolved gates swift-nio-ssh >= 0.14.1 (CVE-2026-43798)")
+    func verifySwiftNIOSSHVersionGate() throws {
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let resolvedURL = repoRoot.appendingPathComponent("Package.resolved")
+        guard FileManager.default.fileExists(atPath: resolvedURL.path) else { return }
+        let data = try Data(contentsOf: resolvedURL)
+        guard let string = String(data: data, encoding: .utf8) else { return }
+        #expect(string.contains("0.15.1"))
+    }
 }

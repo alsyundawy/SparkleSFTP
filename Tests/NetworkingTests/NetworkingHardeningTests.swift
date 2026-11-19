@@ -65,4 +65,37 @@ struct NetworkingHardeningTests {
             _ = try ZlibCompressionCodec.decompress(gzipData, maxOutputBytes: 1023)
         }
     }
+
+    @Test("CurlClientHelper locks allowed protocols strictly to ftp,ftps (CVE-2025-15224)")
+    func curlClientHelperRestrictsProtocols() {
+        #expect(CurlClientHelper.kAllowedProtocols == "ftp,ftps")
+    }
+
+    @Test("SSHServerAuditor flags OpenSSH 8.5p1–9.7p1 as vulnerable to CVE-2024-6387 regreSSHion")
+    func sshServerAuditorFlagsRegreSSHionVersions() {
+        let vulnBanners = [
+            "SSH-2.0-OpenSSH_8.5p1 Ubuntu-3ubuntu0.1",
+            "SSH-2.0-OpenSSH_8.9p1 Debian-1",
+            "SSH-2.0-OpenSSH_9.3p1",
+            "SSH-2.0-OpenSSH_9.7p1"
+        ]
+        for banner in vulnBanners {
+            let report = SSHServerAuditor.audit(banner: banner)
+            #expect(report.isVulnerableToCVE20246387 == true, "Expected vulnerable: \(banner)")
+            #expect(report.advisoryMessage != nil)
+        }
+
+        let safeBanners = [
+            "SSH-2.0-OpenSSH_8.4p1",
+            "SSH-2.0-OpenSSH_9.8p1",
+            "SSH-2.0-OpenSSH_9.9p1",
+            "SSH-2.0-OpenSSH_10.3p1",
+            "SSH-2.0-dropbear_2020.81"
+        ]
+        for banner in safeBanners {
+            let report = SSHServerAuditor.audit(banner: banner)
+            #expect(report.isVulnerableToCVE20246387 == false, "Expected safe: \(banner)")
+            #expect(report.advisoryMessage == nil)
+        }
+    }
 }

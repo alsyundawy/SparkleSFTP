@@ -11,6 +11,8 @@ struct CurlRequestContext: Sendable {
 }
 
 enum CurlClientHelper {
+    public static let kAllowedProtocols = "ftp,ftps"
+
     private static let workerQueue = DispatchQueue(
         label: "com.alsyundawy.SparkleSFTP.curl.worker",
         qos: .userInitiated,
@@ -42,7 +44,9 @@ enum CurlClientHelper {
         defer { curl_easy_cleanup(handle) }
 
         sparklesftp_curl_setopt_string(handle, CURLOPT_URL, context.urlString)
-        sparklesftp_curl_setopt_string(handle, CURLOPT_PROTOCOLS_STR, "ftp,ftps")
+        sparklesftp_curl_setopt_string(handle, CURLOPT_PROTOCOLS_STR, kAllowedProtocols)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_FRESH_CONNECT, 1)
+        sparklesftp_curl_setopt_long(handle, CURLOPT_FORBID_REUSE, 1)
         sparklesftp_curl_setopt_string(handle, CURLOPT_USERNAME, context.username)
         if let password = context.password {
             sparklesftp_curl_setopt_string(handle, CURLOPT_PASSWORD, password)

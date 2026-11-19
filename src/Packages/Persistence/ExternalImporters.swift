@@ -59,13 +59,22 @@ public struct ExternalImportReport: Sendable, Equatable {
 
 /// Imports FileZilla `sitemanager.xml` server entries safely without persisting secrets to JSON.
 public enum FileZillaImporter {
+    public static let maxDocumentSizeBytes = 16 * 1024 * 1024 // 16 MB cap (CVE-2026-105925)
+
     public static func parse(xmlData: Data) throws -> [ImportedConnection] {
         try parseWithReport(xmlData: xmlData).connections
     }
 
     public static func parseWithReport(xmlData: Data) throws -> ExternalImportReport {
+        guard xmlData.count <= maxDocumentSizeBytes else {
+            throw AppError.persistenceFailure(
+                reason: "FileZilla XML exceeds maximum allowed size limit of 16 MB (CVE-2026-105925)"
+            )
+        }
         let delegate = FileZillaXMLDelegate()
         let parser = XMLParser(data: xmlData)
+        // Disables external DTD resolution to prevent SSRF and billion laughs expansion
+        parser.shouldResolveExternalEntities = false
         parser.delegate = delegate
         guard parser.parse() else {
             throw AppError.persistenceFailure(

@@ -34,6 +34,7 @@ public enum ArchiveFormat: String, Sendable, CaseIterable, Identifiable {
 /// Secure local archiving and extraction engine enforcing Zip-Slip and bomb defenses (CWE-22 / CWE-59 / CWE-400).
 public enum ArchiveService {
     public static let maxAllowedEntries = 50000
+    public static let maxAllowedUncompressedBytes: UInt64 = 4 * 1024 * 1024 * 1024 // 4 GB ceiling (CWE-409)
 
     /// Locates an installed 7zz or 7z CLI binary on the host machine.
     public static func find7zBinary() -> URL? {
@@ -103,7 +104,49 @@ public enum ArchiveService {
                 let code = process.terminationStatus
                 throw AppError.persistenceFailure(reason: "Extraction failed with exit code \(code)")
             }
+
+            try validateExtractedSymlinksAndSize(in: destinationDirectory)
         }.value
+    }
+
+    /// Verifies that no extracted symlink escapes destination directory (CVE-2026-57233)
+    /// and total uncompressed size remains under 4 GB ceiling (CWE-409).
+    public static func validateExtractedSymlinksAndSize(in destinationDirectory: URL) throws {
+        let canonicalDest = destinationDirectory.resolvingSymlinksInPath()
+        guard let enumerator = FileManager.default.enumerator(
+            at: destinationDirectory,
+            includingPropertiesForKeys: [.isSymbolicLinkKey, .fileSizeKey],
+            options: []
+        ) else {
+            return
+        }
+
+        var totalBytes: UInt64 = 0
+        for case let fileURL as URL in enumerator {
+            let values = try? fileURL.resourceValues(forKeys: [.isSymbolicLinkKey, .fileSizeKey])
+            if values?.isSymbolicLink == true {
+                let targetPath = try FileManager.default.destinationOfSymbolicLink(atPath: fileURL.path)
+                let resolvedTarget: URL
+                if targetPath.hasPrefix("/") {
+                    resolvedTarget = URL(fileURLWithPath: targetPath).resolvingSymlinksInPath()
+                } else {
+                    let parent = fileURL.deletingLastPathComponent()
+                    resolvedTarget = parent.appendingPathComponent(targetPath).resolvingSymlinksInPath()
+                }
+                if !resolvedTarget.path.hasPrefix(canonicalDest.path) {
+                    try? FileManager.default.removeItem(at: fileURL)
+                    throw AppError.pathTraversal(
+                        attempted: "Malicious symlink escaping destination root (CVE-2026-57233): \(targetPath)"
+                    )
+                }
+            }
+            totalBytes += UInt64(values?.fileSize ?? 0)
+            if totalBytes > maxAllowedUncompressedBytes {
+                throw AppError.pathTraversal(
+                    attempted: "Extracted archive exceeds 4 GB safety ceiling (CWE-409 Zip-Bomb defense)"
+                )
+            }
+        }
     }
 
     /// Compresses source files into target archive format.

@@ -85,6 +85,7 @@ extension SSHClientService {
                         userAuthDelegate: authDelegate,
                         serverAuthDelegate: hostDelegate
                     )
+                    try sync.addHandler(SSHBannerCaptureHandler(handshakeBox: handshakeBox))
                     let sshHandler = NIOSSHHandler(
                         role: .client(config),
                         allocator: channel.allocator,
@@ -259,6 +260,17 @@ extension SSHClientService {
             ) {
                 box.resumeOnce()
             }
+        }
+    }
+
+    public func setServerAuditReport(_ report: SSHServerAuditReport) {
+        self.serverAuditReport = report
+        if report.isVulnerableToCVE20246387 {
+            let hostStr = profile.host
+            let verStr = report.softwareVersion
+            DiagnosticsLogger.security.warning(
+                "Remote server \(hostStr, privacy: .public) vulnerable to CVE-2024-6387: \(verStr, privacy: .public)"
+            )
         }
     }
 }

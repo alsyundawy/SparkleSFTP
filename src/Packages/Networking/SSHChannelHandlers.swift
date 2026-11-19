@@ -8,11 +8,26 @@ final class SSHHandshakeStateBox:
     @unchecked Sendable { // JUSTIFICATION: NSLock serializes single-shot handshake promise and error state.
     private let lock = NSLock()
     private var recordedError: Error?
+    private var capturedServerBanner: String?
     private var completed = false
     private let promise: EventLoopPromise<Void>
 
     init(promise: EventLoopPromise<Void>) {
         self.promise = promise
+    }
+
+    var serverBanner: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return capturedServerBanner
+    }
+
+    func recordBanner(_ banner: String) {
+        lock.lock()
+        if capturedServerBanner == nil {
+            capturedServerBanner = banner
+        }
+        lock.unlock()
     }
 
     var futureResult: EventLoopFuture<Void> {

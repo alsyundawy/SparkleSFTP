@@ -256,6 +256,14 @@ struct ExternalImportersTests {
         #expect(report.connections[2].profile.protocolType == .sftp)
         #expect(report.connections[3].profile.protocolType == .scp)
     }
+
+    @Test("FileZillaImporter blocks XML files exceeding 16 MB ceiling (CVE-2026-105925)")
+    func fileZillaImporterBlocksOversizedXML() {
+        let oversized = Data(count: 17 * 1024 * 1024)
+        #expect(throws: AppError.self) {
+            _ = try FileZillaImporter.parse(xmlData: oversized)
+        }
+    }
 }
 
 private enum IniTestPasswordEncoder {
