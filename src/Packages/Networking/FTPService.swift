@@ -78,7 +78,6 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     port: profile.port
                 )
             }
-            _ = try await performListing(path: profile.defaultRemotePath, useMLSD: false)
             connectionState = .connected(connectedAt: Date())
         } catch {
             let mapped = (error as? AppError) ?? .transferFailed(reason: error.localizedDescription)

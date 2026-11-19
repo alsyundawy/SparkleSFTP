@@ -295,19 +295,9 @@ public extension AppState {
             pendingPromptedSecretToRemember = nil
         }
         updatedProfile.lastConnectedAt = Date()
-        if profiles.contains(where: { $0.id == updatedProfile.id }) {
-            try? await connectionStore.saveProfile(updatedProfile)
-            await refreshProfilesAndGroups()
-            broadcastConnectionsDidChange()
-        }
-        trustedHosts = await hostTrustStore.allTrustedHosts()
 
         if openInNewTab {
             syncCurrentTabLocalSnapshot()
-        }
-        if let localDefault = profile.defaultLocalPath, !localDefault.isEmpty,
-           FileManager.default.fileExists(atPath: localDefault) {
-            await refreshLocalDirectory(URL(fileURLWithPath: localDefault))
         }
 
         let listed = try await created.service.fileSystem.listDirectory(at: profile.defaultRemotePath)
@@ -327,6 +317,23 @@ public extension AppState {
         activeSessionID = session.id
         activePane = .right
         statusBannerMessage = "Connected to \(profile.host)"
+
+        Task { [weak self] in
+            guard let self else { return }
+            if self.profiles.contains(where: { $0.id == updatedProfile.id }) {
+                try? await self.connectionStore.saveProfile(updatedProfile)
+                await self.refreshProfilesAndGroups()
+                self.broadcastConnectionsDidChange()
+            }
+            let hosts = await self.hostTrustStore.allTrustedHosts()
+            await MainActor.run {
+                self.trustedHosts = hosts
+            }
+            if let localDefault = profile.defaultLocalPath, !localDefault.isEmpty,
+               FileManager.default.fileExists(atPath: localDefault) {
+                await self.refreshLocalDirectory(URL(fileURLWithPath: localDefault))
+            }
+        }
     }
 
     func disconnect(sessionID: UUID) async {

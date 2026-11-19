@@ -8,11 +8,10 @@ import SparkleCore
 public struct TLSCertificateValidator: Sendable {
     public init() {}
 
-    /// Evaluates a SecTrust chain enforcing hostname verification and OCSP/CRL revocation (Task 4.1/9.4).
+    /// Evaluates a SecTrust chain enforcing hostname verification and OCSP revocation (Task 4.1/9.4).
     public func validateServerCertificate(_ trust: SecTrust, host: String) throws -> TLSCertificateInfo {
         var policies: [SecPolicy] = [SecPolicyCreateSSL(true, host as CFString)]
-        let revocationFlags = CFOptionFlags(kSecRevocationOCSPMethod | kSecRevocationCRLMethod)
-        if let revocation = SecPolicyCreateRevocation(revocationFlags) {
+        if let revocation = SecPolicyCreateRevocation(kSecRevocationOCSPMethod) {
             policies.append(revocation)
         }
         let policyStatus = SecTrustSetPolicies(trust, policies as CFArray)

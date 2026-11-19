@@ -158,20 +158,21 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-116** Update keyboard shortcuts (⌥⌘T, ⌥⌘L, ⇧⌘I, ⇧⌘E, Esc, ⌘D, ⌘,) and expand external terminal search paths for iTerm2.
 - [x] **T-117** Verify 14 engineering review pillars, 157 tests in 45 suites passing (100% green), and 0 linter violations across all linters.
 - [x] **T-118** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.6.0-universal.dmg`, SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`).
-- [x] **T-119** TextKit 2 internal code & text editor with 52+ programming languages, zero-allocation line count, permanent dark toolbar, and dirty/read-only badges.
+- [x] **T-119** TextKit 2 internal code & text editor with 52+ programming languages, zero-allocation line count, permanent dark toolbar, and streamlined single-document notepad without tab bar.
 - [x] **T-120** Embedded sandboxed Lua macro automation engine (`EditorMacroEngine.swift`, `LuaConsoleSheet.swift`, `⌘K`) with safe text mutations and escape prevention.
 - [x] **T-121** Developer & security tools hub (Base64, URL encoding, JSON format, cryptographic hash suite, Unix timestamps).
 - [x] **T-122** Dual-pane Commander ergonomics: CollectionDifference diffable animations, native Finder drag-and-drop, breadcrumbs bar, F3–F8 function keys, category filter bar, synchronized browsing.
 - [x] **T-123** Post-Quantum Cryptography: ML-KEM-768 and NTRU Prime PQ-KEX, OpenSSH known_hosts sync, SSH Agent socket bridge, FIDO2/U2F key detection, modern SFTP protocol extensions.
-- [x] **T-124** Enterprise FTPS parity: Explicit FTPS STARTTLS framer with SecTrust & OCSP/CRL preflight, interactive X.509 Certificate Inspector with TOFU pinning, Active Mode FTP PORT/EPRT, Windows IIS directory listing parser, fallback charset negotiation.
+- [x] **T-124** Enterprise FTPS parity: Explicit FTPS STARTTLS framer with SecTrust & OCSP preflight, interactive X.509 Certificate Inspector with TOFU pinning, Active Mode FTP PORT/EPRT, Windows IIS directory listing parser, fallback charset negotiation.
 - [x] **T-125** Remote Linux server administration: Systemd service controller, process explorer, Docker manager, remote log viewer, POSIX permission formatter.
 - [x] **T-126** Network diagnostics & Subnet Calculator: TCP port checker, host latency probe, native IPv4 Subnet & CIDR calculation hub `⌘⌥S`.
 - [x] **T-127** High-performance transfer engine: Shortest-Job-First (SJF) scheduling, pipelined SFTP upload resume block SHA-256 verification, remote-to-remote streaming engine, macOS Dock progress bar, randomized jitter exponential backoff, SQLite corruption auto-quarantine & orphan checkpoint GC.
-- [x] **T-128** Persistent inline terminal drawer (10,000 lines scrollback, 16ms frame coalescing, search) and standalone split terminal `⌘⌥T` with vertical/horizontal split panes.
-- [x] **T-129** Security vulnerability mitigations: CVE-2024-6387 regreSSHion audit, CVE-2023-48795 Terrapin mitigation, swift-nio-ssh pin gate, swift-nio CRLF injection defense, Zip-Slip immunity, XML entity limit, Lua sandbox isolation.
-- [x] **T-130** Quality gates: 218 tests in 55 suites passing (100% green), 0 SwiftLint violations across 326 files, 0 ShellCheck warnings, SonarQube report generator, 100% localization parity across 742 keys.
-- [x] **T-131** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69`).
-- [x] **T-132** Push branch `0.7.0`, tag `v0.7.0`, and publish official GitHub Release with verified DMG and release notes.
+- [x] **T-128** Dedicated standalone terminal launcher (`macwindow.on.rectangle`) placed to the left of "Open Terminal" opening 1020×660 pt external terminal window with iTerm2 split panes, and persistent inline terminal drawer with 16ms stdout coalescing.
+- [x] **T-129** Blazing-fast login and connection restoration (v0.6.0 parity): direct SFTP readdir traversal, non-blocking background disk synchronization, and non-blocking TLS verification.
+- [x] **T-130** Security vulnerability mitigations: CVE-2024-6387 regreSSHion audit, CVE-2023-48795 Terrapin mitigation, swift-nio-ssh pin gate, swift-nio CRLF injection defense, Zip-Slip immunity, XML entity limit, Lua sandbox isolation.
+- [x] **T-131** Quality gates: 218 tests in 55 suites passing (100% green), 0 SwiftLint violations across 326 files, 0 ShellCheck warnings, SonarQube report generator, 100% localization parity across 742 keys.
+- [x] **T-132** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3`).
+- [x] **T-133** Push commits and tag `v0.7.0` to GitHub repository and release v0.7.0 on `main` and `0.7.0`.
 
 ## Post-MVP / External Infrastructure Gates (Deferred)
 

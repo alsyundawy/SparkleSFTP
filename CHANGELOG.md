@@ -18,10 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Native AppKit Drag-and-Drop (`InteractiveFileTableSupport.swift`)**: Implemented native `NSDraggingDestination` and `NSDraggingSource` on `InteractiveFileTableView`. Accepts incoming file drops directly from macOS Finder, broadcasting `.sparkleUploadDroppedFiles` to enqueue immediate transfers into `TransferQueue`. Supports outbound dragging of local file URLs.
   - **Breadcrumbs Navigation (`BreadcrumbsBarView.swift`)**: Clickable path segments for local and remote panes with path history, copy path actions, and inline text editing fallback.
   - **Commander Keyboard Shortcuts (`CommanderFunctionKeyBar.swift`)**: Classic F3 (View), F4 (Edit), F5 (Cross-Pane Transfer), F6 (Move), F7 (Mkdir), and F8 (Delete) function key bar with zero-unwrapped key equivalents.
-  - **Real-Time Category & Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`)**: Substring, wildcard extension (`*.log`), and hidden file (`.*`) filtering with preset categories (All, Documents, Images, Archives, Code) and live badge counters.
+  - **Real-Time Category & Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`)**: Substring, wildcard extension (`*.log`), and hidden file (`.*\) filtering with preset categories (All, Documents, Images, Archives, Code) and live badge counters.
   - **Synchronized Folder Browsing**: Bilateral synchronized path mapping across local and remote directories (`BookmarkManager.compareAndSyncPaths`).
   - **macOS Finder QuickActions & URL Schemes (`AppDelegate.swift`, `Info.plist`, `Task 16.1`)**: Registered `sftp://`, `ftps://`, and `ssh://` protocol scheme handlers and macOS system service "Open in SparkleSFTP".
 - **Internal Text & Code Editor Core Modernization (TextKit 2, 52+ Languages & Ergonomics)**:
+  - **Streamlined Single-Document Notepad**: Removed tab bar and multi-document tab controls from `InternalEditorView`, transforming the editor into a clean, minimalist Notepad window without tab bars.
   - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
   - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.
   - **Permanent Dark Toolbar Invariant (`InternalEditorToolbar.swift`, `Task 11.4`)**: Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint.
@@ -98,8 +99,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Randomized jitter exponential backoff retry scheduler eliminating thundering herd synchronization.
   - Transfer Journal SQLite corruption quarantine (`PRAGMA quick_check;` auto-quarantines to `.corrupt.<timestamp>`) and orphan `.sparklesftp.*.filepart` cleanup.
 - **Persistent Inline Terminal Drawer & Standalone Split Terminal (Tasks 16.2, 17.2, `TD-07`)**:
+  - **Dedicated Standalone Terminal Launch Button**: Added an enlarged/standalone terminal icon (`macwindow.on.rectangle`) to the left of "Open Terminal" in the main toolbar and inside the terminal drawer, opening a full-sized 1020×660 pt external terminal window box with full iTerm2 tabs, split panes, and SSH shell.
   - Preserved persistent `TerminalView` AppKit instance across drawer collapse/expand toggles in `TerminalTabSession.getOrCreateTerminalView()`, retaining 10,000 lines of scrollback history. Coalesced PTY stdout chunks into 16ms buffers (~60 FPS) with 32 KB capacity-retained buffers in `attachPTYChannel`. Added inline Find bar (`magnifyingglass`) with query submission, previous/next match jumping, and live match counters (`1/5`).
   - iTerm2-Style Split Panes in Standalone Terminal (`StandaloneTerminalWindowView.swift`, `StandaloneTerminalSplitView.swift`): Vertical Split (`⌘D`) and Horizontal Split (`⌘⇧D`) with independent PTY handles and scrollbacks, rendered recursively via `HSplitView` and `VSplitView`.
+- **Blazing-Fast Login & Connection Optimization (v0.6.0 Parity)**:
+  - Restored high-speed direct directory traversal in `SFTPService.listDirectory` without intermediate `AsyncThrowingStream` or detached Task queuing.
+  - Deferral of post-connection disk operations (saving profile last-connected date, re-reading trusted hosts store, and local directory refresh) into non-blocking background tasks in `AppState.finalizeSuccessfulConnection`.
+  - Eliminated synchronous CRL network resolution delays in `TLSCertificateValidator` by prioritizing fast OCSP and standard SSL trust evaluation.
+  - Eliminated redundant secondary directory listing in `FTPService.connect()`.
 - **External Desktop Editor Ecosystem & Cache Inode Verification (`ExternalEditorDetector`, `ExternalEditSession`, `Milestone 14`)**:
   - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
   - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
@@ -129,10 +136,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
 - **100% Bilingual Parity across 742 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with complete parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
 - **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 326 source files.
-- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26255894`, and cryptographic signature verification.
+- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26262120`, and cryptographic signature verification.
 - **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 326 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
 - **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0).
-- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69`.
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 

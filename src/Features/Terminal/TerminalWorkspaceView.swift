@@ -46,6 +46,18 @@ public struct TerminalWorkspaceView: View {
                     .help(appState.strings.t("nav.openTerminalTab"))
                 }
 
+                Button {
+                    let profile = appState.currentSession?.profile ?? appState.primarySelectedProfile
+                    if let profile, profile.protocolType == .sftp || profile.protocolType == .scp {
+                        appState.openStandaloneTerminal(sshProfile: profile)
+                    } else {
+                        appState.openStandaloneTerminal()
+                    }
+                } label: {
+                    Image(systemName: "macwindow.on.rectangle")
+                }
+                .help(appState.strings.t("nav.standaloneTerminal"))
+
                 if let activeProfile = appState.currentSession?.profile ?? appState.primarySelectedProfile,
                    activeProfile.protocolType == .sftp || activeProfile.protocolType == .scp {
                     Button {

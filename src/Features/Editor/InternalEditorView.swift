@@ -51,8 +51,6 @@ public struct InternalEditorView: View {
                 goToLineInput: $goToLineInput
             )
 
-            InternalEditorTabBar(editorManager: editorManager, palette: palette)
-
             if editorManager.isFindBarVisible {
                 InternalEditorFindBarView(
                     editorManager: editorManager,

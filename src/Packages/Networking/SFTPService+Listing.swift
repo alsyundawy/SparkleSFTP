@@ -77,11 +77,35 @@ extension SFTPService {
     }
 
     public func listDirectory(at path: RemotePath) async throws -> [RemoteFile] {
+        let sftp = try requireBridge()
+        let openReqID = sftp.allocateRequestID()
+        let openResp = try await sftp.send(.opendir(requestID: openReqID, path: path.rawValue))
+        let handle = try extractHandle(from: openResp, path: path.rawValue)
+
         var items: [RemoteFile] = []
-        for try await batch in streamDirectory(at: path) {
-            items.append(contentsOf: batch)
+        do {
+            while true {
+                try Task.checkCancellation()
+                let readResp = try await sftp.send(
+                    .readdir(requestID: sftp.allocateRequestID(), handle: handle)
+                )
+                switch readResp {
+                case let .name(_, entries):
+                    let parsed = convertNameEntries(entries, path: path)
+                    items.append(contentsOf: parsed)
+                case .status(_, .eof, _, _):
+                    await closeHandle(handle, on: sftp)
+                    return items
+                case let .status(_, code, msg, _):
+                    throw Self.mapStatusError(code: code, message: msg, path: path.rawValue)
+                default:
+                    throw AppError.protocolError(code: -1, message: "Unexpected READDIR response")
+                }
+            }
+        } catch {
+            await closeHandle(handle, on: sftp)
+            throw error
         }
-        return items
     }
 
     private func convertNameEntries(_ entries: [SFTPNameEntry], path: RemotePath) -> [RemoteFile] {

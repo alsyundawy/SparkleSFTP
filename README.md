@@ -70,16 +70,17 @@
 
 ## 🌟 Key Highlights & What Makes SparkleSFTP Special
 
-- ✍️ **Internal Code & Text Editor (TextKit 2, 52+ Languages & Lua Macro Engine)**: Ultra-fast native editor built on Apple TextKit 2 with zero-allocation UTF-8 line traversal, syntax highlighting for 52+ programming languages and system configs, embedded sandboxed Lua macro automation engine (`EditorMacroEngine`, `⌘K`), developer tools hub (Base64, JSON, Hash, Timestamps), permanent dark toolbar (`#21252b`), find/replace with regex, and ergonomic multi-tab bar with dirty indicators (`●` yellow `#e5c07b`) and read-only badges.
-- 📂 **Dual-Pane Commander Architecture & Diffable Animations**: High-speed side-by-side local and remote directory browsers with native AppKit cell reuse, fine-grained `CollectionDifference` diffable animations eliminating table reload flicker, native drag-and-drop to/from macOS Finder, clickable breadcrumbs bar, F3–F8 function key bar, category filter bar, and synchronized folder browsing.
-- ⚛️ **Post-Quantum Cryptography & OpenSSH 10.x Standards**: Hybrid ML-KEM-768 (`mlkem768x25519-sha256`, NIST FIPS 203) and Streamlined NTRU Prime (`sntrup761x25519-sha512@openssh.com`) key exchange with real-time post-quantum connection telemetry badges, OpenSSH `known_hosts` bidirectional synchronization, multi-hop ProxyJump parser, dynamic SOCKS5 port forwarding, SSH Agent Unix socket forwarding (`SSH_AUTH_SOCK`), FIDO2/U2F hardware token detection, and modern SFTP protocol extensions (`limits`, `statvfs`, `fsync`, `copy-data`, `md5/sha256`).
-- 🔒 **Enterprise FTPS Parity & Certificate Shielding**: Explicit FTPS dynamic STARTTLS framer with preflight `SecTrust` and OCSP/CRL revocation verification, interactive X.509 visual certificate inspector (`CertificateInspectorSheet`) with TOFU pinning, Active Mode FTP (`PORT`/`EPRT`), Windows IIS listing parser, and fallback charset negotiation (UTF-8 -> Latin1 -> Windows-1252 -> ASCII).
-- 🚀 **High-Performance Transfer Engine & Block-Level Resume**: Pipelined SFTP upload resume with 64 KB block-level prefix SHA-256 verification against corruption, remote-to-remote direct streaming transfer engine (`TransferQueue+RemoteToRemote`), streaming `READDIR` AsyncSequence generator for 100,000+ files, shortest-job-first priority admission, bilateral randomized jitter backoff, and macOS Dock transfer progress bar.
+- ✍️ **Internal Code & Text Editor (TextKit 2 & 52+ Languages)**: Ultra-fast native editor built on Apple TextKit 2 with zero-allocation UTF-8 line traversal, syntax highlighting for 52+ programming languages and system configs, permanent dark toolbar (`#21252b`), and clean single-document notepad experience without tab options.
+- 💻 **Dedicated Standalone Terminal Launch Button**: Dedicated external terminal launcher (`macwindow.on.rectangle`) placed to the left of "Open Terminal" opening a 1020×660 pt external terminal window with iTerm2 tabs, split panes, and SSH shell.
+- ⚡ **Blazing-Fast Login & Connection (v0.6.0 Parity)**: Zero-lag connection with direct SFTP readdir traversal, deferred background disk synchronization, and non-blocking TLS verification.
+- ⚛️ **Post-Quantum Cryptography & OpenSSH 10.x Standards**: Hybrid ML-KEM-768 (`mlkem768x25519-sha256`, NIST FIPS 203) and Streamlined NTRU Prime (`sntrup761x25519-sha512@openssh.com`) key exchange with real-time post-quantum connection telemetry badges.
 - 🖥️ **Remote Linux Server Administration**: Native Systemd service controller (`systemctl status/restart/reload` for Nginx, Apache, PHP-FPM, MariaDB, Docker, etc.), process explorer (`ps aux` / `kill`), Docker manager, remote log viewer (`tail -f`), and real-time server telemetry (`/proc/loadavg`, `free -m`, `df -h`).
 - 🚀 **Modernized Streaming SCP Compatibility Engine**: 64 KB chunked streaming directly to/from disk (`FileHandle`) eliminating RAM exhaustion (`CWE-400`), decompression bomb ceiling (`CWE-409`), and opt-in `sudo -n` root elevation with strict single-quote escaping (`CWE-78`).
-- 📡 **Network Diagnostics & Built-in Subnet Calculator**: Real-time asynchronous TCP probe for common server ports (22, 21, 990, 80, 443, 3306, 5432, 6379) via `NWConnection`, multi-sample host latency probe (`HostLatencyProbe`), and offline IPv4 Subnet & CIDR calculation hub (`⌘⌥S`) ported from SubnetCalc for macOS.
-- 💻 **Persistent Terminal Drawer & Standalone Split Terminal**: AppKit `TerminalView` retaining 10,000 lines of scrollback history across drawer toggles, 16ms frame coalescing for silky-smooth stdout, inline find bar (`magnifyingglass`), and standalone terminal (`⌘⌥T`) with iTerm2-style vertical (`⌘D`) and horizontal (`⌘⇧D`) split panes.
-- 🛡️ **2025–2026 Security Vulnerability Shielding**: Proactive version audit for CVE-2024-6387 (regreSSHion), strict Terrapin attack mitigation (CVE-2023-48795), swift-nio-ssh pin gate (CVE-2026-43798), swift-nio CRLF injection defense (CVE-2026-28970), Zip-Slip traversal defense (CVE-2026-52886/57233), XML entity limit (CVE-2026-105925), and SQLite corruption auto-quarantine with orphan `.filepart` GC.
+- 📡 **Network Diagnostics & TCP Port Reachability Checker**: Real-time asynchronous TCP probe for common server ports (22, 21, 990, 80, 443, 3306, 5432, 6379) via `NWConnection` with round-trip latency metrics and route inspection commands.
+- 📝 **External Desktop Editor Ecosystem (`ExternalEditorDetector`)**: Auto-discovery of installed macOS text editors (VS Code, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, Cursor) with synchronous CLI wait (`--wait`) integration.
+- 🔄 **Randomized Jitter Exponential Backoff**: Transfer retry scheduler with full bilateral randomized jitter ($0.7 \dots 1.3 \times \text{delay}$) eliminating thundering herd synchronization.
+- 🔢 **Built-in IPv4 Subnet & CIDR Calculator (`⌘⌥S`)**: Offline subnet calculation engine ported from SubnetCalc for macOS with one-click copy, usable host ranges, and RFC 1918 scope analysis.
+- 🛡️ **2025–2026 CVE Protocol Shielding**: Proactive version audit for CVE-2024-6387 (regreSSHion), strict Terrapin attack mitigation (CVE-2023-48795), swift-nio-ssh pin gate (CVE-2026-43798), and Zip-Slip traversal defense (CVE-2026-52886/57233).
 - 🔒 **Native Configuration Bundles & Vault (`.sparkleconfig` / `.sparklevault`)**: Securely backup and restore profiles with AES-256-GCM encryption, PBKDF2-HMAC-SHA256 (600,000 iterations), AAD header binding, and zero-knowledge memory zeroization. Import FileZilla XML, WinSCP INI, and OpenSSH configs with 4 conflict policies.
 - ⚙️ **Comprehensive 10-Tab Settings Registry & Universal Search (`⌘,`)**: Centralized preferences registry featuring dynamic search, per-tab reset, and settings dictionary import/export across all 10 tabs.
 - 🔍 **High-Performance Directory Comparison**: Instant $O(N+M)$ comparison detecting identical files, size mismatches, modification time differences, and missing items across 10,000+ files in milliseconds.
@@ -92,9 +93,11 @@
 - 🌲 **Directory Tree Navigation Sidebar**: Collapsible tree navigation for both local and remote panes with cycle-safe symlink detection.
 - ⚡ **Zero Runaway CPU & Battery Coolness**: Engineered with precision AppKit window notifications, eliminating redraw loops so your Mac stays cool and battery usage drops to 0.0% at idle.
 - 🎨 **All 76 Themes Restored & Instant Eager Access**: Complete catalog of 76 curated themes meeting WCAG 2.1 AA/AAA contrast guidelines.
+- 📂 **Dual-Pane Commander Architecture**: High-speed side-by-side local and remote directory browsers with native AppKit cell reuse, fine-grained `CollectionDifference` diffable animations eliminating reload flicker, and native drag-and-drop to/from macOS Finder.
+- 🚀 **Multi-Worker Dynamic Transfer Scheduler**: Host-based connection pooling with shortest-job-first priority admission, eliminating head-of-line blocking by prioritizing small payloads while streaming large files.
 - ⚡ **macOS Finder QuickActions & URL Schemes**: Native system service "Open in SparkleSFTP" and registered `sftp://`, `ftps://`, and `ssh://` protocol scheme handlers.
+- 💻 **Standalone iTerm2-Style Terminal (`⌘⌥T`)**: Dedicated terminal workspace featuring split vertical and horizontal panes, remote SSH sessions, and OSC 7 directory sync.
 - 🔐 **Apple Keychain & Touch ID Security**: Zero-cloud local security storing credentials, passwords, and private SSH keys strictly inside macOS Keychain.
-- 🌐 **100% Localization Parity**: Complete synchronization across English (`en.json`) and Indonesian (`id.json`) spanning 742 localized strings.
 
 ---
 
@@ -150,7 +153,6 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 | `⌘⌥T`                | Standalone Terminal    | Open the multi-tab iTerm2 terminal workspace                |
 | `⌘\`                 | Toggle Quick Connect   | Show or hide the quick connect connection bar               |
 | `⌘1` / `⌘2`          | Pane Focus             | Switch keyboard focus between Local and Remote file tables  |
-| `⌘K`                 | Lua Macro Console      | Open sandboxed Lua scripting and automation console         |
 | `⌘,`                 | Preferences            | Open the 10-tab Settings window with Search & Reset         |
 | `⌘⌥S`                | Subnet Calculator      | Open native IPv4 Subnet / CIDR calculation hub              |
 | `⇧⌘I`                | Import Connections     | Import connection profiles from WinSCP, FileZilla, or Vault |
@@ -167,7 +169,7 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
-# Expected SHA-256: 58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69
+# Expected SHA-256: cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3
 ```
 
 ---

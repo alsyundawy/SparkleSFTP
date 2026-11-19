@@ -100,18 +100,23 @@ public struct MainWindowView: View {
                 .help(appState.strings.t("nav.editor"))
 
                 Button {
+                    let profile = appState.currentSession?.profile ?? appState.primarySelectedProfile
+                    if let profile, profile.protocolType == .sftp || profile.protocolType == .scp {
+                        appState.openStandaloneTerminal(sshProfile: profile)
+                    } else {
+                        appState.openStandaloneTerminal()
+                    }
+                } label: {
+                    Label(appState.strings.t("nav.standaloneTerminal"), systemImage: "macwindow.on.rectangle")
+                }
+                .help(appState.strings.t("nav.standaloneTerminal"))
+
+                Button {
                     Task { await appState.toggleTerminalDrawerForActiveTab() }
                 } label: {
                     Label(appState.strings.terminal, systemImage: SparkleTheme.Symbols.terminal)
                 }
                 .disabled(appState.currentSession?.sshClient == nil && !appState.isTerminalVisible)
-
-                Button {
-                    appState.openStandaloneTerminal()
-                } label: {
-                    Label(appState.strings.t("nav.standaloneTerminal"), systemImage: "macwindow.on.rectangle")
-                }
-                .help(appState.strings.t("nav.standaloneTerminal"))
 
                 Button {
                     withAnimation {

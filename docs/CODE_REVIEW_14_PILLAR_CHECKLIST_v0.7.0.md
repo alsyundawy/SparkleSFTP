@@ -346,5 +346,5 @@
   - **SonarQube Import:** 0 issues recorded.
 - **Packaging:**
   - `dist/SparkleSFTP.app` Universal 2 fat binary (`x86_64 arm64`).
-  - `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 `58f39b5a09d53471722264a5d3f5db68c5e0067221b492a01742cfd12b78ab69`.
+  - `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 `cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3`.
   - Sparkle `dist/appcast.xml` with Ed25519 signature feed.
