@@ -51,7 +51,7 @@ public struct InternalEditorView: View {
                 goToLineInput: $goToLineInput
             )
 
-            documentTabBar(palette: palette)
+            InternalEditorTabBar(editorManager: editorManager, palette: palette)
 
             if editorManager.isFindBarVisible {
                 InternalEditorFindBarView(
@@ -125,51 +125,6 @@ public struct InternalEditorView: View {
             }
             Spacer()
         }
-    }
-
-    private func documentTabBar(palette: SparkleThemePalette) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                ForEach(editorManager.documents) { doc in
-                    documentTabPill(doc: doc, palette: palette)
-                }
-            }
-            .padding(.horizontal, SparkleTheme.Spacing.small)
-            .padding(.vertical, 4)
-        }
-        .background(palette.windowColor)
-    }
-
-    private func documentTabPill(doc: EditorDocument, palette: SparkleThemePalette) -> some View {
-        let isSelected = editorManager.activeDocument?.id == doc.id
-        return HStack(spacing: 6) {
-            if doc.isRemote {
-                Image(systemName: "network")
-                    .font(.caption2)
-                    .foregroundStyle(palette.accentColor)
-            }
-            Text((doc.isDirty ? "• " : "") + doc.title)
-                .font(SparkleTheme.Typography.caption)
-                .foregroundStyle(palette.primaryTextColor)
-                .lineLimit(1)
-            Button {
-                editorManager.closeDocument(id: doc.id)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption2)
-                    .foregroundStyle(palette.secondaryTextColor)
-            }
-            .buttonStyle(.borderless)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(isSelected ? palette.accentColor.opacity(0.18) : palette.windowColor)
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .overlay(
-            RoundedRectangle(cornerRadius: 5)
-                .stroke(isSelected ? palette.accentColor.opacity(0.6) : palette.borderColor, lineWidth: 1)
-        )
-        .onTapGesture { editorManager.activeDocumentID = doc.id }
     }
 
     private func makeExportDocument() -> NotepadExportFileDocument {

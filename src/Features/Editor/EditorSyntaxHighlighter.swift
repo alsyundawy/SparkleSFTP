@@ -51,23 +51,52 @@ public enum EditorSyntaxHighlighter {
         for language: EditorSyntaxLanguage,
         palette: SparkleThemePalette
     ) -> [HighlightRule] {
+        if let rules = codeAndScriptRules(for: language, palette: palette) {
+            return rules
+        }
+        return markupAndConfigRules(for: language, palette: palette)
+    }
+
+    private static func codeAndScriptRules(
+        for language: EditorSyntaxLanguage,
+        palette: SparkleThemePalette
+    ) -> [HighlightRule]? {
+        switch language {
+        case .swift, .cLanguage, .cpp, .objectiveC, .rust, .golang, .java, .kotlin, .csharp, .scala, .dart,
+             .javascript, .typescript, .jsx, .tsx, .vue, .svelte, .php:
+            return codeRules(language: language, palette: palette)
+        case .python, .ruby, .perl, .lua, .rLanguage, .julia, .shell, .zsh, .fish, .powershell, .batch:
+            return scriptingRules(language: language, palette: palette)
+        default:
+            return nil
+        }
+    }
+
+    private static func markupAndConfigRules(
+        for language: EditorSyntaxLanguage,
+        palette: SparkleThemePalette
+    ) -> [HighlightRule] {
         switch language {
         case .auto, .plainText:
             return []
-        case .swift, .shell:
-            return codeRules(language: language, palette: palette)
+        case .html, .xmlHTML:
+            return xmlRules(palette: palette)
+        case .css, .scss, .less:
+            return cssRules(palette: palette)
         case .json:
             return jsonRules(palette: palette)
-        case .yaml, .iniConfig:
+        case .yaml, .toml, .iniConfig, .properties, .dockerfile, .nginx, .apache, .makefile, .cmake:
             return configRules(palette: palette)
-        case .xmlHTML:
-            return xmlRules(palette: palette)
-        case .markdown:
+        case .markdown, .latex:
             return markdownRules(palette: palette)
-        case .sql:
+        case .sql, .graphql:
             return sqlRules(palette: palette)
+        case .diff:
+            return diffRules(palette: palette)
         case .log:
             return logRules(palette: palette)
+        default:
+            return []
         }
     }
 
@@ -149,27 +178,73 @@ public enum EditorSyntaxHighlighter {
         ]
     }
 
-    private static func codeRules(
+    private static func diffRules(palette: SparkleThemePalette) -> [HighlightRule] {
+        [
+            HighlightRule(pattern: "^\\+.*$", hexColor: palette.stringHex, options: [.anchorsMatchLines]),
+            HighlightRule(pattern: "^-.*$", hexColor: palette.accentHex, options: [.anchorsMatchLines]),
+            HighlightRule(pattern: "^@@.*@@", hexColor: palette.keywordHex, options: [.anchorsMatchLines]),
+            HighlightRule(
+                pattern: "^(diff|index|--- |\\+\\+\\+ ).*$",
+                hexColor: palette.functionHex,
+                options: [.anchorsMatchLines]
+            )
+        ]
+    }
+
+    private static func cssRules(palette: SparkleThemePalette) -> [HighlightRule] {
+        [
+            HighlightRule(pattern: "[.#]?[A-Za-z0-9_-]+(?=\\s*\\{)", hexColor: palette.keywordHex, options: []),
+            HighlightRule(pattern: "[A-Za-z-]+(?=\\s*:)", hexColor: palette.functionHex, options: []),
+            HighlightRule(pattern: ":\\s*[^;{}]+", hexColor: palette.stringHex, options: []),
+            HighlightRule(pattern: "#[0-9a-fA-F]{3,8}\\b", hexColor: palette.numberHex, options: []),
+            HighlightRule(pattern: "/\\*[\\s\\S]*?\\*/", hexColor: palette.secondaryTextHex, options: [])
+        ]
+    }
+
+    private static func scriptingRules(
         language: EditorSyntaxLanguage,
         palette: SparkleThemePalette
     ) -> [HighlightRule] {
-        let swiftKeywords = "\\b(import|struct|class|actor|enum|protocol|func|let|var|"
-            + "if|else|guard|return|switch|case|default|for|while|do|try|catch|"
-            + "throw|throws|async|await|public|private|internal|static|extension|true|false|nil|self)\\b"
-        let shellKeywords = "\\b(if|then|else|elif|fi|for|do|done|while|case|"
-            + "esac|function|return|exit|local|export|set|true|false)\\b"
-        let kwPattern = language == .swift ? swiftKeywords : shellKeywords
-        let commentPattern = language == .swift ? "//.*$|/\\*[\\s\\S]*?\\*/" : "#.*$"
+        let scriptKeywords = "\\b(def|class|import|from|as|return|if|elif|else|for|while|"
+            + "try|except|finally|raise|with|yield|lambda|in|not|and|or|is|None|True|False|"
+            + "sub|my|our|local|function|end|then|do|repeat|until|break|echo|set|export)\\b"
+        let multiStr = "\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"([^\"\\\\]|\\\\.)*\"|'[^']*'"
         return [
-            HighlightRule(pattern: kwPattern, hexColor: palette.keywordHex, options: []),
+            HighlightRule(pattern: scriptKeywords, hexColor: palette.keywordHex, options: []),
             HighlightRule(
                 pattern: "@[A-Za-z_][A-Za-z0-9_]*|\\$[A-Za-z_{][A-Za-z0-9_}]*",
                 hexColor: palette.functionHex,
                 options: []
             ),
-            HighlightRule(pattern: "\"([^\"\\\\]|\\\\.)*\"|'[^']*'", hexColor: palette.stringHex, options: []),
+            HighlightRule(pattern: multiStr, hexColor: palette.stringHex, options: []),
             HighlightRule(pattern: "\\b\\d+(\\.\\d+)?\\b", hexColor: palette.numberHex, options: []),
-            HighlightRule(pattern: commentPattern, hexColor: palette.secondaryTextHex, options: [.anchorsMatchLines])
+            HighlightRule(pattern: "#.*$", hexColor: palette.secondaryTextHex, options: [.anchorsMatchLines])
+        ]
+    }
+
+    private static func codeRules(
+        language: EditorSyntaxLanguage,
+        palette: SparkleThemePalette
+    ) -> [HighlightRule] {
+        let codeKeywords = "\\b(import|export|from|struct|class|actor|enum|protocol|interface|"
+            + "type|func|function|fn|let|var|const|val|if|else|guard|return|switch|case|default|"
+            + "for|while|loop|match|do|try|catch|finally|throw|throws|async|await|pub|public|"
+            + "private|protected|internal|static|extension|implements|extends|trait|impl|"
+            + "true|false|nil|null|undefined|self|this|new|delete)\\b"
+        return [
+            HighlightRule(pattern: codeKeywords, hexColor: palette.keywordHex, options: []),
+            HighlightRule(
+                pattern: "@[A-Za-z_][A-Za-z0-9_]*|\\$[A-Za-z_{][A-Za-z0-9_}]*",
+                hexColor: palette.functionHex,
+                options: []
+            ),
+            HighlightRule(pattern: "\"([^\"\\\\]|\\\\.)*\"|'[^']*'|`[^`]*`", hexColor: palette.stringHex, options: []),
+            HighlightRule(pattern: "\\b\\d+(\\.\\d+)?\\b", hexColor: palette.numberHex, options: []),
+            HighlightRule(
+                pattern: "//.*$|/\\*[\\s\\S]*?\\*/",
+                hexColor: palette.secondaryTextHex,
+                options: [.anchorsMatchLines]
+            )
         ]
     }
 }

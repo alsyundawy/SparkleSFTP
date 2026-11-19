@@ -98,4 +98,52 @@ struct NetworkingHardeningTests {
             #expect(report.advisoryMessage == nil)
         }
     }
+
+    @Test("RemoteServiceFactory throws invalidConfiguration when SCP fallback is disabled")
+    func remoteServiceFactoryEnforcesSCPFallbackFlag() {
+        let scpProfile = ConnectionProfile(
+            name: "Legacy Server",
+            protocolType: .scp,
+            host: "127.0.0.1",
+            port: 22,
+            username: "root"
+        )
+        let disabledFlags = FeatureFlags(isSCPFallbackEnabled: false)
+        #expect(throws: AppError.self) {
+            _ = try RemoteServiceFactory.makeService(
+                for: scpProfile,
+                credentialStore: MockTestCredentialStore(),
+                hostTrustStore: MockTestTrustStore(),
+                featureFlags: disabledFlags,
+                hostTrustPrompt: { _ in true }
+            )
+        }
+
+        let enabledFlags = FeatureFlags(isSCPFallbackEnabled: true)
+        let initialized = try? RemoteServiceFactory.makeService(
+            for: scpProfile,
+            credentialStore: MockTestCredentialStore(),
+            hostTrustStore: MockTestTrustStore(),
+            featureFlags: enabledFlags,
+            hostTrustPrompt: { _ in true }
+        )
+        #expect(initialized != nil)
+    }
+}
+
+private struct MockTestCredentialStore: CredentialStoreProtocol {
+    func saveSecret(_: Data, for _: SecretReference, requireTouchID _: Bool) async throws {}
+    func loadSecret(for _: SecretReference, prompt _: String?) async throws -> Data { Data() }
+    func deleteSecret(for _: SecretReference) async throws {}
+    func hasSecret(for _: SecretReference) async -> Bool { false }
+}
+
+private struct MockTestTrustStore: HostTrustStoreProtocol {
+    func state(forHost _: String, port _: Int) async -> HostTrustState { .trusted(fingerprint: "abc", since: Date()) }
+    func evaluate(host _: String, port _: Int, fingerprint _: String) async -> HostTrustState {
+        .trusted(fingerprint: "abc", since: Date())
+    }
+    func trust(host _: String, port _: Int, fingerprint _: String) async throws {}
+    func reject(host _: String, port _: Int) async throws {}
+    func clearTrust(host _: String, port _: Int) async throws {}
 }

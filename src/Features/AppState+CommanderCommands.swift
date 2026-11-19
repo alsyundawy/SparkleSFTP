@@ -55,16 +55,6 @@ public extension AppState {
         }
     }
 
-    func openInExternalEditor(file: RemoteFile?, isLocal: Bool) async {
-        guard let file, !file.isDirectory else { return }
-        if isLocal {
-            NSWorkspace.shared.open(URL(fileURLWithPath: file.path.rawValue))
-            statusBannerMessage = "\(strings.t("pane.openedExternal")): \(file.name)"
-        } else {
-            await openRemoteFileInEditor(file)
-        }
-    }
-
     func showInFinder(file: RemoteFile?) {
         let urls: [URL] = if let file {
             [URL(fileURLWithPath: file.path.rawValue)]

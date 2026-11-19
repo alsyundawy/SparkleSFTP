@@ -70,6 +70,7 @@
 
 ## 🌟 Key Highlights & What Makes SparkleSFTP Special
 
+- ✍️ **Internal Code & Text Editor (TextKit 2 & 52+ Languages)**: Ultra-fast native editor built on Apple TextKit 2 with zero-allocation UTF-8 line traversal, syntax highlighting for 52+ programming languages and system configs, permanent dark toolbar (`#21252b`), and ergonomic multi-tab bar with dirty indicators (`●` yellow `#e5c07b`) and read-only badges.
 - ⚛️ **Post-Quantum Cryptography & OpenSSH 10.x Standards**: Hybrid ML-KEM-768 (`mlkem768x25519-sha256`, NIST FIPS 203) and Streamlined NTRU Prime (`sntrup761x25519-sha512@openssh.com`) key exchange with real-time post-quantum connection telemetry badges.
 - 🖥️ **Remote Linux Server Administration**: Native Systemd service controller (`systemctl status/restart/reload` for Nginx, Apache, PHP-FPM, MariaDB, Docker, etc.), process explorer (`ps aux` / `kill`), Docker manager, remote log viewer (`tail -f`), and real-time server telemetry (`/proc/loadavg`, `free -m`, `df -h`).
 - 🚀 **Modernized Streaming SCP Compatibility Engine**: 64 KB chunked streaming directly to/from disk (`FileHandle`) eliminating RAM exhaustion (`CWE-400`), decompression bomb ceiling (`CWE-409`), and opt-in `sudo -n` root elevation with strict single-quote escaping (`CWE-78`).

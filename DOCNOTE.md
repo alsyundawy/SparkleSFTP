@@ -108,6 +108,20 @@ actionlint
    - **100% Bilingual Parity, Quality Gates & Universal 2 Release Packaging**: 691 localized strings in `en.json` and `id.json` with 100% key parity; test suite expanded to 157 tests across 45 suites with 100% green status; 0 SwiftLint violations across 278 Swift files; 0 SwiftFormat warnings; 0 Trunk issues (361 files); packaged `SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`).
 
 9. **Next-Gen Protocols, Linux Server Tools, Post-Quantum Cryptography & Security Shielding (`v0.7.0 - Released 2026-11-19`)**:
+   - **TextKit 2 Core, Zero-Allocation Line Count & 52+ Language Syntax Engine (`EditorModels.swift`, `EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `ADR-0013`, `Milestone 11 & 12`)**:
+     - Completed ADR-0013 evaluating Apple TextKit 2 vs. C++ ScintillaCocoa; formally accepted Pure Swift TextKit 2 (Option A) and rejected C++ Scintilla (Option B) for zero binary bloat and native Swift 6 memory safety.
+     - Implemented zero-allocation line traversal in `EditorDocument.lineCount` using single-pass UTF-8 byte scanning over `0x0A`, eliminating thousands of heap substring allocations.
+     - Expanded syntax engine to 52 programming languages, file formats, and system configs (`EditorSyntaxLanguage.swift`) with extension mapping and shebang detection.
+     - Extracted modular ergonomic tab bar (`InternalEditorTabBar.swift`) with dirty indicators (`●` yellow `#e5c07b`), read-only badges (`lock.fill`), line ending (`CRLF`/`LF`), encoding (`UTF-8`), double-click new tab, and tab context menus.
+     - Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint (`InternalEditorToolbar.swift`).
+   - **External Desktop Editor Round-Trip Staging & File Watcher Integration (`AppState+ExternalEditor.swift`, `Milestone 14`)**:
+     - Connected `ExternalEditorDetector` to Commander UI for both local and remote files.
+     - Implemented atomic staging in secure temp directories (`SecureTempDirectory`), captured initial baseline hashes and inodes (`verifyCacheIntegrity()`), and wired automated upload sync-back on save via debounced Darwin file-system watching.
+   - **Biometric Touch ID Preflight & Security Access Controls (`KeychainService.swift`, `Milestone 16`)**:
+     - Added `evaluateTouchIDPreflight` specifically evaluating `.deviceOwnerAuthenticationWithBiometrics` before revealing credentials, and added `isBiometricsAvailable` hardware query.
+   - **Dead Feature Flag Cleanup & Runtime Enforcement (`RemoteServiceFactory.swift`, `AppState+Connections.swift`, `AppState+Imports.swift`, `TerminalWorkspaceView.swift`, `Task 17.5`, `TD-09`)**:
+     - Enforced `featureFlags.isSCPFallbackEnabled` in `RemoteServiceFactory.makeService`, throwing `AppError.invalidConfiguration` when disabled.
+     - Enforced `featureFlags.isPortForwardingEnabled` in `AppState.startPortForwarding` and conditionally rendered tunnel navigation buttons in `TerminalWorkspaceView`.
    - **Post-Quantum Cryptography & OpenSSH 10.x Standards (`SSHKeyExchangeAlgorithm`, `SSHClientService`)**:
      - Integrated hybrid Post-Quantum Key Exchange (PQ-KEX) algorithm classifiers: `mlkem768x25519-sha256` (NIST FIPS 203 ML-KEM hybrid with X25519) and `sntrup761x25519-sha512@openssh.com` (Streamlined NTRU Prime hybrid).
      - Added visual Post-Quantum badge status indicators for active SSH connections.

@@ -86,11 +86,15 @@ public protocol CredentialStoreProtocol: Sendable {
     func deleteSecret(for reference: SecretReference) async throws
     func hasSecret(for reference: SecretReference) async -> Bool
     func evaluateBiometricPolicy(reason: String) async throws
+    func evaluateTouchIDPreflight(reason: String) async throws
     func purgeTransientCache() async
 }
 
 public extension CredentialStoreProtocol {
     func evaluateBiometricPolicy(reason _: String) async throws {}
+    func evaluateTouchIDPreflight(reason: String) async throws {
+        try await evaluateBiometricPolicy(reason: reason)
+    }
     func purgeTransientCache() async {}
 }
 

@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added & Enhanced (Protocols, Linux Server Tools, Security Shielding & Dual-Pane Architecture)
 
+- **Internal Text & Code Editor Core Modernization (TextKit 2, 52+ Languages & Ergonomics)**:
+  - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
+  - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.
+  - **Permanent Dark Toolbar Invariant (`InternalEditorToolbar.swift`, `Task 11.4`)**: Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint.
+  - **Ergonomic Tab Bar & Badges (`InternalEditorTabBar.swift`, `Task 11.5`)**: Extracted modular tab bar with clean/dirty dots (`●` yellow `#e5c07b`), read-only badges (`lock.fill`), line ending (`CRLF`/`LF`), encoding (`UTF-8`), double-click new tab, and tab context menus.
+  - **ADR-0013 Architectural Assessment (`docs/ADR/0013-internal-editor-core-engine-evaluation.md`, `Task 11.1 & 11.2`)**: Formally accepted Pure Swift TextKit 2 Architecture (Option A) and rejected C++ Scintilla/Lexilla (Option B) for zero binary bloat and 100% native Swift 6 safety.
+- **External Editor Workflow Wiring (`AppState+ExternalEditor.swift`, `Task 14.1`)**:
+  - Connected `ExternalEditorDetector` to Commander UI for both local and remote files.
+  - Downloads remote files to isolated secure temp directories, captures baseline hashes and inodes, opens with the detected external editor, and automatically uploads modifications back to the remote server via debounced file-system watching.
+- **Biometric Touch ID & Keychain Hardening (`KeychainService.swift`, `Task 16.4`)**:
+  - Added `evaluateTouchIDPreflight` and `isBiometricsAvailable` preflight checks.
+- **Dead Feature Flag Cleanup & Wiring (`RemoteServiceFactory.swift`, `AppState+Connections.swift`, `AppState+Imports.swift`, `TerminalWorkspaceView.swift`, `Task 17.5`, `TD-09`)**:
+  - Enforced `featureFlags.isSCPFallbackEnabled` in `RemoteServiceFactory.makeService`.
+  - Enforced `featureFlags.isPortForwardingEnabled` in `AppState.startPortForwarding` and `TerminalWorkspaceView`.
 - **Post-Quantum Cryptography & OpenSSH 10.x Standards (`SSHKeyExchangeAlgorithm`, `SSHClientService`)**:
   - Implemented hybrid Post-Quantum Key Exchange (PQ-KEX) algorithm classifiers:
     - `mlkem768x25519-sha256`: NIST FIPS 203 ML-KEM hybrid with X25519.

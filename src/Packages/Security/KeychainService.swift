@@ -186,6 +186,35 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
         }
     }
 
+    /// Evaluates Touch ID / local biometric preflight specifically before revealing sensitive keys.
+    public func evaluateTouchIDPreflight(reason: String) async throws {
+        let context = LAContext()
+        var authError: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &authError) else {
+            try await evaluateBiometricPolicy(reason: reason)
+            return
+        }
+        do {
+            let granted = try await context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: reason
+            )
+            if !granted {
+                throw AppError.biometricAuthenticationFailed(reason: "Touch ID authentication denied")
+            }
+        } catch let error as AppError {
+            throw error
+        } catch {
+            throw AppError.biometricAuthenticationFailed(reason: error.localizedDescription)
+        }
+    }
+
+    /// Checks whether Touch ID hardware and biometric enrollment are active on this Mac.
+    public var isBiometricsAvailable: Bool {
+        let context = LAContext()
+        return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+    }
+
     private func deleteSync(accountKey: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

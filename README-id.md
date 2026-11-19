@@ -70,6 +70,7 @@
 
 ## 🌟 Sorotan Utama & Keunggulan bagi Pengguna di v0.7.0
 
+- ✍️ **Editor Teks & Kode Internal (TextKit 2 & 52+ Bahasa)**: Editor native berkinerja tinggi berbasis Apple TextKit 2 dengan zero-allocation UTF-8 line traversal, pewarna sintaks untuk 52+ bahasa pemrograman dan berkas konfigurasi, toolbar gelap permanen (`#21252b`), dan bilah tab multi-dokumen ergonomis dengan titik dirty (`●` kuning `#e5c07b`) serta lencana read-only.
 - ⚛️ **Kriptografi Pasca-Kuantum & Standar OpenSSH 10.x**: Pertukaran kunci hibrida Post-Quantum (PQ-KEX) ML-KEM-768 (`mlkem768x25519-sha256`, NIST FIPS 203) dan Streamlined NTRU Prime (`sntrup761x25519-sha512@openssh.com`) dengan lencana telemetri koneksi langsung di antarmuka.
 - 🖥️ **Administrasi Server Linux Jarak Jauh**: Pengontrol layanan systemd native (`systemctl status/restart/reload` untuk Nginx, Apache, PHP-FPM, MariaDB, Docker, dll.), penjelajah proses (`ps aux` / `kill`), manajer Docker, penampil log live (`tail -f`), dan telemetri sumber daya server langsung (`/proc/loadavg`, `free -m`, `df -h`).
 - 🚀 **Mesin Kompatibilitas SCP Streaming Modern**: Pengaliran data per bongkahan 64 KB langsung ke/dari disk (`FileHandle`) mencegah ledakan memori RAM (`CWE-400`), batas dekrompresi aman (`CWE-409`), dan elevasi hak akses root opsional `sudo -n` dengan sanitasi tanda petik tunggal ketat (`CWE-78`).

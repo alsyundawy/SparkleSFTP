@@ -49,6 +49,10 @@ public extension AppState {
     }
 
     func startPortForwarding(_ rule: PortForwardingRule) async {
+        guard featureFlags.isPortForwardingEnabled else {
+            lastError = .invalidConfiguration("Port forwarding is disabled by feature flag")
+            return
+        }
         guard let sshClient = currentSession?.sshClient else {
             lastError = .notConnected
             return

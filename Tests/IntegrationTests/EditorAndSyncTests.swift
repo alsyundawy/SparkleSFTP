@@ -155,6 +155,34 @@ struct EditorAndSyncTests {
         let downloaded = try Data(contentsOf: dir.appendingPathComponent("download.txt"))
         #expect(downloaded == remoteData)
     }
+
+    @Test("Zero-allocation line count traverses UTF-8 bytes and detect resolves 52+ languages")
+    func zeroAllocationLineCountAndSyntaxDetection() {
+        let emptyDoc = EditorDocument(title: "empty.txt", content: "")
+        #expect(emptyDoc.lineCount == 1)
+
+        let singleDoc = EditorDocument(title: "single.txt", content: "hello world")
+        #expect(singleDoc.lineCount == 1)
+
+        let multiDoc = EditorDocument(title: "multi.txt", content: "line 1\nline 2\nline 3")
+        #expect(multiDoc.lineCount == 3)
+
+        let trailingDoc = EditorDocument(title: "trailing.txt", content: "line 1\nline 2\n")
+        #expect(trailingDoc.lineCount == 3)
+
+        let crlfDoc = EditorDocument(title: "crlf.txt", content: "line 1\r\nline 2\r\nline 3\r\n")
+        #expect(crlfDoc.lineCount == 4)
+
+        #expect(EditorSyntaxLanguage.detect(from: "main.swift") == .swift)
+        #expect(EditorSyntaxLanguage.detect(from: "App.tsx") == .tsx)
+        #expect(EditorSyntaxLanguage.detect(from: "server.py") == .python)
+        #expect(EditorSyntaxLanguage.detect(from: "Dockerfile") == .dockerfile)
+        #expect(EditorSyntaxLanguage.detect(from: "nginx.conf") == .nginx)
+        #expect(EditorSyntaxLanguage.detect(from: "config.toml") == .toml)
+        #expect(EditorSyntaxLanguage.detect(from: "styles.css") == .css)
+        #expect(EditorSyntaxLanguage.detect(from: "diff.patch") == .diff)
+        #expect(EditorSyntaxLanguage.detect(from: "script.sh", content: "#!/usr/bin/env python3") == .python)
+    }
 }
 
 private actor BidirectionalMockRemoteFS: RemoteFileSystem {

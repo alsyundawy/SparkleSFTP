@@ -1,80 +1,6 @@
 import Foundation
 import SparkleCore
 
-public enum EditorSyntaxLanguage: String, Sendable, CaseIterable, Identifiable {
-    case auto
-    case plainText
-    case swift
-    case json
-    case yaml
-    case xmlHTML
-    case shell
-    case markdown
-    case iniConfig
-    case sql
-    case log
-
-    public var id: String {
-        rawValue
-    }
-
-    public var displayName: String {
-        switch self {
-        case .auto: return "Auto"
-        case .plainText: return "Plain Text"
-        case .swift: return "Swift"
-        case .json: return "JSON"
-        case .yaml: return "YAML"
-        case .xmlHTML: return "XML / HTML"
-        case .shell: return "Shell / Bash"
-        case .markdown: return "Markdown"
-        case .iniConfig: return "INI / Conf"
-        case .sql: return "SQL"
-        case .log: return "Log"
-        }
-    }
-
-    private static let extensionMap: [String: EditorSyntaxLanguage] = [
-        "swift": .swift,
-        "json": .json,
-        "appcast": .json,
-        "yml": .yaml,
-        "yaml": .yaml,
-        "xml": .xmlHTML,
-        "html": .xmlHTML,
-        "htm": .xmlHTML,
-        "plist": .xmlHTML,
-        "entitlements": .xmlHTML,
-        "svg": .xmlHTML,
-        "sh": .shell,
-        "bash": .shell,
-        "zsh": .shell,
-        "md": .markdown,
-        "markdown": .markdown,
-        "ini": .iniConfig,
-        "conf": .iniConfig,
-        "cfg": .iniConfig,
-        "toml": .iniConfig,
-        "env": .iniConfig,
-        "properties": .iniConfig,
-        "sql": .sql,
-        "log": .log,
-        "out": .log
-    ]
-
-    public static func detect(from filename: String) -> EditorSyntaxLanguage {
-        let lower = filename.lowercased()
-        let ext = (lower as NSString).pathExtension
-        if let mapped = extensionMap[ext] {
-            return mapped
-        }
-        if lower.contains("dockerfile") || lower.hasPrefix(".") {
-            return .iniConfig
-        }
-        return .plainText
-    }
-}
-
 public enum EditorLineEnding: String, Sendable, CaseIterable, Identifiable {
     case unixLF = "\n"
     case windowsCRLF = "\r\n"
@@ -328,7 +254,11 @@ public struct EditorDocument: Identifiable, Sendable, Equatable {
 
     public var lineCount: Int {
         guard !content.isEmpty else { return 1 }
-        return content.split(separator: "\n", omittingEmptySubsequences: false).count
+        var count = 1
+        for byte in content.utf8 where byte == 0x0A {
+            count += 1
+        }
+        return count
     }
 
     public var byteCount: Int {

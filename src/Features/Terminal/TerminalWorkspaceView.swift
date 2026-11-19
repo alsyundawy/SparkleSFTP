@@ -54,7 +54,9 @@ public struct TerminalWorkspaceView: View {
                 }
 
                 Button(appState.strings.t("nav.snippets")) { isShowingSnippets = true }
-                Button(appState.strings.t("nav.tunnels")) { isShowingForwarding = true }
+                if appState.featureFlags.isPortForwardingEnabled {
+                    Button(appState.strings.t("nav.tunnels")) { isShowingForwarding = true }
+                }
 
                 Button {
                     appState.setActiveTabTerminalVisibility(false)

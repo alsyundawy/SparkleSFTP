@@ -175,7 +175,14 @@ public extension AppState {
         }
 
         guard await authenticateBiometricsIfNeeded(for: profile) else { return }
-        let created = buildRemoteService(for: profile)
+        let created: (service: RemoteService, sshClient: SSHClientService?)
+        do {
+            created = try buildRemoteService(for: profile)
+        } catch {
+            ActivityLogger.shared.logError("Failed to initialize transport: \(error.localizedDescription)")
+            reportNonCancellationError(error)
+            return
+        }
         ActivityLogger.shared.logStatus(
             "Connecting to \(profile.host):\(profile.port) via \(profile.protocolType.rawValue.uppercased())..."
         )
@@ -194,25 +201,34 @@ public extension AppState {
             ActivityLogger.shared.logStatus(
                 "Connected to \(profile.name) (\(profile.host):\(profile.port))."
             )
-        } catch let appError as AppError {
-            if didConnectTransport, !committedSession {
-                try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
-            }
+        } catch {
+            await handleConnectionFailure(
+                error: error,
+                created: created,
+                didConnectTransport: didConnectTransport,
+                committedSession: committedSession
+            )
+        }
+    }
+
+    private func handleConnectionFailure(
+        error: Error,
+        created: (service: RemoteService, sshClient: SSHClientService?),
+        didConnectTransport: Bool,
+        committedSession: Bool
+    ) async {
+        if didConnectTransport, !committedSession {
+            try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
+        }
+        if let appError = error as? AppError {
             if case .hostKeyMismatch = appError {
                 hostMismatchAlert = appError
             }
             lastError = appError
             ActivityLogger.shared.logError("Connection failed: \(appError.localizedDescription)")
-        } catch is CancellationError {
-            if didConnectTransport, !committedSession {
-                try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
-            }
+        } else if error is CancellationError {
             ActivityLogger.shared.logStatus("Connection cancelled.")
-            return
-        } catch {
-            if didConnectTransport, !committedSession {
-                try? await created.service.connection.disconnect(policy: .cancelAllTransfers)
-            }
+        } else {
             ActivityLogger.shared.logError("Connection error: \(error.localizedDescription)")
             reportNonCancellationError(error)
         }
@@ -231,11 +247,11 @@ public extension AppState {
         }
     }
 
-    private func buildRemoteService(for profile: ConnectionProfile) -> (
+    private func buildRemoteService(for profile: ConnectionProfile) throws -> (
         service: RemoteService,
         sshClient: SSHClientService?
     ) {
-        RemoteServiceFactory.makeService(
+        try RemoteServiceFactory.makeService(
             for: profile,
             credentialStore: credentialStore,
             hostTrustStore: hostTrustStore,
@@ -253,6 +269,7 @@ public extension AppState {
                 pipelineDepth: transferPipelineDepth,
                 useCompression: useZlibCompression
             ),
+            featureFlags: featureFlags,
             hostTrustPrompt: { [weak self] challenge in
                 guard let self else { return false }
                 return await promptHostKeyChallenge(challenge)

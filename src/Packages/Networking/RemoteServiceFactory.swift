@@ -20,8 +20,9 @@ public enum RemoteServiceFactory {
         credentialPrompt: SSHClientService.CredentialPromptHandler? = nil,
         jumpProfileResolver: SSHClientService.JumpProfileResolver? = nil,
         options: RemoteTransportOptions = RemoteTransportOptions(),
+        featureFlags: FeatureFlags = FeatureFlags.fromEnvironment(),
         hostTrustPrompt: @escaping SSHClientService.HostTrustPromptHandler
-    ) -> (service: RemoteService, sshClient: SSHClientService?) {
+    ) throws -> (service: RemoteService, sshClient: SSHClientService?) {
         switch profile.protocolType {
         case .sftp:
             let ssh = SSHClientService(
@@ -40,6 +41,9 @@ public enum RemoteServiceFactory {
             return (RemoteService(connection: sftp, fileSystem: sftp), ssh)
 
         case .scp:
+            guard featureFlags.isSCPFallbackEnabled else {
+                throw AppError.invalidConfiguration("SCP protocol fallback is disabled by configuration")
+            }
             let ssh = SSHClientService(
                 profile: profile,
                 credentialStore: credentialStore,

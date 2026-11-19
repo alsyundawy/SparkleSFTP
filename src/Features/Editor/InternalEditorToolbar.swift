@@ -28,11 +28,11 @@ struct InternalEditorToolbar: View {
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, 5)
         }
-        .background(Color(hex: appState.activePalette.windowHex))
+        .background(Color(hex: "#21252b"))
         .overlay(
             Rectangle()
                 .frame(height: 1)
-                .foregroundStyle(Color(hex: appState.activePalette.borderHex)),
+                .foregroundStyle(Color(hex: "#181a1f")),
             alignment: .bottom
         )
     }
@@ -192,6 +192,7 @@ struct InternalEditorToolbar: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: 13))
+                .foregroundStyle(Color(hex: "#abb2bf"))
                 .frame(width: 24, height: 22)
         }
         .buttonStyle(.borderless)
@@ -203,6 +204,7 @@ struct InternalEditorToolbar: View {
         Toggle(isOn: isOn) {
             Image(systemName: systemImage)
                 .font(.system(size: 13))
+                .foregroundStyle(Color(hex: "#abb2bf"))
                 .frame(width: 22, height: 20)
         }
         .toggleStyle(.button)
