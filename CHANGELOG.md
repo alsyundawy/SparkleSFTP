@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added & Enhanced (Protocols, Linux Server Tools, Security Shielding & Dual-Pane Architecture)
 
+- **Enterprise FTPS & Cryptographic Preflight Parity (Tasks 4.1, 4.4, 4.5, 9.1, 9.4, `TD-10`)**:
+  - **Explicit FTPS `SecTrust` & OCSP/CRL Preflight (`TLSCertificateValidator.swift`, `FTPService.swift`, `Task 4.1`)**: Dynamically upgrades explicit FTPS connections over port 21 via `ExplicitFTPSFramer` (`NWProtocolFramerImplementation` + `prependApplicationProtocol`). Enforces `SecTrustEvaluateWithError` chain validation, hostname matching, expiry dates, and `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` revocation checks before any FTP control commands or credentials are exchanged.
+  - **Active Mode FTP Support (`PORT` / `EPRT`) (`CurlClientHelper.swift`, `Task 4.4`)**: Added `activeMode: Bool` to `CurlRequestContext` and configured `CURLOPT_FTPPORT` (`"-"`) enabling automated interface IP detection and `EPRT`/`PORT` negotiation behind non-NAT and VPN configurations.
+  - **FTP Character Set Fallback Negotiation (`FTPListingParser.swift`, `Task 4.5`)**: Multi-encoding fallback decoder: UTF-8 -> ISO-8859-1 (Latin1) -> Windows-1252 -> ASCII lossy conversion, ensuring robust directory parsing on non-UTF-8 FTP servers.
+  - **Interactive X.509 Visual Certificate Inspector (`CertificateInspectorSheet.swift`, `Task 9.1`)**: Displays host, status badge (trusted/expiring/expired/untrusted), subject CN, issuer, validity window, copyable SHA-256 fingerprint, and modal close button.
+  - **CRL & OCSP Revocation Verification (`Task 9.4`)**: Enforces `kSecRevocationOCSPMethod | kSecRevocationCRLMethod` fail-closed verification on all TLS preflights.
+- **Advanced SSH & SFTP Protocol Architecture (Tasks 2.5, 3.6, `TD-13`)**:
+  - **Multi-Hop OpenSSH ProxyJump Parser & Dynamic SOCKS5 Port Forwarding (`ProxyJumpParser.swift`, `PortForwardingManager.swift`, `Task 2.5`)**: Added `ProxyJumpParser` validating sequential bastion jump topologies (`jump1:22,bastion@jump2:2222,[::1]:2200`) with strict shell injection shielding (`CWE-78`). Added `-D` Dynamic SOCKS5 port forwarding mode in `PortForwardingRule.Direction` and `PortForwardingManager`.
+  - **Streaming `READDIR` AsyncSequence Generator (`SFTPService+Listing.swift`, `Task 3.6`, `TD-13`)**: Added `SFTPService.streamDirectory(at:batchSize:)` yielding `AsyncThrowingStream<[RemoteFile], Error>` in 500-item chunks with cooperative cancellation and memory-bounded flat profile across 100,000+ files.
+- **Code Quality, SonarQube & Release Infrastructure (Tasks 17.6, 18.2, 18.5, 18.6)**:
+  - **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 317 source files.
+  - **Full 14-Pillar Multi-Linter Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 317 files with 0 violations, and `shellcheck -s bash` passed with 0 warnings.
+
 - **Dual-Pane Commander Navigation & Ergonomics Enhancements**:
   - **Clickable Breadcrumbs Navigation Bar (`BreadcrumbsBarView.swift`, `Task 6.4`)**: Interactive segment-based folder navigation replacing raw text fields above local and remote panes. Single-click segment jumps to any parent directory, right-click copies path or prompts manual editing, and double-click switches to raw path entry.
   - **Standard Commander Keyboard Shortcuts (F3–F8) (`CommanderFunctionKeyBar.swift`, `Task 6.2`)**: Implemented classic Midnight Commander / Total Commander function key bar with zero-unwrapped `KeyEquivalent` bindings: `F3 View` (QuickLook preview), `F4 Edit` (Internal editor), `F5 Copy` (Cross-pane transfer), `F6 Move` (Move/rename), `F7 Mkdir` (New folder), and `F8 Delete` (Delete with confirmation).
@@ -28,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Native Notification Center Alerts (`AppState+Connections.swift`)**: Emits notifications on batch transfer completions and transfer failures.
 - **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`)**:
   - Compiled Universal 2 fat binary (`lipo -archs` = `x86_64 arm64`) in release mode (`-O`).
-  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `092feab0e463c0e17ab1de1f25ade0a512c9ea24fbfe1a3f4546310f4ca54dc8`.
+  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `2239284ef646ca70e7908938e3c49c6b652532918fd8699a65331e628c6eea8e`.
   - Automated Sparkle Ed25519 Appcast Feed Generation (`Tools/Release/generate-appcast.sh`, `Task 18.2`): Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length, and cryptographic signature verification.
 - **Developer & Security Tools Hub (`EditorDeveloperTools.swift`, `Task 12.3`)**:
   - Pure Swift 6 high-performance text manipulation engine ported from NotepadMac:
