@@ -76,14 +76,10 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     }
 
     public func makeNSView(context: Context) -> TerminalView {
-        let view = TerminalView(frame: .zero, options: TerminalOptions(scrollback: 10000))
-        view.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let view = session.getOrCreateTerminalView()
         applyTheme(themeColors, to: view)
         context.coordinator.cachedThemeColors = themeColors
-        view.optionAsMetaKey = true
-        view.allowMouseReporting = true
         view.terminalDelegate = context.coordinator
-        session.attachTerminalView(view)
         return view
     }
 

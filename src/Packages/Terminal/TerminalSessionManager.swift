@@ -60,6 +60,7 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     private static let maxPendingOutputBytes = 256 * 1024
     private weak var terminalView: TerminalView?
+    private var persistentTerminalView: TerminalView?
     private let resourceBox = PTYResourceBox()
     private var pendingCommandInsertion: String?
     private var pendingOutputBuffer: [UInt8] = []
@@ -80,8 +81,24 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
         resourceBox.closeAll()
     }
 
+    public func getOrCreateTerminalView() -> TerminalView {
+        if let existing = persistentTerminalView {
+            return existing
+        }
+        let view = TerminalView(frame: .zero, options: TerminalOptions(scrollback: 10000))
+        view.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        view.optionAsMetaKey = true
+        view.allowMouseReporting = true
+        persistentTerminalView = view
+        attachTerminalView(view)
+        return view
+    }
+
     public func attachTerminalView(_ view: TerminalView) {
         terminalView = view
+        if persistentTerminalView == nil {
+            persistentTerminalView = view
+        }
         if !pendingOutputBuffer.isEmpty {
             let buffered = pendingOutputBuffer
             pendingOutputBuffer.removeAll(keepingCapacity: false)
@@ -92,16 +109,29 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     public func attachPTYChannel(_ channel: SSHPTYChannel) {
         isActive = true
         let task = Task { [weak self, weak view = terminalView] in
+            var buffer: [UInt8] = []
+            var lastFlush = ContinuousClock.now
+            let flushInterval = Duration.milliseconds(16)
+            let maxChunkSize = 32 * 1024
+
             for await bytes in channel.outputStream {
-                if Task.isCancelled {
-                    break
-                }
-                await MainActor.run {
-                    if let activeView = self?.terminalView ?? view {
-                        activeView.feed(byteArray: bytes[...])
-                    } else if let strongSelf = self {
-                        strongSelf.appendPendingOutput(bytes)
+                if Task.isCancelled { break }
+                buffer.append(contentsOf: bytes)
+                let elapsed = ContinuousClock.now - lastFlush
+                if elapsed >= flushInterval || buffer.count >= maxChunkSize {
+                    let chunk = buffer
+                    buffer.removeAll(keepingCapacity: true)
+                    lastFlush = ContinuousClock.now
+                    await MainActor.run {
+                        self?.flushBufferedOutput(chunk, fallbackView: view)
                     }
+                }
+            }
+            if !buffer.isEmpty {
+                let chunk = buffer
+                buffer.removeAll(keepingCapacity: false)
+                await MainActor.run {
+                    self?.flushBufferedOutput(chunk, fallbackView: view)
                 }
             }
             await MainActor.run {
@@ -114,6 +144,15 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
             pendingCommandInsertion = nil
             let bytes = Array(pending.utf8)
             resourceBox.write(bytes[...])
+        }
+    }
+
+    private func flushBufferedOutput(_ chunk: [UInt8], fallbackView: TerminalView?) {
+        guard !chunk.isEmpty else { return }
+        if let activeView = terminalView ?? fallbackView {
+            activeView.feed(byteArray: chunk[...])
+        } else {
+            appendPendingOutput(chunk)
         }
     }
 
@@ -156,6 +195,22 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     public func resizePTY(cols: Int, rows: Int) {
         resourceBox.resize(cols: cols, rows: rows)
+    }
+
+    public func searchNext(_ query: String, caseSensitive: Bool = false) -> (index: Int, total: Int)? {
+        guard let view = terminalView, !query.isEmpty else { return nil }
+        let options = SearchOptions(caseSensitive: caseSensitive, regex: false, wholeWord: false)
+        _ = view.findNext(query, options: options, scrollToResult: true)
+        let summary = view.searchMatchSummary(query, options: options, limit: 1000)
+        return (summary.index, summary.total)
+    }
+
+    public func searchPrevious(_ query: String, caseSensitive: Bool = false) -> (index: Int, total: Int)? {
+        guard let view = terminalView, !query.isEmpty else { return nil }
+        let options = SearchOptions(caseSensitive: caseSensitive, regex: false, wholeWord: false)
+        _ = view.findPrevious(query, options: options, scrollToResult: true)
+        let summary = view.searchMatchSummary(query, options: options, limit: 1000)
+        return (summary.index, summary.total)
     }
 
     public func updateTitle(_ newTitle: String) {

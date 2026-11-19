@@ -8,6 +8,9 @@ public struct TerminalWorkspaceView: View {
     @ObservedObject var terminalManager: TerminalSessionManager
     @State private var isShowingSnippets = false
     @State private var isShowingForwarding = false
+    @State private var isShowingFind = false
+    @State private var findQuery = ""
+    @State private var findSummary = ""
 
     public init(appState: AppState) {
         self.appState = appState
@@ -59,6 +62,14 @@ public struct TerminalWorkspaceView: View {
                 }
 
                 Button {
+                    isShowingFind.toggle()
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .buttonStyle(.borderless)
+                .help(appState.strings.t("term.find"))
+
+                Button {
                     appState.setActiveTabTerminalVisibility(false)
                 } label: {
                     Image(systemName: "xmark")
@@ -69,6 +80,50 @@ public struct TerminalWorkspaceView: View {
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
             .background(palette.windowColor)
+
+            if isShowingFind {
+                HStack(spacing: SparkleTheme.Spacing.tiny) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.caption)
+                        .foregroundStyle(palette.secondaryTextColor)
+                    TextField(appState.strings.t("term.findPlaceholder"), text: $findQuery)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .onSubmit { performFind(forward: true) }
+                    if !findSummary.isEmpty {
+                        Text(findSummary)
+                            .font(.caption2)
+                            .foregroundStyle(palette.secondaryTextColor)
+                    }
+                    Button {
+                        performFind(forward: false)
+                    } label: {
+                        Image(systemName: "chevron.up")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(appState.strings.t("editor.findPrev"))
+
+                    Button {
+                        performFind(forward: true)
+                    } label: {
+                        Image(systemName: "chevron.down")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(appState.strings.t("editor.findNext"))
+
+                    Button {
+                        isShowingFind = false
+                        findQuery = ""
+                        findSummary = ""
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .buttonStyle(.borderless)
+                }
+                .padding(.horizontal, SparkleTheme.Spacing.small)
+                .padding(.vertical, 4)
+                .background(palette.windowColor.opacity(0.95))
+            }
 
             if let activeShell = shellSession {
                 let termTheme = TerminalThemeColors(
@@ -110,6 +165,19 @@ public struct TerminalWorkspaceView: View {
     private func terminalSessionView(session: TerminalTabSession, themeColors: TerminalThemeColors) -> some View {
         TerminalViewRepresentable(session: session, themeColors: themeColors)
             .id(session.id)
+    }
+
+    private func performFind(forward: Bool) {
+        guard let session = boundShellSession, !findQuery.isEmpty else {
+            findSummary = ""
+            return
+        }
+        let res = forward ? session.searchNext(findQuery) : session.searchPrevious(findQuery)
+        if let res, res.total > 0 {
+            findSummary = "\(res.index + 1)/\(res.total)"
+        } else {
+            findSummary = "0/0"
+        }
     }
 }
 

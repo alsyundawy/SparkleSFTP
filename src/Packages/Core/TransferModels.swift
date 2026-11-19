@@ -27,6 +27,7 @@ public struct TransferProgress: Sendable, Equatable {
 public enum TransferDirection: String, Sendable, Codable {
     case upload
     case download
+    case remoteToRemote
 }
 
 public enum TransferPriority: Int, Sendable, Codable, Comparable {
@@ -101,7 +102,7 @@ public struct TransferTaskMetadata: Identifiable, Sendable, Codable, Equatable {
 
     public var targetHost: String {
         switch direction {
-        case .upload:
+        case .upload, .remoteToRemote:
             return destination.hostKey
         case .download:
             return source.hostKey

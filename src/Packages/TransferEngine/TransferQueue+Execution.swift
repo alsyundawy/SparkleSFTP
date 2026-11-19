@@ -80,6 +80,14 @@ extension TransferQueue {
                 localURL: localURL,
                 remotePath: remotePath
             )
+        case let (.remoteToRemote, .remote(srcID, _, srcPath), .remote(dstID, _, dstPath)):
+            try await performRemoteToRemoteAttempt(
+                metadata: metadata,
+                srcProfileID: srcID,
+                srcPath: srcPath,
+                dstProfileID: dstID,
+                dstPath: dstPath
+            )
         default:
             throw AppError.invalidConfiguration("Unsupported transfer endpoint combination")
         }

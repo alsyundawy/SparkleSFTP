@@ -166,7 +166,7 @@ public extension AppState {
             switch item.metadata.direction {
             case .download:
                 sawNewLocalDownload = true
-            case .upload:
+            case .upload, .remoteToRemote:
                 sawNewRemoteUpload = true
             }
         }
