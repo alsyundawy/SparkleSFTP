@@ -43,14 +43,33 @@ extension DualPaneCommanderView {
 
             remoteNavGroup(session: session)
 
-            TextField(appState.strings.t("nav.remotePath"), text: $remotePathText)
-                .textFieldStyle(.roundedBorder)
-                .font(SparkleTheme.Typography.monoSmall)
-                .onSubmit {
-                    Task { await appState.refreshRemoteDirectory(at: RemotePath(rawValue: remotePathText)) }
-                }
+            BreadcrumbsBarView(
+                currentPath: session.currentRemotePath.rawValue,
+                isLocal: false,
+                palette: appState.activePalette,
+                isEditingText: $isEditingRemotePath,
+                manualPathInput: $remotePathText
+            ) { newPath in
+                Task { await appState.refreshRemoteDirectory(at: RemotePath(rawValue: newPath)) }
+            }
 
             BookmarkQuickJumpMenu(appState: appState, isLocal: false)
+
+            Button {
+                withAnimation { isShowingRemoteFilter.toggle() }
+            } label: {
+                Image(
+                    systemName: isShowingRemoteFilter
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle"
+                )
+                .foregroundStyle(
+                    isShowingRemoteFilter || !remoteFilterQuery.isEmpty
+                        ? appState.activePalette.accentColor
+                        : appState.activePalette.secondaryTextColor
+                )
+            }
+            .help("Toggle filter bar (⌘F)")
 
             Button {
                 previewQuickLook(selectedFile(isLocal: false), isLocal: false)
@@ -211,5 +230,140 @@ extension DualPaneCommanderView {
             }
         }
         return true
+    }
+
+    var commanderFunctionKeys: some View {
+        CommanderFunctionKeyBar(
+            palette: appState.activePalette,
+            onView: { triggerQuickLookOnActivePane() },
+            onEdit: { triggerEditOnActivePane() },
+            onCopy: { Task { await appState.enqueueSelectedTransfer() } },
+            onMove: { triggerMoveOnActivePane() },
+            onMkdir: { isShowingNewFolderSheet = true },
+            onDelete: { Task { await appState.deleteSelectedItems() } }
+        )
+    }
+
+    var newFolderSheet: some View {
+        VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
+            Text(appState.strings.newFolder).font(SparkleTheme.Typography.title)
+            TextField(appState.strings.t("pane.folderName"), text: $newFolderName)
+            Spacer(minLength: 0)
+            HStack {
+                Spacer()
+                Button(appState.strings.t("common.cancel"), role: .cancel) { isShowingNewFolderSheet = false }
+                Button(appState.strings.t("common.create")) {
+                    let name = newFolderName
+                    newFolderName = ""
+                    isShowingNewFolderSheet = false
+                    Task { await appState.createFolder(named: name) }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .frame(width: 360, height: 165)
+        .sparkleWorkspaceSurface(appState.activePalette)
+    }
+
+    func triggerQuickLookOnActivePane() {
+        let isLocal = appState.activePane == .left
+        if isLocal {
+            if let selectedID = appState.selectedLocalFileIDs.first {
+                quickLookCoordinator.preview(url: URL(fileURLWithPath: selectedID))
+            }
+        } else {
+            previewQuickLook(selectedFile(isLocal: false), isLocal: false)
+        }
+    }
+
+    func triggerEditOnActivePane() {
+        let isLocal = appState.activePane == .left
+        guard let file = selectedFile(isLocal: isLocal), !file.isDirectory else { return }
+        if isLocal {
+            appState.openLocalFileInInternalEditor(file)
+        } else {
+            Task { await appState.openRemoteFileInInternalEditor(file) }
+        }
+    }
+
+    func triggerMoveOnActivePane() {
+        let isLocal = appState.activePane == .left
+        guard let file = selectedFile(isLocal: isLocal) else { return }
+        renamingContext = (file, isLocal)
+    }
+
+    func attachCommanderSheets<Content: View>(_ content: Content) -> some View {
+        attachTransferAndReportSheets(attachCoreSheets(content))
+    }
+
+    private func attachCoreSheets<Content: View>(_ content: Content) -> some View {
+        content
+            .sheet(isPresented: $isShowingNewFolderSheet) {
+                newFolderSheet
+            }
+            .sheet(item: $editingPermissionsFile) { file in
+                PermissionsEditorSheet(file: file, strings: appState.strings) { mode in
+                    Task { await appState.setRemotePermissions(mode, for: file) }
+                }
+                .environment(\.sparklePalette, appState.activePalette)
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { renamingContext != nil },
+                    set: { if !$0 { renamingContext = nil } }
+                )
+            ) {
+                if let ctx = renamingContext {
+                    RenameItemSheet(item: ctx.item, strings: appState.strings) { updatedName in
+                        Task { await appState.renameItem(ctx.item, to: updatedName, isLocal: ctx.isLocal) }
+                    }
+                    .environment(\.sparklePalette, appState.activePalette)
+                }
+            }
+            .sheet(item: $inspectorContext) { ctx in
+                FileInspectorSheet(item: ctx.item, isLocal: ctx.isLocal, strings: appState.strings)
+                    .environment(\.sparklePalette, appState.activePalette)
+            }
+    }
+
+    private func attachTransferAndReportSheets<Content: View>(_ content: Content) -> some View {
+        content
+            .sheet(item: $appState.pendingCopyMoveRequest) { req in
+                let oppDefault = req.isLocal
+                    ? (appState.currentSession?.currentRemotePath.rawValue ?? "/")
+                    : appState.localCurrentURL.path
+                let sameDefault = req.isLocal
+                    ? appState.localCurrentURL.path
+                    : (appState.currentSession?.currentRemotePath.rawValue ?? "/")
+                CopyMoveItemSheet(
+                    request: req,
+                    hasActiveSession: appState.currentSession != nil,
+                    oppositeDefaultPath: oppDefault,
+                    sameSideDefaultPath: sameDefault,
+                    strings: appState.strings
+                ) { destDir, crossPane in
+                    Task {
+                        await appState.performCopyOrMove(
+                            request: req,
+                            destinationDir: destDir,
+                            transferToOppositePane: crossPane
+                        )
+                    }
+                }
+                .environment(\.sparklePalette, appState.activePalette)
+            }
+            .sheet(item: $appState.pendingChecksumReport) { report in
+                ChecksumResultSheet(report: report, strings: appState.strings)
+                    .environment(\.sparklePalette, appState.activePalette)
+            }
+            .sheet(item: $appState.pendingComparisonReport) { report in
+                FileComparisonSheet(report: report, strings: appState.strings)
+                    .environment(\.sparklePalette, appState.activePalette)
+            }
+            .sheet(item: $appState.pendingCustomCommandRequest) { req in
+                CustomSSHCommandSheet(appState: appState, request: req)
+                    .environment(\.sparklePalette, appState.activePalette)
+            }
     }
 }

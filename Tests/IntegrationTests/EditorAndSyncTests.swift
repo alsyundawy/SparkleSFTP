@@ -2,6 +2,7 @@ import Foundation
 import SparkleCore
 @testable import SparkleDesignSystem
 @testable import SparkleFeatures
+@testable import SparkleFileManager
 @testable import SparklePersistence
 @testable import SparkleSynchronization
 @testable import SparkleTerminal
@@ -182,6 +183,123 @@ struct EditorAndSyncTests {
         #expect(EditorSyntaxLanguage.detect(from: "styles.css") == .css)
         #expect(EditorSyntaxLanguage.detect(from: "diff.patch") == .diff)
         #expect(EditorSyntaxLanguage.detect(from: "script.sh", content: "#!/usr/bin/env python3") == .python)
+    }
+
+    @Test("PaginatedFileWindow filters by substring, wildcard extension, and hidden attribute")
+    func paginatedFileWindowFiltering() {
+        let files = [
+            RemoteFile(name: "syslog.log", path: RemotePath("/var/log/syslog.log"), size: 100, isDirectory: false),
+            RemoteFile(name: "nginx.log", path: RemotePath("/var/log/nginx.log"), size: 200, isDirectory: false),
+            RemoteFile(name: "nginx.conf", path: RemotePath("/etc/nginx.conf"), size: 50, isDirectory: false),
+            RemoteFile(name: ".bashrc", path: RemotePath("/home/user/.bashrc"), size: 30, isDirectory: false),
+            RemoteFile(name: "main.swift", path: RemotePath("/src/main.swift"), size: 500, isDirectory: false)
+        ]
+
+        var window = PaginatedFileWindow(allFiles: files, pageSize: 10, filterQuery: "")
+        #expect(window.visibleFiles.count == 5)
+
+        window.setFilter("nginx")
+        #expect(window.visibleFiles.count == 2)
+
+        window.setFilter("*.log")
+        #expect(window.visibleFiles.count == 2)
+
+        window.setFilter(".*")
+        #expect(window.visibleFiles.count == 1)
+        #expect(window.visibleFiles.first?.name == ".bashrc")
+    }
+
+    @Test("BookmarkManager computes synchronized browsing path correctly")
+    @MainActor
+    func synchronizedBrowsingPathComputation() {
+        BookmarkManager.shared.isSynchronizedBrowsingEnabled = true
+        defer { BookmarkManager.shared.isSynchronizedBrowsingEnabled = false }
+
+        let targetRemote = BookmarkManager.shared.computeSynchronizedPath(
+            from: "/Users/dev/project",
+            to: "/Users/dev/project/src",
+            currentOppositePath: "/var/www/project"
+        )
+        #expect(targetRemote == "/var/www/project/src")
+
+        let targetParent = BookmarkManager.shared.computeSynchronizedPath(
+            from: "/Users/dev/project/src",
+            to: "/Users/dev/project",
+            currentOppositePath: "/var/www/project/src"
+        )
+        #expect(targetParent == "/var/www/project")
+    }
+
+    @Test("EditorFindQuery whole-word and mark subsystem operations execute accurately")
+    @MainActor
+    func editorFindQueryAndMarkSubsystem() {
+        let content = "cat scatter concatenate cat\nsecond line cat\nfinal"
+        let manager = EditorSessionManager()
+        manager.documents = [EditorDocument(title: "test.txt", content: content)]
+        manager.activeDocumentID = manager.documents.first?.id
+
+        manager.findQuery = EditorFindQuery(searchText: "cat", wholeWord: true)
+        let ranges = manager.findQuery.matchRanges(in: content)
+        #expect(ranges.count == 3)
+
+        let markCount = manager.markAllMatches()
+        #expect(markCount == 3)
+        #expect(manager.findQuery.markedRanges.count == 3)
+
+        let bookmarkedCount = manager.bookmarkMatchingLines()
+        #expect(bookmarkedCount == 2)
+        #expect(manager.findQuery.bookmarkedLines.contains(1))
+        #expect(manager.findQuery.bookmarkedLines.contains(2))
+
+        manager.clearAllMarks()
+        #expect(manager.findQuery.markedRanges.isEmpty)
+        #expect(manager.findQuery.bookmarkedLines.isEmpty)
+    }
+
+    @Test("DockProgressController calculates active transfer ratio and clears correctly")
+    @MainActor
+    func dockProgressControllerBadge() {
+        let meta = TransferTaskMetadata(
+            direction: .upload,
+            source: .local(url: URL(fileURLWithPath: "/tmp/a")),
+            destination: .remote(profileID: UUID(), host: "127.0.0.1", path: RemotePath(rawValue: "/tmp/a")),
+            totalBytes: 100
+        )
+        let prog = TransferProgress(bytesTransferred: 50, totalBytes: 100, bytesPerSecond: 1024)
+        let activeSnapshots = [
+            TransferSnapshot(
+                metadata: meta,
+                status: .transferring(bytesPerSecond: 1024),
+                progress: prog
+            )
+        ]
+        DockProgressController.shared.updateDockProgress(from: activeSnapshots)
+        DockProgressController.shared.clearDockProgress()
+    }
+
+    @Test("EditorDeveloperTools handles Base64, URL, JSON, Crypto, Epoch, and Dedup")
+    func editorDeveloperToolsExecution() throws {
+        let b64 = try EditorDeveloperTools.execute(.base64Encode, on: "Hello World")
+        #expect(b64 == "SGVsbG8gV29ybGQ=")
+        let decodedB64 = try EditorDeveloperTools.execute(.base64Decode, on: b64)
+        #expect(decodedB64 == "Hello World")
+
+        let url = try EditorDeveloperTools.execute(.urlEncode, on: "hello world&foo=bar")
+        #expect(url.contains("%20") || url.contains("hello"))
+        let decodedURL = try EditorDeveloperTools.execute(.urlDecode, on: url)
+        #expect(decodedURL == "hello world&foo=bar")
+
+        let jsonPretty = try EditorDeveloperTools.execute(.jsonPrettyPrint, on: "{\"b\":2,\"a\":1}")
+        #expect(jsonPretty.contains("\n"))
+
+        let sha256 = try EditorDeveloperTools.execute(.sha256, on: "SparkleSFTP")
+        #expect(sha256.count == 64)
+
+        let epochISO = try EditorDeveloperTools.execute(.unixToISO8601, on: "1700000000")
+        #expect(epochISO.contains("2023"))
+
+        let dedup = try EditorDeveloperTools.execute(.deduplicateLines, on: "a\nb\na\nc\nb")
+        #expect(dedup == "a\nb\nc")
     }
 }
 

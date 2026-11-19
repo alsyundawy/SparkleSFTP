@@ -66,6 +66,7 @@ extension AppState {
                 transferSnapshots = snapshots
                 handleTransferSnapshotsChanged(snapshots)
                 notifyTerminalTransfersIfNeeded(snapshots)
+                DockProgressController.shared.updateDockProgress(from: snapshots)
                 if !pendingFolderPermissionJobs.isEmpty {
                     await finalizePendingFolderPermissions(from: snapshots)
                 }

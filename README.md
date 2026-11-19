@@ -101,11 +101,11 @@
 
 ### Step 1: Download the Universal 2 DMG
 
-Grab the latest official release image **`SparkleSFTP-0.6.0-universal.dmg`** from GitHub Releases.
+Grab the latest official release image **`SparkleSFTP-0.7.0-universal.dmg`** from GitHub Releases.
 
 ### Step 2: Drag to Applications
 
-1. Double-click `SparkleSFTP-0.6.0-universal.dmg` to mount the disk image.
+1. Double-click `SparkleSFTP-0.7.0-universal.dmg` to mount the disk image.
 2. Drag the **SparkleSFTP** icon into your **Applications** folder.
 3. Launch SparkleSFTP from Launchpad, Finder, or Spotlight (`⌘Space`).
 
@@ -137,14 +137,20 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 | `⌘⇧P`                | Command Palette        | Spotlight-style instant action and navigation launcher      |
 | `⌘A`                 | Select All             | Select all files and folders in the active file pane        |
 | `Esc` / `⇧⌘A` / `⌘D` | Deselect All           | Deselect / cancel selection of all files and folders        |
+| `F3`                 | View File              | Instant QuickLook file preview                              |
+| `F4`                 | Edit File              | Open file in TextKit 2 Internal Code Editor (`⌘H` Find/Mark)|
 | `F5`                 | Cross-Pane Transfer    | Transfer selected items directly to the opposing file pane  |
 | `⇧F5`                | Copy To...             | Prompt for a custom destination directory to copy files     |
+| `F6`                 | Move / Rename          | Move or rename selected files across panes                  |
+| `F7`                 | New Folder             | Create new directory in active pane                         |
+| `F8`                 | Delete Items           | Safe deletion with prompt dialog                            |
 | `⌘C` / `⌘V`          | Clipboard Copy / Paste | Standard macOS clipboard file operations                    |
 | `⌥⌘L`                | Toggle Activity Log    | Show or hide the real-time command log in sidebar           |
 | `⌘⌥T`                | Standalone Terminal    | Open the multi-tab iTerm2 terminal workspace                |
 | `⌘\`                 | Toggle Quick Connect   | Show or hide the quick connect connection bar               |
 | `⌘1` / `⌘2`          | Pane Focus             | Switch keyboard focus between Local and Remote file tables  |
 | `⌘,`                 | Preferences            | Open the 10-tab Settings window with Search & Reset         |
+| `⌘⌥S`                | Subnet Calculator      | Open native IPv4 Subnet / CIDR calculation hub              |
 | `⇧⌘I`                | Import Connections     | Import connection profiles from WinSCP, FileZilla, or Vault |
 | `⇧⌘E`                | Export Connections     | Export connection profiles with protocol preservation       |
 | `⌘W`                 | Close Tab              | Close the active workspace connection tab                   |
@@ -158,8 +164,8 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 - **SHA-256 Checksum Verification**:
 
 ```bash
-shasum -a 256 SparkleSFTP-0.6.0-universal.dmg
-# Expected SHA-256: 063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff
+shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
+# Expected SHA-256: 092feab0e463c0e17ab1de1f25ade0a512c9ea24fbfe1a3f4546310f4ca54dc8
 ```
 
 ---
@@ -171,7 +177,8 @@ Build and test using Swift 6 on macOS 13+:
 ```bash
 swift build -j 2
 Tools/Release/build-universal.sh
-Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.6.0
+Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.7.0
+Tools/Release/generate-appcast.sh
 ```
 
 ---

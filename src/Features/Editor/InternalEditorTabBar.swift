@@ -53,11 +53,13 @@ public struct InternalEditorTabBar: View {
         }
         .contextMenu {
             Button("Close Tab") {
-                editorManager.closeDocument(id: doc.id)
+                Task { await editorManager.closeDocumentWithPrompt(id: doc.id) }
             }
             Button("Close Other Tabs") {
-                for other in editorManager.documents where other.id != doc.id {
-                    editorManager.closeDocument(id: other.id)
+                Task {
+                    for other in editorManager.documents where other.id != doc.id {
+                        _ = await editorManager.closeDocumentWithPrompt(id: other.id)
+                    }
                 }
             }
         }
@@ -114,7 +116,7 @@ public struct InternalEditorTabBar: View {
 
     private func tabCloseButton(for doc: EditorDocument) -> some View {
         Button {
-            editorManager.closeDocument(id: doc.id)
+            Task { await editorManager.closeDocumentWithPrompt(id: doc.id) }
         } label: {
             Image(systemName: "xmark")
                 .font(.caption2)

@@ -100,6 +100,13 @@ struct InternalEditorToolbar: View {
         )
         .keyboardShortcut("f", modifiers: [.command])
 
+        toggleIcon(
+            "doc.text.magnifyingglass",
+            isOn: $editorManager.isFindReplaceDialogVisible,
+            help: "Find, Replace & Mark Hub (⌘H)"
+        )
+        .keyboardShortcut("h", modifiers: [.command])
+
         iconButton("arrow.right.to.line", help: strings.t("editor.goToLine")) {
             goToLineInput = "\(editorManager.activeDocument?.cursor.line ?? 1)"
             editorManager.isShowingGoToLine = true

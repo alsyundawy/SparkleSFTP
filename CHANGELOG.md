@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added & Enhanced (Protocols, Linux Server Tools, Security Shielding & Dual-Pane Architecture)
 
+- **Dual-Pane Commander Navigation & Ergonomics Enhancements**:
+  - **Clickable Breadcrumbs Navigation Bar (`BreadcrumbsBarView.swift`, `Task 6.4`)**: Interactive segment-based folder navigation replacing raw text fields above local and remote panes. Single-click segment jumps to any parent directory, right-click copies path or prompts manual editing, and double-click switches to raw path entry.
+  - **Standard Commander Keyboard Shortcuts (F3–F8) (`CommanderFunctionKeyBar.swift`, `Task 6.2`)**: Implemented classic Midnight Commander / Total Commander function key bar with zero-unwrapped `KeyEquivalent` bindings: `F3 View` (QuickLook preview), `F4 Edit` (Internal editor), `F5 Copy` (Cross-pane transfer), `F6 Move` (Move/rename), `F7 Mkdir` (New folder), and `F8 Delete` (Delete with confirmation).
+  - **Synchronized Folder Browsing (`Task 6.3`)**: Added automated path synchronization between local and remote panes (`BookmarkManager.computeSynchronizedPath`) with unit test coverage.
+  - **Real-Time File Listing Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`, `Task 6.7`)**: Non-blocking in-memory filter bar supporting substrings, wildcard extensions (`*.log`, `*.conf`, `*.swift`), and hidden files (`.*`), with preset pills ("All", "Hidden", "Configs", "Logs", "Source") and match counters.
+- **Internal Text & Code Editor Advanced Tools (Tasks 13.1–13.4)**:
+  - **Standalone Find, Replace & Mark Hub (`FindReplaceDialogView.swift`, `Task 13.1`)**: Multi-tab dialog hub supporting case matching (`Aa`), whole-word regex boundaries (`\b`), full regex patterns (`.*`), wrap-around (`↩`), and bidirectional search (Up/Down).
+  - **Notepad++ Mark Subsystem (`EditorSessionManager+Search.swift`, `Task 13.2`)**: Added `markAllMatches`, `clearAllMarks`, `copyMarkedText` to macOS clipboard, and `bookmarkMatchingLines`.
+  - **Comprehensive Data Loss Prevention Guards (`NSAlert`, `Task 13.3`)**: Added `closeDocumentWithPrompt` intercepting tab close and window close with modal confirmation sheets ("Save", "Don't Save", "Cancel").
+  - **Modal Dialog Focus Ring Elimination (`ModalCloseButton.swift`, `Task 13.4`)**: Decoupled visible close glyph from zero-size key equivalent handler, eliminating blue focus ring artifacts across modal sheets.
+- **macOS System Integration & Progress Monitoring (`Task 10.5`)**:
+  - **Application Dock Tile Progress Badge (`DockProgressController.swift`)**: Real-time dock badge displaying overall queue progress percentage (`42%`) or active count when transfers are in flight, clearing automatically upon queue completion.
+  - **Native Notification Center Alerts (`AppState+Connections.swift`)**: Emits notifications on batch transfer completions and transfer failures.
+- **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`)**:
+  - Compiled Universal 2 fat binary (`lipo -archs` = `x86_64 arm64`) in release mode (`-O`).
+  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `092feab0e463c0e17ab1de1f25ade0a512c9ea24fbfe1a3f4546310f4ca54dc8`.
+  - Automated Sparkle Ed25519 Appcast Feed Generation (`Tools/Release/generate-appcast.sh`, `Task 18.2`): Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length, and cryptographic signature verification.
+- **Developer & Security Tools Hub (`EditorDeveloperTools.swift`, `Task 12.3`)**:
+  - Pure Swift 6 high-performance text manipulation engine ported from NotepadMac:
+    - Base64 Encode & Decode (`Data.base64EncodedString`)
+    - URL Percent-Encoding & Decoding (`addingPercentEncoding`)
+    - JSON Prettify & Minify (`JSONSerialization` with sorted keys)
+    - Cryptographic Hash Suite (SHA-256, SHA-512, MD5 using native `CryptoKit`)
+    - Unix Epoch Timestamp <-> ISO8601 UTC bidirectional converter
+    - Line Deduplication (`Set`-backed filter) & Empty Line Stripper
+- **FTPS Protocol Hardening & Session Resumption (`CurlClientHelper.swift`, `Task 4.2 & 4.3`)**:
+  - Enforced `CURLUSESSL_ALL` mandating SSL encryption for both control and data channels (`PBSZ 0` and `PROT P`).
+  - Enabled TLS Session Resumption (`CURLOPT_SSL_SESSIONID_CACHE = 1`) across data channels, preventing error 522 on strict vsftpd/ProFTPD servers.
+  - Enforced `CURLFTPSSL_CCC_NONE` preventing cleartext command channel downgrade attacks.
 - **Internal Text & Code Editor Core Modernization (TextKit 2, 52+ Languages & Ergonomics)**:
   - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
   - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.

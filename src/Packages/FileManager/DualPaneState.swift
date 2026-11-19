@@ -16,28 +16,53 @@ public struct PaginatedFileWindow: Sendable, Equatable {
     public let pageSize: Int
     public private(set) var allFiles: [RemoteFile]
     public private(set) var visibleCount: Int
+    public private(set) var filterQuery: String
 
-    public init(allFiles: [RemoteFile] = [], pageSize: Int = 1000) {
+    public init(allFiles: [RemoteFile] = [], pageSize: Int = 1000, filterQuery: String = "") {
         self.pageSize = max(100, pageSize)
         self.allFiles = allFiles
-        visibleCount = min(allFiles.count, self.pageSize)
+        self.filterQuery = filterQuery
+        let filtered = Self.applyFilter(allFiles, query: filterQuery)
+        visibleCount = min(filtered.count, self.pageSize)
+    }
+
+    public var filteredFiles: [RemoteFile] {
+        Self.applyFilter(allFiles, query: filterQuery)
     }
 
     public var visibleFiles: ArraySlice<RemoteFile> {
-        allFiles.prefix(visibleCount)
+        filteredFiles.prefix(visibleCount)
     }
 
     public var hasMorePages: Bool {
-        visibleCount < allFiles.count
+        visibleCount < filteredFiles.count
     }
 
     public mutating func loadNextPage() {
-        visibleCount = min(allFiles.count, visibleCount + pageSize)
+        visibleCount = min(filteredFiles.count, visibleCount + pageSize)
     }
 
     public mutating func replaceFiles(_ newFiles: [RemoteFile]) {
         allFiles = newFiles
-        visibleCount = min(newFiles.count, pageSize)
+        visibleCount = min(filteredFiles.count, pageSize)
+    }
+
+    public mutating func setFilter(_ query: String) {
+        filterQuery = query
+        visibleCount = min(filteredFiles.count, pageSize)
+    }
+
+    private static func applyFilter(_ files: [RemoteFile], query: String) -> [RemoteFile] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return files }
+        if trimmed.hasPrefix("*.") {
+            let ext = String(trimmed.dropFirst(2))
+            return files.filter { ($0.name as NSString).pathExtension.lowercased() == ext }
+        }
+        if trimmed == ".*" || trimmed == "hidden" {
+            return files.filter { $0.name.hasPrefix(".") }
+        }
+        return files.filter { $0.name.lowercased().contains(trimmed) }
     }
 }
 

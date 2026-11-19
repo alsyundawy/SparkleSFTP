@@ -148,29 +148,54 @@ public struct EditorFindQuery: Sendable, Equatable {
     public var searchText: String
     public var replaceText: String
     public var matchCase: Bool
+    public var wholeWord: Bool
     public var useRegex: Bool
+    public var wrapAround: Bool
+    public var searchUp: Bool
+    public var markedRanges: [NSRange]
+    public var bookmarkedLines: Set<Int>
 
     public init(
         searchText: String = "",
         replaceText: String = "",
         matchCase: Bool = false,
-        useRegex: Bool = false
+        wholeWord: Bool = false,
+        useRegex: Bool = false,
+        wrapAround: Bool = true,
+        searchUp: Bool = false,
+        markedRanges: [NSRange] = [],
+        bookmarkedLines: Set<Int> = []
     ) {
         self.searchText = searchText
         self.replaceText = replaceText
         self.matchCase = matchCase
+        self.wholeWord = wholeWord
         self.useRegex = useRegex
+        self.wrapAround = wrapAround
+        self.searchUp = searchUp
+        self.markedRanges = markedRanges
+        self.bookmarkedLines = bookmarkedLines
     }
 
     public func matchRanges(in text: String) -> [NSRange] {
         guard !searchText.isEmpty else { return [] }
         let nsText = text as NSString
         let fullRange = NSRange(location: 0, length: nsText.length)
+        let pattern: String
         if useRegex {
+            pattern = searchText
+        } else if wholeWord {
+            pattern = "\\b" + NSRegularExpression.escapedPattern(for: searchText) + "\\b"
+        } else {
+            pattern = ""
+        }
+
+        if !pattern.isEmpty {
             let opts: NSRegularExpression.Options = matchCase ? [] : [.caseInsensitive]
-            guard let regex = try? NSRegularExpression(pattern: searchText, options: opts) else { return [] }
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: opts) else { return [] }
             return regex.matches(in: text, options: [], range: fullRange).map(\.range)
         }
+
         var opts: NSString.CompareOptions = matchCase ? [] : [.caseInsensitive]
         opts.insert(.literal)
         var ranges: [NSRange] = []

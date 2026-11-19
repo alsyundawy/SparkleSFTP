@@ -8,6 +8,7 @@ public final class EditorSessionManager: ObservableObject {
     @Published public var activeDocumentID: UUID?
     @Published public var findQuery = EditorFindQuery()
     @Published public var isFindBarVisible = false
+    @Published public var isFindReplaceDialogVisible = false
     @Published public var isShowingGoToLine = false
     @Published public var wordWrap = true
     @Published public var showLineNumbers = true
@@ -145,52 +146,6 @@ public final class EditorSessionManager: ObservableObject {
         }
     }
 
-    public func findMatch(forward: Bool) -> Int {
-        guard let doc = activeDocument else { return 0 }
-        let ranges = findQuery.matchRanges(in: doc.content)
-        guard !ranges.isEmpty else { return 0 }
-
-        let currentUTF16 = utf16Offset(in: doc.content, cursor: doc.cursor)
-        let selectedRange: NSRange = if forward {
-            ranges.first { $0.location > currentUTF16 } ?? ranges[0]
-        } else {
-            ranges.last { $0.location < currentUTF16 } ?? ranges[ranges.count - 1]
-        }
-        textViewProxy.selectAndReveal(range: selectedRange)
-        return ranges.count
-    }
-
-    public func replaceCurrentMatch() {
-        guard let doc = activeDocument, !doc.isReadOnly else { return }
-        let ranges = findQuery.matchRanges(in: doc.content)
-        guard !ranges.isEmpty else { return }
-        let currentUTF16 = utf16Offset(in: doc.content, cursor: doc.cursor)
-        let target = ranges.first { $0.location >= currentUTF16 } ?? ranges[0]
-        let mutable = NSMutableString(string: doc.content)
-        mutable.replaceCharacters(in: target, with: findQuery.replaceText)
-        let nextOffset = target.location + (findQuery.replaceText as NSString).length
-        updateActiveDocument { edited in
-            edited.content = mutable as String
-            edited.cursor = EditorCursorLocation.locate(in: edited.content, utf16Offset: nextOffset)
-            edited.syncStatusKey = "editor.statusModified"
-        }
-    }
-
-    public func replaceAllMatches() -> Int {
-        guard let doc = activeDocument, !doc.isReadOnly else { return 0 }
-        let ranges = findQuery.matchRanges(in: doc.content)
-        guard !ranges.isEmpty else { return 0 }
-        let mutable = NSMutableString(string: doc.content)
-        for range in ranges.reversed() {
-            mutable.replaceCharacters(in: range, with: findQuery.replaceText)
-        }
-        updateActiveDocument { edited in
-            edited.content = mutable as String
-            edited.syncStatusKey = "editor.statusModified"
-        }
-        return ranges.count
-    }
-
     public func zoomIn() {
         fontSize = min(32, fontSize + 1)
     }
@@ -201,24 +156,5 @@ public final class EditorSessionManager: ObservableObject {
 
     public func zoomReset() {
         fontSize = 13
-    }
-
-    private func utf16Offset(in text: String, cursor: EditorCursorLocation) -> Int {
-        var line = 1
-        var col = 1
-        var utf16Count = 0
-        for char in text {
-            if line > cursor.line || (line == cursor.line && col >= cursor.column) {
-                break
-            }
-            if char == "\n" {
-                line += 1
-                col = 1
-            } else {
-                col += 1
-            }
-            utf16Count += String(char).utf16.count
-        }
-        return utf16Count
     }
 }

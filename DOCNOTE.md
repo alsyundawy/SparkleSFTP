@@ -179,3 +179,17 @@ actionlint
      - **CVE-2026-52886 / CVE-2026-57233**: Enforced Zip-Slip rejection, symlink escape checks, 4 GB ceiling, and 50,000 entry limit in `ArchiveService`.
      - **CVE-2026-105925**: Capped XML imports at 16 MB and disabled external DTD entity resolution in `ExternalImporters`.
      - **Strict Architectural Invariants Maintained**: Zero Qt dependency (100% native Swift 6 / AppKit / SwiftUI) and Zero Icon Tampering (existing design tokens and SF Symbols 100% preserved).
+   - **Dual-Pane Commander Navigation & Ergonomics (Tasks 6.2, 6.3, 6.4, 6.7)**:
+     - **Breadcrumbs Navigation (`BreadcrumbsBarView.swift`)**: Clickable path segments for local and remote panes with path history, copy path actions, and inline text editing fallback.
+     - **Commander Keyboard Shortcuts (`CommanderFunctionKeyBar.swift`)**: Classic F3 (View), F4 (Edit), F5 (Copy), F6 (Move), F7 (Mkdir), F8 (Delete) function key bar with zero-unwrapped key equivalents.
+     - **Real-Time Filter Bar (`FileListingFilterBar.swift`, `DualPaneState.swift`)**: Substring, wildcard extension (`*.log`), and hidden file (`.*`) filtering with preset categories and live badge counters.
+     - **Synchronized Folder Browsing**: Bilateral synchronized path mapping across local and remote directories (`BookmarkManager.computeSynchronizedPath`).
+   - **Developer Tools & Editor Modernization (Tasks 12.3, 13.1–13.4)**:
+     - **Developer & Security Tools Hub (`EditorDeveloperTools.swift`)**: Zero-allocation Base64, URL percent encoding, JSON formatting, CryptoKit hashes (SHA-256/512, MD5), and Unix epoch converters.
+     - **Find, Replace & Mark Hub (`FindReplaceDialogView.swift`, `EditorSessionManager+Search.swift`)**: Multi-tab search hub with whole-word regex boundaries, Notepad++ mark subsystem (`markAllMatches`, `clearAllMarks`, `copyMarkedText`, `bookmarkMatchingLines`).
+     - **Data Loss Prevention Guards (`NSAlert`)**: Guarded modal prompts preventing accidental close of unsaved buffers.
+     - **Modal Focus Ring Elimination (`ModalCloseButton.swift`)**: Decoupled close button glyphs from key equivalent handlers to eliminate macOS blue focus rings.
+   - **System Integration & Release Packaging (Tasks 10.5, 18.2, 18.6)**:
+     - **Dock Progress Badge (`DockProgressController.swift`)**: Live transfer percentage badge on the application dock icon during active queue operations.
+     - **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`)**: Ed25519-signed Sparkle XML appcast generation for releases.
+     - **Universal 2 Release DMG**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 hash `092feab0e463c0e17ab1de1f25ade0a512c9ea24fbfe1a3f4546310f4ca54dc8`.

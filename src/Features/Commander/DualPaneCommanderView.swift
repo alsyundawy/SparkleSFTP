@@ -23,138 +23,62 @@ public struct DualPaneCommanderView: View {
     @State var quickLookCoordinator = QuickLookCoordinator()
     @State var isShowingLocalTree = false
     @State var isShowingRemoteTree = false
+    @State var isEditingLocalPath = false
+    @State var isEditingRemotePath = false
+    @State var isShowingLocalFilter = false
+    @State var isShowingRemoteFilter = false
+    @State var localFilterQuery = ""
+    @State var remoteFilterQuery = ""
 
     public init(appState: AppState) {
         self.appState = appState
     }
 
     public var body: some View {
-        HSplitView {
-            localPane
-                .frame(minWidth: 180)
-                .overlay(paneFocusBorder(isFocused: appState.activePane == .left))
+        attachCommanderSheets(
+            VStack(spacing: 0) {
+                HSplitView {
+                    localPane
+                        .frame(minWidth: 180)
+                        .overlay(paneFocusBorder(isFocused: appState.activePane == .left))
 
-            remotePane
-                .frame(minWidth: 180)
-                .overlay(paneFocusBorder(isFocused: appState.activePane == .right))
-        }
-        .frame(
-            minWidth: 380,
-            idealWidth: 760,
-            maxWidth: .infinity,
-            minHeight: 160,
-            idealHeight: 380,
-            maxHeight: .infinity
-        )
-        .onAppear {
-            localPathText = appState.localCurrentURL.path
-            remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"
-        }
-        .onChange(of: appState.localCurrentURL) { newURL in
-            localPathText = newURL.path
-        }
-        .onChange(of: appState.activeSessionID) { _ in
-            remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"
-        }
-        .onChange(of: appState.activeTabID) { _ in
-            localPathText = appState.localCurrentURL.path
-            remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"
-        }
-        .onChange(of: appState.currentSession?.currentRemotePath) { newPath in
-            remotePathText = newPath?.rawValue ?? "/"
-        }
-        .sheet(isPresented: $isShowingNewFolderSheet) {
-            newFolderSheet
-        }
-        .sheet(item: $editingPermissionsFile) { file in
-            PermissionsEditorSheet(file: file, strings: appState.strings) { mode in
-                Task { await appState.setRemotePermissions(mode, for: file) }
-            }
-            .environment(\.sparklePalette, appState.activePalette)
-        }
-        .sheet(
-            isPresented: Binding(
-                get: { renamingContext != nil },
-                set: {
-                    if !$0 {
-                        renamingContext = nil
-                    }
+                    remotePane
+                        .frame(minWidth: 180)
+                        .overlay(paneFocusBorder(isFocused: appState.activePane == .right))
                 }
+
+                commanderFunctionKeys
+            }
+            .frame(
+                minWidth: 380,
+                idealWidth: 760,
+                maxWidth: .infinity,
+                minHeight: 160,
+                idealHeight: 380,
+                maxHeight: .infinity
             )
-        ) {
-            if let ctx = renamingContext {
-                RenameItemSheet(item: ctx.item, strings: appState.strings) { updatedName in
-                    Task { await appState.renameItem(ctx.item, to: updatedName, isLocal: ctx.isLocal) }
-                }
-                .environment(\.sparklePalette, appState.activePalette)
+            .onAppear {
+                localPathText = appState.localCurrentURL.path
+                remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"
             }
-        }
-        .sheet(item: $inspectorContext) { ctx in
-            FileInspectorSheet(item: ctx.item, isLocal: ctx.isLocal, strings: appState.strings)
-                .environment(\.sparklePalette, appState.activePalette)
-        }
-        .sheet(item: $appState.pendingCopyMoveRequest) { req in
-            let oppDefault = req.isLocal
-                ? (appState.currentSession?.currentRemotePath.rawValue ?? "/")
-                : appState.localCurrentURL.path
-            let sameDefault = req.isLocal
-                ? appState.localCurrentURL.path
-                : (appState.currentSession?.currentRemotePath.rawValue ?? "/")
-            CopyMoveItemSheet(
-                request: req,
-                hasActiveSession: appState.currentSession != nil,
-                oppositeDefaultPath: oppDefault,
-                sameSideDefaultPath: sameDefault,
-                strings: appState.strings
-            ) { destDir, crossPane in
-                Task {
-                    await appState.performCopyOrMove(
-                        request: req,
-                        destinationDir: destDir,
-                        transferToOppositePane: crossPane
-                    )
-                }
+            .onChange(of: appState.localCurrentURL) { newURL in
+                localPathText = newURL.path
             }
-            .environment(\.sparklePalette, appState.activePalette)
-        }
-        .sheet(item: $appState.pendingChecksumReport) { report in
-            ChecksumResultSheet(report: report, strings: appState.strings)
-                .environment(\.sparklePalette, appState.activePalette)
-        }
-        .sheet(item: $appState.pendingComparisonReport) { report in
-            FileComparisonSheet(report: report, strings: appState.strings)
-                .environment(\.sparklePalette, appState.activePalette)
-        }
-        .sheet(item: $appState.pendingCustomCommandRequest) { req in
-            CustomSSHCommandSheet(appState: appState, request: req)
-                .environment(\.sparklePalette, appState.activePalette)
-        }
+            .onChange(of: appState.activeSessionID) { _ in
+                remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"
+            }
+            .onChange(of: appState.activeTabID) { _ in
+                localPathText = appState.localCurrentURL.path
+                remotePathText = appState.currentSession?.currentRemotePath.rawValue ?? "/"
+            }
+            .onChange(of: appState.currentSession?.currentRemotePath) { newPath in
+                remotePathText = newPath?.rawValue ?? "/"
+            }
+        )
     }
 }
 
 private extension DualPaneCommanderView {
-    var newFolderSheet: some View {
-        VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
-            Text(appState.strings.newFolder).font(SparkleTheme.Typography.title)
-            TextField(appState.strings.t("pane.folderName"), text: $newFolderName)
-            Spacer(minLength: 0)
-            HStack {
-                Spacer()
-                Button(appState.strings.t("common.cancel"), role: .cancel) { isShowingNewFolderSheet = false }
-                Button(appState.strings.t("common.create")) {
-                    let name = newFolderName
-                    newFolderName = ""
-                    isShowingNewFolderSheet = false
-                    Task { await appState.createFolder(named: name) }
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding()
-        .frame(width: 360, height: 165)
-        .sparkleWorkspaceSurface(appState.activePalette)
-    }
-
     var localPane: some View {
         let palette = appState.activePalette
         return VStack(spacing: 0) {
@@ -195,15 +119,34 @@ private extension DualPaneCommanderView {
                 }
                 .help(appState.strings.t("nav.parentDirectory"))
 
-                TextField(appState.strings.t("nav.localPath"), text: $localPathText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(SparkleTheme.Typography.monoSmall)
-                    .onSubmit {
-                        let url = URL(fileURLWithPath: localPathText)
-                        Task { await appState.refreshLocalDirectory(url) }
-                    }
+                BreadcrumbsBarView(
+                    currentPath: appState.localCurrentURL.path,
+                    isLocal: true,
+                    palette: palette,
+                    isEditingText: $isEditingLocalPath,
+                    manualPathInput: $localPathText
+                ) { newPath in
+                    let url = URL(fileURLWithPath: newPath)
+                    Task { await appState.refreshLocalDirectory(url) }
+                }
 
                 BookmarkQuickJumpMenu(appState: appState, isLocal: true)
+
+                Button {
+                    withAnimation { isShowingLocalFilter.toggle() }
+                } label: {
+                    Image(
+                        systemName: isShowingLocalFilter
+                            ? "line.3.horizontal.decrease.circle.fill"
+                            : "line.3.horizontal.decrease.circle"
+                    )
+                    .foregroundStyle(
+                        isShowingLocalFilter || !localFilterQuery.isEmpty
+                            ? palette.accentColor
+                            : palette.secondaryTextColor
+                    )
+                }
+                .help("Toggle filter bar (⌘F)")
 
                 Button {
                     if let selectedID = appState.selectedLocalFileIDs.first {
@@ -216,6 +159,18 @@ private extension DualPaneCommanderView {
             }
             .padding(SparkleTheme.Spacing.tiny)
             .background(palette.windowColor)
+
+            if isShowingLocalFilter {
+                FileListingFilterBar(
+                    query: $localFilterQuery,
+                    isPresented: $isShowingLocalFilter,
+                    totalCount: appState.localFiles.allFiles.count,
+                    filteredCount: appState.localFiles.filteredFiles.count,
+                    palette: palette
+                ) { newQuery in
+                    appState.filterLocalFiles(newQuery)
+                }
+            }
 
             HSplitView {
                 if isShowingLocalTree {
@@ -274,6 +229,18 @@ private extension DualPaneCommanderView {
                 }
 
                 remoteToolbar(session: session)
+
+                if isShowingRemoteFilter {
+                    FileListingFilterBar(
+                        query: $remoteFilterQuery,
+                        isPresented: $isShowingRemoteFilter,
+                        totalCount: session.remoteFiles.allFiles.count,
+                        filteredCount: session.remoteFiles.filteredFiles.count,
+                        palette: palette
+                    ) { newQuery in
+                        appState.filterRemoteFiles(newQuery)
+                    }
+                }
 
                 HSplitView {
                     if isShowingRemoteTree {

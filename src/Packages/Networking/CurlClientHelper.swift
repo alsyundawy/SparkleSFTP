@@ -76,11 +76,13 @@ enum CurlClientHelper {
         }
 
         if context.protocolType == .ftpsExplicit || context.protocolType == .ftpsImplicit {
-            // Mandatory TLS 1.2+ & strict cert verification with ZERO downgrade to plaintext FTP (SEC-001)
+            // Mandatory TLS 1.2+ & strict cert verification with ZERO downgrade to plaintext FTP (SEC-001, Task 4.2/4.3)
             sparklesftp_curl_setopt_long(handle, CURLOPT_USE_SSL, Int(CURLUSESSL_ALL.rawValue))
             sparklesftp_curl_setopt_long(handle, CURLOPT_SSLVERSION, Int(CURL_SSLVERSION_TLSv1_2))
             sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_VERIFYPEER, 1)
             sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_VERIFYHOST, 2)
+            sparklesftp_curl_setopt_long(handle, CURLOPT_SSL_SESSIONID_CACHE, 1)
+            sparklesftp_curl_setopt_long(handle, CURLOPT_FTP_SSL_CCC, Int(CURLFTPSSL_CCC_NONE.rawValue))
         }
 
         try configure(handle)

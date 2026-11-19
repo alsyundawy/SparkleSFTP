@@ -210,6 +210,15 @@ public extension AppState {
         activePane = .right
     }
 
+    func filterLocalFiles(_ query: String) {
+        localFiles.setFilter(query)
+    }
+
+    func filterRemoteFiles(_ query: String) {
+        guard let idx = activeSessions.firstIndex(where: { $0.id == activeSessionID }) else { return }
+        activeSessions[idx].remoteFiles.setFilter(query)
+    }
+
     func syncRemotePaneToTerminalDirectory(_ directory: String) async {
         guard let session = currentSession,
               session.currentRemotePath.rawValue != directory

@@ -101,11 +101,11 @@
 
 ### Langkah 1: Unduh Berkas DMG
 
-Unduh berkas instalasi resmi **`SparkleSFTP-0.6.0-universal.dmg`** dari GitHub Releases.
+Unduh berkas instalasi resmi **`SparkleSFTP-0.7.0-universal.dmg`** dari GitHub Releases.
 
 ### Langkah 2: Pasang ke Folder Applications
 
-1. Klik dua kali berkas `SparkleSFTP-0.6.0-universal.dmg` untuk membukanya.
+1. Klik dua kali berkas `SparkleSFTP-0.7.0-universal.dmg` untuk membukanya.
 2. Seret ikon **SparkleSFTP** ke dalam folder **Applications**.
 3. Buka SparkleSFTP melalui Launchpad, Finder, atau Spotlight (`⌘Spasi`).
 
@@ -137,14 +137,20 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 | `⌘⇧P`                | Palet Perintah             | Peluncur cepat tindakan, koneksi, markah, dan navigasi        |
 | `⌘A`                 | Pilih Semua                | Memilih semua berkas dan folder di panel aktif                |
 | `Esc` / `⇧⌘A` / `⌘D` | Batalkan Semua Pilihan     | Membatalkan / melepas sorotan pilihan semua berkas dan folder |
+| `F3`                 | Pratinjau Berkas (View)    | Pratinjau cepat berkas menggunakan QuickLook                  |
+| `F4`                 | Sunting Berkas (Edit)      | Membuka editor kode internal TextKit 2 (`⌘H` Cari/Tandai)     |
 | `F5`                 | Transfer Cepat Antar-Panel | Mengirimkan berkas terpilih langsung ke panel di seberangnya  |
 | `⇧F5`                | Salin Ke...                | Meminta lokasi folder tujuan kustom untuk menyalin berkas     |
+| `F6`                 | Pindah / Ganti Nama        | Memindahkan berkas atau mengganti nama antar-panel            |
+| `F7`                 | Folder Baru                | Membuat folder baru di panel yang sedang aktif                |
+| `F8`                 | Hapus Berkas               | Menghapus berkas terpilih dengan dialog konfirmasi aman       |
 | `⌘C` / `⌘V`          | Salin / Tempel Clipboard   | Operasi salin-tempel standar clipboard macOS                  |
 | `⌥⌘L`                | Tampilkan/Sembunyikan Log  | Membuka atau menutup konsol riwayat perintah aktivitas server |
 | `⌘⌥T`                | Terminal Mandiri           | Membuka jendela kerja terminal multi-tab bergaya iTerm2       |
 | `⌘\`                 | Bilah Sambungan Cepat      | Menampilkan atau menyembunyikan bilah Quick Connect           |
 | `⌘1` / `⌘2`          | Fokus Panel Berkas         | Berpindah fokus keyboard antara panel Lokal dan Remote        |
 | `⌘,`                 | Pengaturan / Preferensi    | Membuka jendela 10 tab setelan dengan fitur cari & atur ulang |
+| `⌘⌥S`                | Kalkulator Subnet IPv4     | Membuka jendela kalkulator subnetting & CIDR bawaan           |
 | `⇧⌘I`                | Impor Koneksi              | Impor profil koneksi dari WinSCP, FileZilla, atau Vault       |
 | `⇧⌘E`                | Ekspor Koneksi             | Ekspor profil koneksi dengan pelestarian protokol presisi     |
 | `⌘W`                 | Tutup Tab                  | Menutup tab koneksi server yang sedang aktif                  |
@@ -158,8 +164,8 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 - **Verifikasi Integritas SHA-256**:
 
 ```bash
-shasum -a 256 SparkleSFTP-0.6.0-universal.dmg
-# SHA-256 Valid: 063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff
+shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
+# SHA-256 Valid: 092feab0e463c0e17ab1de1f25ade0a512c9ea24fbfe1a3f4546310f4ca54dc8
 ```
 
 ---
@@ -171,7 +177,8 @@ Kompilasi dan bangun paket menggunakan Swift 6 di macOS 13+:
 ```bash
 swift build -j 2
 Tools/Release/build-universal.sh
-Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.6.0
+Tools/Release/create-dmg.sh dist/SparkleSFTP.app 0.7.0
+Tools/Release/generate-appcast.sh
 ```
 
 ---

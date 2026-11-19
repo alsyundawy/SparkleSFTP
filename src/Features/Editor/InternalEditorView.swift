@@ -93,6 +93,14 @@ public struct InternalEditorView: View {
                 Task { await appState.saveActiveEditorDocumentAs(url: url) }
             }
         }
+        .sheet(isPresented: $editorManager.isFindReplaceDialogVisible) {
+            FindReplaceDialogView(
+                editorManager: editorManager,
+                strings: strings,
+                palette: palette,
+                isPresented: $editorManager.isFindReplaceDialogVisible
+            )
+        }
     }
 
     @ViewBuilder
