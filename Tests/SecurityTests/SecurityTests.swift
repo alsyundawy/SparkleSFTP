@@ -259,4 +259,15 @@ struct SecurityTests {
         )
         #expect(staleHourly.isOverdue)
     }
+
+    @Test("TLSCertificateValidator rejects invalid explicit FTPS ports and enforces strict preflight (TD-10)")
+    func tlsValidatorExplicitFTPSValidation() async {
+        let validator = TLSCertificateValidator()
+        await #expect(throws: AppError.self) {
+            _ = try await validator.preflightVerifyExplicitFTPS(host: "127.0.0.1", port: -1, timeoutSeconds: 1)
+        }
+        await #expect(throws: AppError.self) {
+            _ = try await validator.preflightVerifyExplicitFTPS(host: "127.0.0.1", port: 99_999, timeoutSeconds: 1)
+        }
+    }
 }

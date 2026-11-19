@@ -72,6 +72,11 @@ public actor FTPService: RemoteConnection, RemoteFileSystem {
                     host: profile.host,
                     port: profile.port
                 )
+            } else if profile.protocolType == .ftpsExplicit {
+                lastVerifiedCertificate = try await tlsValidator.preflightVerifyExplicitFTPS(
+                    host: profile.host,
+                    port: profile.port
+                )
             }
             _ = try await performListing(path: profile.defaultRemotePath, useMLSD: false)
             connectionState = .connected(connectedAt: Date())

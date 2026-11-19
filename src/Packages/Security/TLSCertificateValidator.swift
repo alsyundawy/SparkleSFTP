@@ -8,10 +8,11 @@ import SparkleCore
 public struct TLSCertificateValidator: Sendable {
     public init() {}
 
-    /// Evaluates a SecTrust chain enforcing hostname verification and OCSP revocation.
+    /// Evaluates a SecTrust chain enforcing hostname verification and OCSP/CRL revocation (Task 4.1/9.4).
     public func validateServerCertificate(_ trust: SecTrust, host: String) throws -> TLSCertificateInfo {
         var policies: [SecPolicy] = [SecPolicyCreateSSL(true, host as CFString)]
-        if let revocation = SecPolicyCreateRevocation(kSecRevocationOCSPMethod) {
+        let revocationFlags = CFOptionFlags(kSecRevocationOCSPMethod | kSecRevocationCRLMethod)
+        if let revocation = SecPolicyCreateRevocation(revocationFlags) {
             policies.append(revocation)
         }
         let policyStatus = SecTrustSetPolicies(trust, policies as CFArray)
@@ -44,6 +45,29 @@ public struct TLSCertificateValidator: Sendable {
         let parameters = NWParameters(tls: tlsOptions)
         guard let nwPort = NWEndpoint.Port(rawValue: UInt16(clamping: port)) else {
             throw AppError.invalidConfiguration("Invalid TLS port \(port)")
+        }
+        let connection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: parameters)
+        return try await awaitTLSConnection(connection, host: host, timeoutSeconds: timeoutSeconds, box: box)
+    }
+
+    /// Performs an explicit FTPS (AUTH TLS) preflight handshake to inspect and validate the peer certificate (TD-10).
+    public func preflightVerifyExplicitFTPS(
+        host: String,
+        port: Int = 21,
+        timeoutSeconds: Int = 10
+    ) async throws -> TLSCertificateInfo {
+        let box = TLSHandshakeBox()
+        let tlsOptions = makeTLSOptions(host: host, box: box)
+        ExplicitFTPSOptionsRegistry.shared.push(tlsOptions)
+
+        let framerDefinition = NWProtocolFramer.Definition(implementation: ExplicitFTPSFramer.self)
+        let framerOptions = NWProtocolFramer.Options(definition: framerDefinition)
+
+        let parameters = NWParameters(tls: nil, tcp: NWProtocolTCP.Options())
+        parameters.defaultProtocolStack.applicationProtocols.insert(framerOptions, at: 0)
+
+        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(clamping: port)) else {
+            throw AppError.invalidConfiguration("Invalid explicit FTPS port \(port)")
         }
         let connection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: parameters)
         return try await awaitTLSConnection(connection, host: host, timeoutSeconds: timeoutSeconds, box: box)
@@ -196,5 +220,113 @@ private final class TLSHandshakeBox: @unchecked Sendable { // JUSTIFICATION: NSL
         }
         resumed = true
         return true
+    }
+}
+
+/// Dynamic framing protocol that intercepts initial FTP plaintext banner, issues AUTH TLS,
+/// and upgrades connection stack to TLS via prependApplicationProtocol (TD-10).
+final class ExplicitFTPSFramer: NWProtocolFramerImplementation, @unchecked Sendable { // JUSTIFICATION: Serial queue.
+    static let label = "com.alsyundawy.SparkleSFTP.explicit-ftps"
+    private let tlsOptions: NWProtocolTLS.Options?
+    private var state: UpgradeState = .awaitingBanner
+    private var lineBuffer = Data()
+
+    private enum UpgradeState {
+        case awaitingBanner
+        case awaitingAuthTLS
+        case upgraded
+        case failed
+    }
+
+    required init(framer: NWProtocolFramer.Instance) {
+        self.tlsOptions = ExplicitFTPSOptionsRegistry.shared.claim()
+    }
+
+    func start(framer: NWProtocolFramer.Instance) -> NWProtocolFramer.StartResult {
+        .ready
+    }
+
+    func handleInput(framer: NWProtocolFramer.Instance) -> Int {
+        while state != .upgraded && state != .failed {
+            var bytesProcessed = 0
+            let parsed = framer.parseInput(minimumIncompleteLength: 1, maximumLength: 1024) { buffer, _ in
+                guard let buffer, !buffer.isEmpty else { return 0 }
+                for (offset, byte) in buffer.enumerated() {
+                    lineBuffer.append(byte)
+                    if byte == 0x0A {
+                        bytesProcessed = offset + 1
+                        break
+                    }
+                }
+                return bytesProcessed
+            }
+            guard parsed, bytesProcessed > 0 else { break }
+
+            if let line = String(data: lineBuffer, encoding: .ascii) {
+                lineBuffer.removeAll(keepingCapacity: true)
+                processLine(line, framer: framer)
+            }
+        }
+        return 0
+    }
+
+    private func processLine(_ rawLine: String, framer: NWProtocolFramer.Instance) {
+        let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch state {
+        case .awaitingBanner:
+            if line.hasPrefix("220 ") || (line.hasPrefix("220") && !line.contains("-")) {
+                let authCmd = "AUTH TLS\r\n"
+                if let cmdData = authCmd.data(using: .ascii) {
+                    framer.writeOutput(data: cmdData)
+                    state = .awaitingAuthTLS
+                }
+            }
+        case .awaitingAuthTLS:
+            if line.hasPrefix("234") {
+                state = .upgraded
+                if let tlsOptions {
+                    do {
+                        try framer.prependApplicationProtocol(options: tlsOptions)
+                    } catch {
+                        state = .failed
+                    }
+                }
+            } else if line.hasPrefix("4") || line.hasPrefix("5") {
+                state = .failed
+            }
+        case .upgraded, .failed:
+            break
+        }
+    }
+
+    func handleOutput(
+        framer: NWProtocolFramer.Instance,
+        message: NWProtocolFramer.Message,
+        messageLength: Int,
+        isComplete: Bool
+    ) {
+        try? framer.writeOutputNoCopy(length: messageLength)
+    }
+
+    func wakeup(framer: NWProtocolFramer.Instance) {}
+    func stop(framer: NWProtocolFramer.Instance) -> Bool { true }
+    func cleanup(framer: NWProtocolFramer.Instance) {}
+}
+
+final class ExplicitFTPSOptionsRegistry: @unchecked Sendable { // JUSTIFICATION: NSLock guards state.
+    static let shared = ExplicitFTPSOptionsRegistry()
+    private let lock = NSLock()
+    private var optionsQueue: [NWProtocolTLS.Options] = []
+
+    func push(_ options: NWProtocolTLS.Options) {
+        lock.lock()
+        defer { lock.unlock() }
+        optionsQueue.append(options)
+    }
+
+    func claim() -> NWProtocolTLS.Options? {
+        lock.lock()
+        defer { lock.unlock() }
+        return optionsQueue.isEmpty ? nil : optionsQueue.removeLast()
     }
 }
