@@ -270,4 +270,38 @@ struct SecurityTests {
             _ = try await validator.preflightVerifyExplicitFTPS(host: "127.0.0.1", port: 99_999, timeoutSeconds: 1)
         }
     }
+
+    @Test("ProxyJumpParser parses multi-hop hops, users, ports, IPv6, and rejects injection (Task 2.5)")
+    func proxyJumpParserMultiHopAndSanitization() throws {
+        let emptyHops = try ProxyJumpParser.parse(directive: "")
+        #expect(emptyHops.isEmpty)
+
+        let noneHops = try ProxyJumpParser.parse(directive: "none")
+        #expect(noneHops.isEmpty)
+
+        let hops = try ProxyJumpParser.parse(directive: "jumpbox1:2222,admin@jumpbox2,[::1]:2200")
+        #expect(hops.count == 3)
+        #expect(hops[0].host == "jumpbox1")
+        #expect(hops[0].port == 2222)
+        #expect(hops[0].user == nil)
+        #expect(hops[1].host == "jumpbox2")
+        #expect(hops[1].port == 22)
+        #expect(hops[1].user == "admin")
+        #expect(hops[2].host == "::1")
+        #expect(hops[2].port == 2200)
+
+        #expect(hops[0].directiveString == "jumpbox1:2222")
+        #expect(hops[1].directiveString == "admin@jumpbox2")
+        #expect(hops[2].directiveString == "[::1]:2200")
+
+        #expect(throws: AppError.self) {
+            _ = try ProxyJumpParser.parse(directive: "jumpbox;rm -rf /")
+        }
+        #expect(throws: AppError.self) {
+            _ = try ProxyJumpParser.parse(directive: "jumpbox|whoami")
+        }
+        #expect(throws: AppError.self) {
+            _ = try ProxyJumpParser.parse(directive: "jumpbox:999999")
+        }
+    }
 }

@@ -201,8 +201,9 @@ public struct PortForwardingSheet: View {
                 Picker("Mode", selection: $direction) {
                     Text("Local (-L)").tag(PortForwardingRule.Direction.local)
                     Text("Remote (-R)").tag(PortForwardingRule.Direction.remote)
+                    Text("Dynamic (-D)").tag(PortForwardingRule.Direction.dynamic)
                 }
-                .frame(width: 130)
+                .frame(width: 140)
                 TextField("Name", text: $name)
                 TextField("Bind Port", text: $bindPort).frame(width: 75)
                 TextField("Target Host", text: $targetHost)

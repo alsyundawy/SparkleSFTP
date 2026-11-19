@@ -56,11 +56,13 @@ public actor PortForwardingManager {
             updatedRule.bindPort = actualPort
             remoteForwards[rule.id] = RunningRemoteForward(rule: updatedRule, sshClient: sshClient)
             return ActiveTunnel(id: rule.id, rule: updatedRule, listeningPort: actualPort)
+        case .dynamic:
+            return try await startLocalForward(rule: rule, sshClient: sshClient)
         }
     }
 
     public func startLocalForward(rule: PortForwardingRule, sshClient: SSHClientService) async throws -> ActiveTunnel {
-        guard rule.direction == .local else {
+        guard rule.direction == .local || rule.direction == .dynamic else {
             return try await startForward(rule: rule, sshClient: sshClient)
         }
         await stopTunnel(id: rule.id)

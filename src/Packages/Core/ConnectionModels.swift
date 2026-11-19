@@ -173,6 +173,7 @@ public struct PortForwardingRule: Identifiable, Sendable, Codable, Hashable {
     public enum Direction: String, Sendable, Codable, CaseIterable {
         case local
         case remote
+        case dynamic
     }
 
     public let id: UUID
