@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `fsync@openssh.com`: server-side physical disk synchronization prior to file close.
     - `copy-data`: server-side zero-copy file duplication.
     - `md5-hash@openssh.com` & `sha256@openssh.com`: remote checksum verification without local file retrieval.
+- **Enterprise FTPS & Directory Listing Modernization (`FTPListingParser`, `TLSCertificateInfo`)**:
+  - Expanded `FTPListingParser` with Windows IIS format support (`MM-DD-YY HH:MM(AM|PM) <DIR>|size filename`), complementing RFC 3659 `MLSD` and Unix `ls -l`.
+  - Added real-time certificate expiration and health monitoring (`isExpired`, `daysUntilExpiration`, `isExpiringSoon`, `isCriticallyExpiring`) to `TLSCertificateInfo` for proactive 14/30-day expiry alerting.
 - **Remote Linux Server Administration & System Diagnostics (`RemoteSystemManager`)**:
   - Sanitized `systemctl` command builder for whitelisted services (`nginx`, `apache2`, `php-fpm`, `mariadb`, `mysql`, `postgresql`, `docker`, `sshd`, `named`, `ufw`, `fail2ban`) preventing arbitrary shell injection (`CWE-78`).
   - Remote telemetry parsers for `/proc/loadavg` (1m/5m/15m load average), `free -m` (memory metrics and utilization), and `df -h` (disk partitions and quota).
