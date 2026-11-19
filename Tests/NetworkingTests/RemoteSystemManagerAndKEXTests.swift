@@ -79,4 +79,82 @@ struct RemoteSystemManagerAndKEXTests {
         #expect(vfs.usedBytes == 2_662_400_000)
         #expect(vfs.percentUsed == 65.0)
     }
+
+    @Test("RemoteProcessManager parses ps aux output and builds safe kill commands")
+    func testProcessManagerCommandsAndParsing() throws {
+        let sample = """
+        USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+        root      1042  5.2  2.1 123456 32100 ?        Ss   09:00   0:15 /usr/sbin/nginx -g daemon on;
+        www-data  1043  1.5  1.2  65432 16000 ?        S    09:01   0:04 nginx: worker process
+        """
+        let list = RemoteProcessManager.parseProcessList(from: sample)
+        #expect(list.count == 2)
+        #expect(list[0].pid == 1042)
+        #expect(list[0].user == "root")
+        #expect(list[0].cpuPercent == 5.2)
+
+        let termCmd = try RemoteProcessManager.buildKillCommand(pid: 1042, signal: .term)
+        #expect(termCmd == "kill -15 1042")
+
+        let killCmd = try RemoteProcessManager.buildKillCommand(pid: 1043, signal: .kill)
+        #expect(killCmd == "kill -9 1043")
+
+        #expect(throws: AppError.self) {
+            _ = try RemoteProcessManager.buildKillCommand(pid: 1, signal: .kill)
+        }
+    }
+
+    @Test("RemoteProcessManager parses Docker containers and builds valid commands")
+    func testDockerCommandsAndParsing() throws {
+        let sample = "c1234\tnginx:alpine\tmy_nginx\tUp 2 hours\trunning\n"
+        let containers = RemoteProcessManager.parseDockerContainers(from: sample)
+        #expect(containers.count == 1)
+        #expect(containers[0].id == "c1234")
+        #expect(containers[0].name == "my_nginx")
+        #expect(containers[0].isRunning == true)
+
+        let restartCmd = try RemoteProcessManager.buildDockerCommand(action: .restart, containerId: "my_nginx")
+        #expect(restartCmd == "docker restart my_nginx")
+
+        let logsCmd = try RemoteProcessManager.buildDockerCommand(
+            action: .logs,
+            containerId: "my_nginx",
+            tailLines: 150
+        )
+        #expect(logsCmd == "docker logs --tail 150 my_nginx")
+
+        #expect(throws: AppError.self) {
+            _ = try RemoteProcessManager.buildDockerCommand(action: .stop, containerId: "bad;rm -rf /")
+        }
+    }
+
+    @Test("RemoteLogManager builds sanitized tail commands and rejects empty paths")
+    func testRemoteLogManager() throws {
+        let cmd = try RemoteLogManager.buildTailCommand(
+            path: "/var/log/nginx/error.log",
+            lines: 300,
+            follow: true,
+            useSudo: true
+        )
+        #expect(cmd == "sudo -n tail -n 300 -f '/var/log/nginx/error.log'")
+
+        #expect(throws: AppError.self) {
+            _ = try RemoteLogManager.buildTailCommand(path: "   ")
+        }
+    }
+
+    @Test("POSIXPermissionFormatter converts between symbolic and octal representations")
+    func testPOSIXPermissionFormatter() {
+        #expect(POSIXPermissionFormatter.formatOctal(0o755) == "0755")
+        #expect(POSIXPermissionFormatter.formatSymbolic(0o755) == "rwxr-xr-x")
+        #expect(POSIXPermissionFormatter.formatSymbolic(0o644) == "rw-r--r--")
+
+        #expect(POSIXPermissionFormatter.parseSymbolic("rwxr-xr-x") == 0o755)
+        #expect(POSIXPermissionFormatter.parseSymbolic("-rw-r--r--") == 0o644)
+        #expect(POSIXPermissionFormatter.parseSymbolic("invalid") == nil)
+
+        #expect(POSIXPermissionFormatter.parseOctal("0755") == 0o755)
+        #expect(POSIXPermissionFormatter.makeExecutable(0o644) == 0o755)
+        #expect(POSIXPermissionFormatter.securePrivate(0o777) == 0o600)
+    }
 }

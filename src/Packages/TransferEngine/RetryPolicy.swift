@@ -44,8 +44,13 @@ public struct RetryPolicy: Sendable, Equatable {
         let exponentialMultiplier = pow(2.0, Double(attempt))
         let nominalDelay = min(maxDelay, baseDelay * exponentialMultiplier)
 
-        let jitterRatio = deterministicJitter ?? Double.random(in: 0.0 ... jitterFraction)
-        let totalDelay = nominalDelay * (1.0 + jitterRatio)
+        let jitterMultiplier: Double
+        if let deterministic = deterministicJitter {
+            jitterMultiplier = 1.0 + deterministic
+        } else {
+            jitterMultiplier = Double.random(in: (1.0 - jitterFraction) ... (1.0 + jitterFraction))
+        }
+        let totalDelay = min(maxDelay, max(0.1, nominalDelay * jitterMultiplier))
 
         return .shouldRetry(delay: totalDelay, attemptNumber: attempt + 1)
     }

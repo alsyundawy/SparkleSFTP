@@ -7,11 +7,22 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     public nonisolated let profile: ConnectionProfile
     private let sshService: SSHClientService
     private let useCompression: Bool
+    public var useSudoElevation: Bool
 
-    public init(profile: ConnectionProfile, sshService: SSHClientService, useCompression: Bool = true) {
+    public init(
+        profile: ConnectionProfile,
+        sshService: SSHClientService,
+        useCompression: Bool = true,
+        useSudoElevation: Bool = false
+    ) {
         self.profile = profile
         self.sshService = sshService
         self.useCompression = useCompression
+        self.useSudoElevation = useSudoElevation
+    }
+
+    private var sudoPrefix: String {
+        useSudoElevation ? "sudo -n " : ""
     }
 
     public var capabilities: Set<RemoteCapability> {
@@ -37,7 +48,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
 
     public func listDirectory(at path: RemotePath) async throws -> [RemoteFile] {
         let quoted = try Self.escapePOSIXSingleQuoted(path.rawValue)
-        let result = try await sshService.executeCommand("LC_ALL=C ls -la \(quoted)")
+        let result = try await sshService.executeCommand("\(sudoPrefix)LC_ALL=C ls -la \(quoted)")
         guard result.exitCode == 0 else {
             throw AppError.protocolError(code: result.exitCode, message: result.stderr)
         }
@@ -46,9 +57,9 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
 
     public func metadata(at path: RemotePath) async throws -> RemoteFileMetadata {
         let quoted = try Self.escapePOSIXSingleQuoted(path.rawValue)
-        let result = try await sshService.executeCommand(
-            "LC_ALL=C stat -c '%s %f %Y' \(quoted) 2>/dev/null || LC_ALL=C stat -f '%z %Xp %m' \(quoted)"
-        )
+        let statCmd = "\(sudoPrefix)LC_ALL=C stat -c '%s %f %Y' \(quoted) 2>/dev/null " +
+            "|| \(sudoPrefix)LC_ALL=C stat -f '%z %Xp %m' \(quoted)"
+        let result = try await sshService.executeCommand(statCmd)
         guard result.exitCode == 0 else {
             throw AppError.fileNotFound(path: path.rawValue)
         }
@@ -82,6 +93,44 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
         return RemotePath(rawValue: resolved)
     }
 
+    private func attemptCompressedDownload(
+        remoteQuoted: String,
+        localURL: URL,
+        metaSize: Int64,
+        speedMeter: TransferSpeedMeter,
+        onProgress: @escaping @Sendable (TransferProgress) -> Void
+    ) async -> Bool {
+        guard useCompression, metaSize >= 4096, metaSize <= 2 * 1024 * 1024 else { return false }
+        let command = "\(sudoPrefix)gzip -c < \(remoteQuoted) | base64"
+        guard let res = try? await sshService.executeCommand(command), res.exitCode == 0 else {
+            return false
+        }
+        let clean = res.stdout.components(separatedBy: .whitespacesAndNewlines).joined()
+        guard let gzData = Data(base64Encoded: clean),
+              let plainData = try? ZlibCompressionCodec.decompress(gzData) else {
+            return false
+        }
+        guard (try? plainData.write(to: localURL, options: [.atomic])) != nil else { return false }
+        if let progress = speedMeter.record(
+            absoluteBytes: Int64(plainData.count),
+            totalOverride: max(metaSize, Int64(plainData.count)),
+            force: true
+        ) {
+            onProgress(progress)
+        }
+        return true
+    }
+
+    private func openDestinationHandle(at localURL: URL, offset: Int64) throws -> FileHandle {
+        if offset > 0 && FileManager.default.fileExists(atPath: localURL.path) {
+            let handle = try FileHandle(forUpdating: localURL)
+            try handle.seek(toOffset: UInt64(offset))
+            return handle
+        }
+        FileManager.default.createFile(atPath: localURL.path, contents: nil)
+        return try FileHandle(forWritingTo: localURL)
+    }
+
     public func download(
         from remotePath: RemotePath,
         to localURL: URL,
@@ -91,49 +140,50 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
         let quoted = try Self.escapePOSIXSingleQuoted(remotePath.rawValue)
         let meta = try await metadata(at: remotePath)
         let speedMeter = TransferSpeedMeter(totalBytes: meta.size, initialOffset: offset)
-        if offset == 0, useCompression, meta.size >= 4096,
-           let compressedResult = try? await sshService.executeCommand("gzip -c < \(quoted) | base64"),
-           compressedResult.exitCode == 0 {
-            let cleanCompressed = compressedResult.stdout.components(separatedBy: .whitespacesAndNewlines).joined()
-            if let gzData = Data(base64Encoded: cleanCompressed),
-               let plainData = try? ZlibCompressionCodec.decompress(gzData) {
-                try plainData.write(to: localURL, options: [.atomic])
-                if let progress = speedMeter.record(
-                    absoluteBytes: Int64(plainData.count),
-                    totalOverride: max(meta.size, Int64(plainData.count)),
-                    force: true
-                ) {
-                    onProgress(progress)
-                }
-                return
-            }
-        }
-        let command = offset > 0 ? "tail -c +\(offset + 1) \(quoted) | base64" : "base64 < \(quoted)"
-        let result = try await sshService.executeCommand(command)
-        guard result.exitCode == 0 else {
-            throw AppError.transferFailed(reason: result.stderr)
-        }
-        let cleanB64 = result.stdout.components(separatedBy: .whitespacesAndNewlines).joined()
-        guard let decoded = Data(base64Encoded: cleanB64) else {
-            throw AppError.transferFailed(reason: "Corrupted base64 stream over SCP fallback")
+
+        if meta.size == 0 {
+            FileManager.default.createFile(atPath: localURL.path, contents: nil)
+            onProgress(TransferProgress(bytesTransferred: 0, totalBytes: 0, bytesPerSecond: 0))
+            return
         }
 
-        if offset > 0, FileManager.default.fileExists(atPath: localURL.path) {
-            let handle = try FileHandle(forUpdating: localURL)
-            defer { try? handle.close() }
-            try handle.seek(toOffset: UInt64(offset))
-            try handle.write(contentsOf: decoded)
-        } else {
-            try decoded.write(to: localURL, options: [.atomic])
-        }
-
-        let completedBytes = offset + Int64(decoded.count)
-        if let progress = speedMeter.record(
-            absoluteBytes: completedBytes,
-            totalOverride: max(meta.size, completedBytes),
-            force: true
+        if offset == 0, await attemptCompressedDownload(
+            remoteQuoted: quoted,
+            localURL: localURL,
+            metaSize: meta.size,
+            speedMeter: speedMeter,
+            onProgress: onProgress
         ) {
-            onProgress(progress)
+            return
+        }
+
+        let chunkLimit: Int64 = 64 * 1024
+        let handle = try openDestinationHandle(at: localURL, offset: offset)
+        defer { try? handle.close() }
+
+        var currentOffset = offset
+        while currentOffset < meta.size {
+            try Task.checkCancellation()
+            let bytesToRead = min(chunkLimit, meta.size - currentOffset)
+            let command = "\(sudoPrefix)tail -c +\(currentOffset + 1) \(quoted) | head -c \(bytesToRead) | base64"
+            let result = try await sshService.executeCommand(command)
+            guard result.exitCode == 0 else {
+                throw AppError.transferFailed(reason: result.stderr)
+            }
+            let cleanB64 = result.stdout.components(separatedBy: .whitespacesAndNewlines).joined()
+            guard let decoded = Data(base64Encoded: cleanB64) else {
+                throw AppError.transferFailed(reason: "Corrupted base64 stream over SCP fallback")
+            }
+            try handle.write(contentsOf: decoded)
+            currentOffset += Int64(decoded.count)
+            if let progress = speedMeter.record(
+                absoluteBytes: currentOffset,
+                totalOverride: meta.size,
+                force: currentOffset >= meta.size
+            ) {
+                onProgress(progress)
+            }
+            if decoded.isEmpty { break }
         }
     }
 
@@ -153,7 +203,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
         try handle.seek(toOffset: UInt64(clampedOffset))
 
         if totalSize == 0, clampedOffset == 0 {
-            let result = try await sshService.executeCommand(": > \(quoted)")
+            let result = try await sshService.executeCommand("\(sudoPrefix): > \(quoted)")
             guard result.exitCode == 0 else {
                 throw AppError.transferFailed(reason: result.stderr)
             }
@@ -172,8 +222,9 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
                 break
             }
             let b64 = chunk.base64EncodedString()
-            let redirectOperator = (isFirstChunk && clampedOffset == 0) ? ">" : ">>"
-            let command = "printf '%s' '\(b64)' | base64 -d \(redirectOperator) \(quoted)"
+            let redirectFlag = (isFirstChunk && clampedOffset == 0) ? "" : "-a "
+            let teePrefix = sudoPrefix.isEmpty ? "" : "\(sudoPrefix)"
+            let command = "printf '%s' '\(b64)' | base64 -d | \(teePrefix)tee \(redirectFlag)\(quoted) >/dev/null"
             let result = try await sshService.executeCommand(command)
             guard result.exitCode == 0 else {
                 throw AppError.transferFailed(reason: result.stderr)
@@ -189,7 +240,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     public func delete(at path: RemotePath, isDirectory: Bool) async throws {
         let quoted = try Self.escapePOSIXSingleQuoted(path.rawValue)
         let cmd = isDirectory ? "rmdir \(quoted)" : "rm -f \(quoted)"
-        let result = try await sshService.executeCommand(cmd)
+        let result = try await sshService.executeCommand("\(sudoPrefix)\(cmd)")
         guard result.exitCode == 0 else {
             throw AppError.protocolError(code: result.exitCode, message: result.stderr)
         }
@@ -198,7 +249,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     public func rename(from source: RemotePath, to destination: RemotePath) async throws {
         let src = try Self.escapePOSIXSingleQuoted(source.rawValue)
         let dst = try Self.escapePOSIXSingleQuoted(destination.rawValue)
-        let result = try await sshService.executeCommand("mv -f \(src) \(dst)")
+        let result = try await sshService.executeCommand("\(sudoPrefix)mv -f \(src) \(dst)")
         guard result.exitCode == 0 else {
             throw AppError.protocolError(code: result.exitCode, message: result.stderr)
         }
@@ -206,7 +257,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
 
     public func createDirectory(at path: RemotePath) async throws {
         let quoted = try Self.escapePOSIXSingleQuoted(path.rawValue)
-        let result = try await sshService.executeCommand("mkdir -p \(quoted)")
+        let result = try await sshService.executeCommand("\(sudoPrefix)mkdir -p \(quoted)")
         guard result.exitCode == 0 else {
             throw AppError.protocolError(code: result.exitCode, message: result.stderr)
         }
@@ -215,7 +266,7 @@ public actor SCPCompatibilityAdapter: RemoteConnection, RemoteFileSystem {
     public func setPermissions(_ permissions: UInt32, at path: RemotePath) async throws {
         let quoted = try Self.escapePOSIXSingleQuoted(path.rawValue)
         let octal = String(permissions & 0o7777, radix: 8)
-        let result = try await sshService.executeCommand("chmod \(octal) \(quoted)")
+        let result = try await sshService.executeCommand("\(sudoPrefix)chmod \(octal) \(quoted)")
         guard result.exitCode == 0 else {
             throw AppError.protocolError(code: result.exitCode, message: result.stderr)
         }

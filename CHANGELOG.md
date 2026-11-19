@@ -37,9 +37,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enterprise FTPS & Directory Listing Modernization (`FTPListingParser`, `TLSCertificateInfo`)**:
   - Expanded `FTPListingParser` with Windows IIS format support (`MM-DD-YY HH:MM(AM|PM) <DIR>|size filename`), complementing RFC 3659 `MLSD` and Unix `ls -l`.
   - Added real-time certificate expiration and health monitoring (`isExpired`, `daysUntilExpiration`, `isExpiringSoon`, `isCriticallyExpiring`) to `TLSCertificateInfo` for proactive 14/30-day expiry alerting.
-- **Remote Linux Server Administration & System Diagnostics (`RemoteSystemManager`)**:
+- **Modernized Streaming SCP Compatibility Engine (`SCPCompatibilityAdapter`, `Milestone 5`)**:
+  - Implemented 64 KB chunked streaming directly to/from destination `FileHandle` eliminating memory exhaustion (`CWE-400`).
+  - Added bounded decompression ceiling (max 2 MB compressed payload) guarding against zip bombs (`CWE-409`).
+  - Added opt-in `sudo -n` remote root elevation across all file operations (`listDirectory`, `metadata`, `download`, `upload`, `delete`, `rename`, `createDirectory`, `setPermissions`) with strict POSIX single-quote escaping (`CWE-78`).
+- **Remote Linux Server Administration & System Diagnostics (`RemoteSystemManager`, `RemoteProcessManager`, `RemoteLogManager`, `POSIXPermissionFormatter`)**:
   - Sanitized `systemctl` command builder for whitelisted services (`nginx`, `apache2`, `php-fpm`, `mariadb`, `mysql`, `postgresql`, `docker`, `sshd`, `named`, `ufw`, `fail2ban`) preventing arbitrary shell injection (`CWE-78`).
   - Remote telemetry parsers for `/proc/loadavg` (1m/5m/15m load average), `free -m` (memory metrics and utilization), and `df -h` (disk partitions and quota).
+  - Remote process explorer parsing `ps aux --sort=-%cpu` and generating sanitized `kill -15` (SIGTERM) / `kill -9` (SIGKILL) commands with root PID protection (`PID <= 1` rejection).
+  - Docker container status inspector parsing tab-delimited docker output and generating sanitized `docker restart`, `docker stop`, and `docker logs --tail <n>` commands.
+  - Remote live log viewer builder generating safe `tail -n <count> -f <path>` commands with standard Linux log paths (`/var/log/syslog`, `/var/log/nginx/error.log`, `/var/log/apache2/error.log`, `/var/log/auth.log`).
+  - POSIX permission converter with bidirectional symbolic (`rwxr-xr-x`) <-> octal (`0755`) mapping, `chmod +x` executable toggle, and `0600` private security clamping.
+- **External Desktop Editor Ecosystem & CLI Wait Protocol (`ExternalEditorDetector`, `Milestone 14`)**:
+  - Auto-discovery service probing macOS workspace and `/Applications` for installed text editors: VS Code, VS Code Insiders, Sublime Text, BBEdit, TextMate, CotEditor, MacVim, NotepadMac, SparkNotePad, and Cursor.
+  - Dynamic CLI argument builder supporting synchronous wait flags (`--wait`, `-w`, `-f`) for remote round-trip editing sessions.
+- **Network Diagnostics & TCP Port Reachability Checker (`PortChecker`, `RemoteNetworkDiagnostics`, `Milestone 15`)**:
+  - Asynchronous TCP port probe service testing reachability and latency of common network ports (22 SSH/SFTP, 21 FTP, 990 FTPS, 80 HTTP, 443 HTTPS, 3306 MySQL/MariaDB, 5432 PostgreSQL, 6379 Redis) via `NWConnection` with bounded timeouts.
+  - Remote network diagnostic command builder generating sanitized `ping`, `traceroute`, `ip route`, and `ss -tulpn` / `netstat -tulpn` commands.
+- **Randomized Jitter Exponential Backoff (`RetryPolicy`, `TD-12`, `Milestone 17`)**:
+  - Full randomized bilateral jitter ($\text{Double.random}(\text{in}: 0.7 \dots 1.3) \times \text{baseDelay} \times 2^{\text{attempt}}$) eliminating thundering herd synchronization during concurrent transfer retries.
 - **Built-in IPv4 Subnet & CIDR Calculator Hub (`IPSubnetCalculator`, `SubnetCalculatorSheet`, `⌘⌥S`)**:
   - Ported pure Swift 6 subnet calculation engine from `SubnetCalc for macOS` by `@alsyundawy`.
   - Calculates network address, broadcast address, netmask, wildcard mask, usable host range, total hosts, IP class, and RFC 1918 scope.
