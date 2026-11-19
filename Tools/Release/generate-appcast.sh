@@ -48,7 +48,7 @@ if [[ -z "${ED_SIGNATURE}" ]]; then
   ED_SIGNATURE="SIGNATURE_PLACEHOLDER_FOR_RELEASE_NOTARIZATION"
 fi
 
-cat <<EOF > "${APPCAST_XML}"
+cat <<EOF >"${APPCAST_XML}"
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
