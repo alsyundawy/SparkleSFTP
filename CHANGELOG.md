@@ -165,7 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streamlined `SSHPTYChannelHandler` and `SFTPSubsystemChannelHandler` with `wantReply: false`, removing unnecessary round-trip latency during channel initialization.
   - Converted `finalizeSuccessfulConnection` to update profile state in-place, eliminating redundant SQLite re-reads and sidebar redraw storms.
   - Displayed enlarged terminal window immediately in `openEnlargedTerminalWindow()` for instant 0ms user interaction.
-- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `955a4b2b221681909160f5c24cd6821ed9fe88859fc0b3e7580484eae0d50e90`.
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `6271fbb870a5cc8ed80915dd61557b27175d70b30acdebea7006f2ba1d885657`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 

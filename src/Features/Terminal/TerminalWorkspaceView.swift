@@ -17,14 +17,17 @@ public struct TerminalWorkspaceView: View {
         terminalManager = appState.terminalManager
     }
 
-    private var boundShellSession: TerminalTabSession? {
-        guard appState.currentSession != nil else { return nil }
-        return terminalManager.session(forWorkspaceTabID: appState.activeTabID)
+    private var activeSession: TerminalTabSession? {
+        if let selID = terminalManager.selectedSessionID,
+           let found = terminalManager.sessions.first(where: { $0.id == selID }) {
+            return found
+        }
+        return terminalManager.session(forWorkspaceTabID: appState.activeTabID) ?? terminalManager.sessions.first
     }
 
     public var body: some View {
         let palette = appState.activePalette
-        let shellSession = boundShellSession
+        let shellSession = activeSession
         VStack(spacing: 0) {
             HStack(spacing: SparkleTheme.Spacing.small) {
                 Label(
@@ -37,19 +40,19 @@ public struct TerminalWorkspaceView: View {
 
                 Spacer()
 
-                if appState.currentSession?.sshClient != nil, shellSession == nil || shellSession?.isActive == false {
+                if appState.currentSession?.sshClient != nil {
                     Button {
                         Task { await appState.openTerminalTab() }
                     } label: {
-                        Label(appState.strings.t("nav.openPTYShell"), systemImage: SparkleTheme.Symbols.terminal)
+                        Label(appState.strings.t("term.newSSHTab"), systemImage: "plus")
                     }
-                    .help(appState.strings.t("nav.openTerminalTab"))
+                    .help(appState.strings.t("term.newSSHTab"))
                 }
 
                 Button {
                     Task { await appState.openEnlargedTerminalWindow() }
                 } label: {
-                    Image(systemName: "macwindow.on.rectangle")
+                    Image(systemName: SparkleTheme.Symbols.enlargedTerminal)
                 }
                 .help(appState.strings.t("nav.enlargedTerminalTooltip"))
 
@@ -87,6 +90,8 @@ public struct TerminalWorkspaceView: View {
             .padding(.horizontal, SparkleTheme.Spacing.small)
             .padding(.vertical, SparkleTheme.Spacing.tiny)
             .background(palette.windowColor)
+
+            tabBar(palette: palette)
 
             if isShowingFind {
                 HStack(spacing: SparkleTheme.Spacing.tiny) {
@@ -132,9 +137,9 @@ public struct TerminalWorkspaceView: View {
                 .background(palette.windowColor.opacity(0.95))
             }
 
-            if appState.isTerminalEnlarged {
+            if appState.isTerminalEnlarged && appState.enlargedTerminalWindowController.isVisible {
                 VStack(spacing: SparkleTheme.Spacing.small) {
-                    Image(systemName: "macwindow.on.rectangle")
+                    Image(systemName: SparkleTheme.Symbols.enlargedTerminal)
                         .font(.system(size: 28))
                         .foregroundStyle(palette.accentColor)
                     Text(appState.strings.t("term.enlargedTitle"))
@@ -194,13 +199,59 @@ public struct TerminalWorkspaceView: View {
         .sparkleWorkspaceSurface(palette, useCanvas: true)
     }
 
+    @ViewBuilder
+    private func tabBar(palette: SparkleThemePalette) -> some View {
+        if terminalManager.sessions.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(terminalManager.sessions) { sess in
+                        let isSelected = (sess.id == (terminalManager.selectedSessionID ?? activeSession?.id))
+                        tabChip(sess: sess, isSelected: isSelected, palette: palette)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+            }
+            .background(palette.windowColor.opacity(0.85))
+            Divider()
+        }
+    }
+
+    private func tabChip(sess: TerminalTabSession, isSelected: Bool, palette: SparkleThemePalette) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
+                .frame(width: 6, height: 6)
+            Text(sess.title)
+                .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
+            if terminalManager.sessions.count > 1 {
+                Button {
+                    terminalManager.closeSession(id: sess.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(isSelected ? palette.canvasColor : palette.windowColor)
+        .cornerRadius(4)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            terminalManager.selectedSessionID = sess.id
+        }
+    }
+
     private func terminalSessionView(session: TerminalTabSession, themeColors: TerminalThemeColors) -> some View {
         TerminalViewRepresentable(session: session, themeColors: themeColors)
             .id(session.id)
     }
 
     private func performFind(forward: Bool) {
-        guard let session = boundShellSession, !findQuery.isEmpty else {
+        guard let session = activeSession, !findQuery.isEmpty else {
             findSummary = ""
             return
         }

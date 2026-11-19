@@ -10,9 +10,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationDidFinishLaunching(_: Notification) {
         UserDefaults.standard.register(defaults: [
-            "NSInitialToolTipDelay": 150
+            "NSInitialToolTipDelay": 50,
+            "NSToolTipDelay": 50
         ])
-        UserDefaults.standard.set(150, forKey: "NSInitialToolTipDelay")
+        UserDefaults.standard.set(50, forKey: "NSInitialToolTipDelay")
+        UserDefaults.standard.set(50, forKey: "NSToolTipDelay")
         if Bundle.main.bundleURL.pathExtension == "app" {
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         }

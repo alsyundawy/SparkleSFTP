@@ -11,12 +11,15 @@ public extension AppState {
               let tabID = currentTab?.id
         else { return }
         do {
-            _ = try await terminalManager.ensureSingleSession(
+            let sessionIndex = terminalManager.sessions.count + 1
+            let title = sessionIndex == 1 ? session.profile.name : "\(session.profile.name) (\(sessionIndex))"
+            _ = try await terminalManager.openSession(
+                title: title,
                 workspaceTabID: tabID,
                 remoteSessionID: session.id,
-                title: session.profile.name,
                 sshClient: sshClient
             )
+            isTerminalEnlarged = false
             setActiveTabTerminalVisibility(true)
         } catch {
             reportNonCancellationError(error)
@@ -28,15 +31,18 @@ public extension AppState {
             setActiveTabTerminalVisibility(false)
             return
         }
+        isTerminalEnlarged = false
+        setActiveTabTerminalVisibility(true)
+
         guard let tab = currentTab,
               let session = currentSession,
               session.sshClient != nil
         else { return }
-        if let existing = terminalManager.session(forWorkspaceTabID: tab.id),
-           existing.remoteSessionID == session.id,
-           existing.isActive {
+
+        if let existing = terminalManager.sessions.first(where: {
+            ($0.workspaceTabID == tab.id || $0.remoteSessionID == session.id) && $0.isActive
+        }) {
             terminalManager.selectedSessionID = existing.id
-            setActiveTabTerminalVisibility(true)
         } else {
             await openTerminalTab()
         }

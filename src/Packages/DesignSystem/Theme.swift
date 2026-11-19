@@ -90,6 +90,7 @@ public enum SparkleTheme {
         public static let upload = "arrow.up.circle.fill"
         public static let download = "arrow.down.circle.fill"
         public static let terminal = "terminal.fill"
+        public static let enlargedTerminal = "arrow.up.left.and.arrow.down.right.rectangle"
         public static let sync = "arrow.triangle.2.circlepath"
         public static let connect = "bolt.horizontal.circle.fill"
         public static let disconnect = "xmark.circle.fill"

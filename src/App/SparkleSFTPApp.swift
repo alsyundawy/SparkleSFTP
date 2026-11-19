@@ -252,9 +252,11 @@ struct SparkleSFTPApp: App {
 
     init() {
         UserDefaults.standard.register(defaults: [
-            "NSInitialToolTipDelay": 150
+            "NSInitialToolTipDelay": 50,
+            "NSToolTipDelay": 50
         ])
-        UserDefaults.standard.set(150, forKey: "NSInitialToolTipDelay")
+        UserDefaults.standard.set(50, forKey: "NSInitialToolTipDelay")
+        UserDefaults.standard.set(50, forKey: "NSToolTipDelay")
     }
 
     private var isShowcaseGalleryRequested: Bool {

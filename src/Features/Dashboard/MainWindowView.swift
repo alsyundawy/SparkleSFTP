@@ -102,7 +102,10 @@ public struct MainWindowView: View {
                 Button {
                     Task { await appState.openEnlargedTerminalWindow() }
                 } label: {
-                    Label(appState.strings.t("nav.enlargedTerminal"), systemImage: "macwindow.on.rectangle")
+                    Label(
+                        appState.strings.t("nav.enlargedTerminal"),
+                        systemImage: SparkleTheme.Symbols.enlargedTerminal
+                    )
                 }
                 .help(appState.strings.t("nav.enlargedTerminalTooltip"))
 

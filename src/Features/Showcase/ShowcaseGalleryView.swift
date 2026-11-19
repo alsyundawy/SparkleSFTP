@@ -27,7 +27,7 @@ public struct ShowcaseGalleryView: View {
 
         public var iconName: String {
             switch self {
-            case .mainWorkspace: return "macwindow.on.rectangle"
+            case .mainWorkspace: return SparkleTheme.Symbols.enlargedTerminal
             case .connectionManager: return "network"
             case .transferQueue: return "arrow.up.arrow.down.circle"
             case .terminal: return "terminal"

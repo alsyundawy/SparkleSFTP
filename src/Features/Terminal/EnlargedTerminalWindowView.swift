@@ -107,7 +107,12 @@ extension EnlargedTerminalWindowView {
                     do {
                         let count = terminalManager.sessions.count + 1
                         let name = "\(appState.currentSession?.profile.name ?? "SSH") (\(count))"
-                        _ = try await terminalManager.openSession(title: name, sshClient: sshClient)
+                        _ = try await terminalManager.openSession(
+                            title: name,
+                            workspaceTabID: appState.activeTabID,
+                            remoteSessionID: appState.currentSession?.id,
+                            sshClient: sshClient
+                        )
                     } catch {
                         appState.reportNonCancellationError(error)
                     }

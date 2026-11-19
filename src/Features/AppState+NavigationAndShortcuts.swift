@@ -82,7 +82,7 @@ public extension AppState {
 
         if let session = currentSession, let sshClient = session.sshClient {
             let tabID = currentTab?.id ?? activeTabID
-            if terminalManager.sessions.isEmpty || terminalManager.session(forWorkspaceTabID: tabID)?.isActive != true {
+            if terminalManager.sessions.isEmpty || terminalManager.sessions.allSatisfy({ !$0.isActive }) {
                 do {
                     _ = try await terminalManager.ensureSingleSession(
                         workspaceTabID: tabID,

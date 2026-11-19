@@ -170,7 +170,7 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Blazing-fast login and connection restoration (v0.6.0 parity): direct SFTP readdir traversal, non-blocking background disk synchronization, and non-blocking TLS verification
 - [x] Security vulnerability mitigations: CVE-2024-6387 regreSSHion audit, CVE-2023-48795 Terrapin mitigation, swift-nio-ssh pin gate, swift-nio CRLF injection defense, Zip-Slip immunity, XML entity limit, Lua sandbox isolation
 - [x] Quality gates: 221 tests in 56 suites passing (100% green), 0 SwiftLint violations across 332 files, 0 ShellCheck warnings, SonarQube report generator, 100% localization parity across 752 keys (`Task 17.6`, `Task 18.1–18.5`, `Task 18.7`)
-- [x] Universal 2 fat binary build (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `955a4b2b221681909160f5c24cd6821ed9fe88859fc0b3e7580484eae0d50e90`) (`Task 18.6`)
+- [x] Universal 2 fat binary build (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `6271fbb870a5cc8ed80915dd61557b27175d70b30acdebea7006f2ba1d885657`) (`Task 18.6`)
 - [x] Push commits and tag `v0.7.0` to GitHub repository and release v0.7.0 on `main` and `0.7.0` (`Task 18.8`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)

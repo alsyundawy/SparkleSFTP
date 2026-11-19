@@ -258,8 +258,17 @@ public final class TerminalSessionManager: ObservableObject {
     }
 
     @discardableResult
-    public func openSession(title: String, sshClient: SSHClientService?) async throws -> TerminalTabSession {
-        let session = TerminalTabSession(title: title)
+    public func openSession(
+        title: String,
+        workspaceTabID: UUID? = nil,
+        remoteSessionID: UUID? = nil,
+        sshClient: SSHClientService?
+    ) async throws -> TerminalTabSession {
+        let session = TerminalTabSession(
+            title: title,
+            workspaceTabID: workspaceTabID,
+            remoteSessionID: remoteSessionID
+        )
         sessions.append(session)
         selectedSessionID = session.id
 
@@ -288,20 +297,12 @@ public final class TerminalSessionManager: ObservableObject {
             return existing
         }
 
-        closeSessions(forWorkspaceTabID: workspaceTabID)
-        let session = TerminalTabSession(
+        return try await openSession(
             title: title,
             workspaceTabID: workspaceTabID,
-            remoteSessionID: remoteSessionID
+            remoteSessionID: remoteSessionID,
+            sshClient: sshClient
         )
-        sessions.append(session)
-        selectedSessionID = session.id
-
-        if let sshClient {
-            let pty = try await sshClient.openPTYChannel()
-            session.attachPTYChannel(pty)
-        }
-        return session
     }
 
     public func closeSessions(forWorkspaceTabID tabID: UUID) {
