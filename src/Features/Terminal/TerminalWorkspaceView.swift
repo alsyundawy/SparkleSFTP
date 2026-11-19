@@ -47,16 +47,11 @@ public struct TerminalWorkspaceView: View {
                 }
 
                 Button {
-                    let profile = appState.currentSession?.profile ?? appState.primarySelectedProfile
-                    if let profile, profile.protocolType == .sftp || profile.protocolType == .scp {
-                        appState.openStandaloneTerminal(sshProfile: profile)
-                    } else {
-                        appState.openStandaloneTerminal()
-                    }
+                    Task { await appState.openEnlargedTerminalWindow() }
                 } label: {
                     Image(systemName: "macwindow.on.rectangle")
                 }
-                .help(appState.strings.t("nav.standaloneTerminal"))
+                .help(appState.strings.t("nav.enlargedTerminalTooltip"))
 
                 if let activeProfile = appState.currentSession?.profile ?? appState.primarySelectedProfile,
                    activeProfile.protocolType == .sftp || activeProfile.protocolType == .scp {
@@ -137,7 +132,32 @@ public struct TerminalWorkspaceView: View {
                 .background(palette.windowColor.opacity(0.95))
             }
 
-            if let activeShell = shellSession {
+            if appState.isTerminalEnlarged {
+                VStack(spacing: SparkleTheme.Spacing.small) {
+                    Image(systemName: "macwindow.on.rectangle")
+                        .font(.system(size: 28))
+                        .foregroundStyle(palette.accentColor)
+                    Text(appState.strings.t("term.enlargedTitle"))
+                        .font(SparkleTheme.Typography.headline)
+                        .foregroundStyle(palette.primaryTextColor)
+                    Text(appState.strings.t("term.enlargedSubtitle"))
+                        .font(SparkleTheme.Typography.caption)
+                        .foregroundStyle(palette.secondaryTextColor)
+                    HStack(spacing: 8) {
+                        Button(appState.strings.t("term.bringToFront")) {
+                            appState.enlargedTerminalWindowController.present(appState: appState)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(appState.strings.t("term.reattachDrawer")) {
+                            appState.closeEnlargedTerminalWindow()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(palette.canvasColor)
+            } else if let activeShell = shellSession {
                 let termTheme = TerminalThemeColors(
                     backgroundHex: palette.canvasHex,
                     foregroundHex: palette.primaryTextHex,

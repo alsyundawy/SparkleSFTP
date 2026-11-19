@@ -173,8 +173,8 @@ struct InternalEditorToolbar: View {
             help: strings.t("editor.readOnly")
         )
 
-        iconButton("terminal", help: strings.t("nav.standaloneTerminal")) {
-            appState.openStandaloneTerminal()
+        iconButton("terminal", help: strings.t("nav.enlargedTerminalTooltip")) {
+            Task { await appState.openEnlargedTerminalWindow() }
         }
         .keyboardShortcut("t", modifiers: [.command, .option])
     }

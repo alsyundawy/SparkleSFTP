@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **macOS Finder QuickActions & URL Schemes (`AppDelegate.swift`, `Info.plist`, `Task 16.1`)**: Registered `sftp://`, `ftps://`, and `ssh://` protocol scheme handlers and macOS system service "Open in SparkleSFTP".
 - **Internal Text & Code Editor Core Modernization (TextKit 2, 52+ Languages & Ergonomics)**:
   - **Streamlined Single-Document Notepad**: Removed tab bar and multi-document tab controls from `InternalEditorView`, transforming the editor into a clean, minimalist Notepad window without tab bars.
+  - **Enlarged Internal Terminal Window (`EnlargedTerminalWindowController.swift`, `EnlargedTerminalWindowView.swift`)**:
+    - Dedicated full-sized macOS internal terminal window (1020×660 pt, matching external terminal size) directly hosting the active, authenticated Swift-NIO-SSH interactive shell channel.
+    - **Zero Password Prompts**: Eliminates subprocess `/usr/bin/ssh` credential prompts by multiplexing an interactive PTY channel directly over the active authenticated `SSHClientService` connection.
+    - Features multi-tab support, search bar (`⌘F`), interactive font zoom (`⌘+`/`⌘-`/`⌘0`), Command Snippets runner, and SSH Port Forwarding / Tunnels manager.
+    - Seamless drawer detachment: when enlarged, the main window terminal drawer presents a sleek notice with "Bring to Front" and "Reattach to Bottom Panel" buttons.
   - **Zero-Allocation Line Count (`EditorModels.swift`, `Task 11.3`)**: Traverses UTF-8 bytes single-pass over `0x0A` with zero heap memory allocations.
   - **52+ Language Syntax Engine (`EditorSyntaxLanguage.swift`, `EditorSyntaxHighlighter.swift`, `Task 12.1`)**: Expanded support to 52 programming languages, file formats, and system configurations with extension and shebang pattern matching.
   - **Permanent Dark Toolbar Invariant (`InternalEditorToolbar.swift`, `Task 11.4`)**: Locked toolbar background permanently to `#21252b` with `#181a1f` bottom border and `#abb2bf` icon tint.
@@ -136,10 +141,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
 - **100% Bilingual Parity across 742 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with complete parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
 - **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 326 source files.
-- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26262120`, and cryptographic signature verification.
+- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `26411445`, and cryptographic signature verification.
 - **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 326 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
 - **Empirical Test Gate (`Task 18.4`)**: 218 unit and integration tests across 55 suites passing with 100% green status (exit code 0).
-- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3`.
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `ee7a26928acfae7c2e3c760f9048d85854d5172e0e998e09f2a2475e44b99e2b`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 

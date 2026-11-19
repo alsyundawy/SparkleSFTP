@@ -65,10 +65,16 @@ public struct TerminalThemeColors: Sendable, Equatable {
 public struct TerminalViewRepresentable: NSViewRepresentable {
     public let session: TerminalTabSession
     public let themeColors: TerminalThemeColors?
+    public let fontSize: CGFloat
 
-    public init(session: TerminalTabSession, themeColors: TerminalThemeColors? = nil) {
+    public init(
+        session: TerminalTabSession,
+        themeColors: TerminalThemeColors? = nil,
+        fontSize: CGFloat = 13.0
+    ) {
         self.session = session
         self.themeColors = themeColors
+        self.fontSize = fontSize
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -77,8 +83,13 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
 
     public func makeNSView(context: Context) -> TerminalView {
         let view = session.getOrCreateTerminalView()
+        view.removeFromSuperview()
+        if fontSize != 13.0 {
+            view.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        }
         applyTheme(themeColors, to: view)
         context.coordinator.cachedThemeColors = themeColors
+        context.coordinator.cachedFontSize = fontSize
         view.terminalDelegate = context.coordinator
         return view
     }
@@ -93,6 +104,10 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         if context.coordinator.cachedThemeColors != themeColors {
             context.coordinator.cachedThemeColors = themeColors
             applyTheme(themeColors, to: nsView)
+        }
+        if context.coordinator.cachedFontSize != fontSize {
+            context.coordinator.cachedFontSize = fontSize
+            nsView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
     }
 
@@ -109,6 +124,7 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     public final class Coordinator: NSObject, TerminalViewDelegate {
         private weak var session: TerminalTabSession?
         var cachedThemeColors: TerminalThemeColors?
+        var cachedFontSize: CGFloat = 13.0
 
         var boundSession: TerminalTabSession? {
             session

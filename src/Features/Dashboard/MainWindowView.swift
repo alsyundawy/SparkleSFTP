@@ -100,16 +100,11 @@ public struct MainWindowView: View {
                 .help(appState.strings.t("nav.editor"))
 
                 Button {
-                    let profile = appState.currentSession?.profile ?? appState.primarySelectedProfile
-                    if let profile, profile.protocolType == .sftp || profile.protocolType == .scp {
-                        appState.openStandaloneTerminal(sshProfile: profile)
-                    } else {
-                        appState.openStandaloneTerminal()
-                    }
+                    Task { await appState.openEnlargedTerminalWindow() }
                 } label: {
-                    Label(appState.strings.t("nav.standaloneTerminal"), systemImage: "macwindow.on.rectangle")
+                    Label(appState.strings.t("nav.enlargedTerminal"), systemImage: "macwindow.on.rectangle")
                 }
-                .help(appState.strings.t("nav.standaloneTerminal"))
+                .help(appState.strings.t("nav.enlargedTerminalTooltip"))
 
                 Button {
                     Task { await appState.toggleTerminalDrawerForActiveTab() }

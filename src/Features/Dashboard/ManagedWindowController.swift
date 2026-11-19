@@ -37,6 +37,15 @@ struct ManagedWindowDescriptor {
 final class ManagedWindowController: NSObject, NSWindowDelegate {
     private let descriptor: ManagedWindowDescriptor
     private var window: NSWindow?
+    var onWindowWillClose: (@MainActor () -> Void)?
+
+    var isVisible: Bool {
+        window?.isVisible ?? false
+    }
+
+    func close() {
+        window?.close()
+    }
 
     init(descriptor: ManagedWindowDescriptor) {
         self.descriptor = descriptor
@@ -150,7 +159,7 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_: Notification) {
-        // Window stays cached (`isReleasedWhenClosed = false`) for instant reopen.
+        onWindowWillClose?()
     }
 }
 

@@ -76,6 +76,31 @@ public extension AppState {
         standaloneTerminalWindowController.present(appState: self)
     }
 
+    func openEnlargedTerminalWindow() async {
+        if let session = currentSession, let sshClient = session.sshClient {
+            let tabID = currentTab?.id ?? activeTabID
+            if terminalManager.sessions.isEmpty || terminalManager.session(forWorkspaceTabID: tabID)?.isActive != true {
+                do {
+                    _ = try await terminalManager.ensureSingleSession(
+                        workspaceTabID: tabID,
+                        remoteSessionID: session.id,
+                        title: session.profile.name,
+                        sshClient: sshClient
+                    )
+                } catch {
+                    reportNonCancellationError(error)
+                }
+            }
+        }
+        isTerminalEnlarged = true
+        enlargedTerminalWindowController.present(appState: self)
+    }
+
+    func closeEnlargedTerminalWindow() {
+        isTerminalEnlarged = false
+        enlargedTerminalWindowController.close()
+    }
+
     internal static func makeInitialWorkspaceBootstrap() -> InitialWorkspaceBootstrap {
         let initialLocales = LocalizationCatalog.loadAvailableLocales()
         let activeThemeID = UserDefaults.standard.string(forKey: "sparklesftp.selectedThemeID")

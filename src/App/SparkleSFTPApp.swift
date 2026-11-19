@@ -150,8 +150,8 @@ private struct SparkleAppCommands: Commands {
             .keyboardShortcut("k", modifiers: [.command])
             .disabled(activeState.currentSession?.sshClient == nil && !activeState.isTerminalVisible)
 
-            Button(activeState.strings.t("nav.standaloneTerminal")) {
-                activeState.openStandaloneTerminal()
+            Button(activeState.strings.t("nav.enlargedTerminal")) {
+                Task { await activeState.openEnlargedTerminalWindow() }
             }
             .keyboardShortcut("t", modifiers: [.command, .option])
 

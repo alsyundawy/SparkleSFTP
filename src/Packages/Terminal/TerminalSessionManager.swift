@@ -248,6 +248,10 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
         return cleaned
     }
 
+    public func setFontSize(_ size: CGFloat) {
+        persistentTerminalView?.font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+
     public func close() {
         resourceBox.closeAll()
         terminalView?.terminalDelegate = nil
@@ -263,6 +267,13 @@ public final class TerminalSessionManager: ObservableObject {
     @Published public var selectedSessionID: UUID?
 
     public init() {}
+
+    public var selectedSession: TerminalTabSession? {
+        if let id = selectedSessionID, let match = sessions.first(where: { $0.id == id }) {
+            return match
+        }
+        return sessions.first
+    }
 
     @discardableResult
     public func openSession(title: String, sshClient: SSHClientService?) async throws -> TerminalTabSession {

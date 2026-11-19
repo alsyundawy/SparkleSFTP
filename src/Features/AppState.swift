@@ -212,6 +212,8 @@ public final class AppState: ObservableObject {
     let preferencesWindowController = PreferencesWindowController()
     let standaloneTerminalWindowController = StandaloneTerminalWindowController()
     public let standaloneTerminalManager = StandaloneTerminalManager()
+    let enlargedTerminalWindowController = EnlargedTerminalWindowController()
+    @Published public var isTerminalEnlarged: Bool = false
 
     var didBootstrap = false
     var transferQueueInstance: TransferQueue?

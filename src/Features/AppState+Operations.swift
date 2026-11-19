@@ -73,8 +73,8 @@ public extension AppState {
 
     func openInExternalTerminal(_ profile: ConnectionProfile) async {
         if externalTerminalApp == .internalTerminal {
-            openStandaloneTerminal(sshProfile: profile)
-            statusBannerMessage = "Opened \(profile.host) in Internal Terminal"
+            await openEnlargedTerminalWindow()
+            statusBannerMessage = "Opened \(profile.host) in Enlarged Terminal"
             return
         }
         if toolchainReport.libraries.isEmpty {
