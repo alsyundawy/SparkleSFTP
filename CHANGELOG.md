@@ -23,7 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Multi-Hop OpenSSH ProxyJump Parser & Dynamic SOCKS5 Port Forwarding (`ProxyJumpParser.swift`, `PortForwardingManager.swift`, `Task 2.5`)**: Added `ProxyJumpParser` validating sequential bastion jump topologies (`jump1:22,bastion@jump2:2222,[::1]:2200`) with strict shell injection shielding (`CWE-78`). Added `-D` Dynamic SOCKS5 port forwarding mode in `PortForwardingRule.Direction` and `PortForwardingManager`.
   - **Streaming `READDIR` AsyncSequence Generator (`SFTPService+Listing.swift`, `Task 3.6`, `TD-13`)**: Added `SFTPService.streamDirectory(at:batchSize:)` yielding `AsyncThrowingStream<[RemoteFile], Error>` in 500-item chunks with cooperative cancellation and memory-bounded flat profile across 100,000+ files.
   - **Pipelined SFTP Upload Resume Block-Level Verification (`TransferQueue+Resume.swift`, `Task 3.7`, `T-151`)**: Verifies prefix 64 KB block SHA-256 against local source before appending, restarting clean from offset 0 if divergent to prevent corrupt spliced files.
-- **Code Quality, SonarQube & Release Infrastructure (Tasks 17.6, 18.2, 18.5, 18.6)**:
+- **Code Quality, Structured Concurrency & Release Infrastructure (Tasks 17.4, 17.6, 18.2, 18.5, 18.6, 18.7)**:
+  - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
+  - **Localization Parity (742 Synchronized Keys) (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 742 keys with 100% parity across English and Indonesian catalogs covering TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
   - **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 317 source files.
   - **Full 14-Pillar Multi-Linter Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 317 files with 0 violations, and `shellcheck -s bash` passed with 0 warnings.
 
@@ -42,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Native Notification Center Alerts (`AppState+Connections.swift`)**: Emits notifications on batch transfer completions and transfer failures.
 - **Packaging & Universal 2 Release Build (`Task 18.6`, `Task 18.2`)**:
   - Compiled Universal 2 fat binary (`lipo -archs` = `x86_64 arm64`) in release mode (`-O`).
-  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `2239284ef646ca70e7908938e3c49c6b652532918fd8699a65331e628c6eea8e`.
+  - Packaged official DMG: `dist/SparkleSFTP-0.7.0-universal.dmg` (25 MB) with SHA-256 verification hash: `5ae726789bc0caf2969e5ca75543fa4d8b7f5809be8e4696fb1b9bc493fa1efb`.
   - Automated Sparkle Ed25519 Appcast Feed Generation (`Tools/Release/generate-appcast.sh`, `Task 18.2`): Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length, and cryptographic signature verification.
 - **Developer & Security Tools Hub (`EditorDeveloperTools.swift`, `Task 12.3`)**:
   - Pure Swift 6 high-performance text manipulation engine ported from NotepadMac:

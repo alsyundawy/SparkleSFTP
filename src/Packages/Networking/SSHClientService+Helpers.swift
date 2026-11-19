@@ -8,16 +8,30 @@ import SparkleSecurity
 private final class ShutdownResumeOnceBox: @unchecked Sendable { // JUSTIFICATION: NSLock protects resume.
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, Never>?
+    private var timeoutTask: Task<Void, Never>?
 
     init(_ continuation: CheckedContinuation<Void, Never>) {
         self.continuation = continuation
+    }
+
+    func setTimeoutTask(_ task: Task<Void, Never>) {
+        lock.lock()
+        defer { lock.unlock() }
+        if continuation == nil {
+            task.cancel()
+        } else {
+            timeoutTask = task
+        }
     }
 
     func resumeOnce() {
         lock.lock()
         let pending = continuation
         continuation = nil
+        let task = timeoutTask
+        timeoutTask = nil
         lock.unlock()
+        task?.cancel()
         pending?.resume()
     }
 }
@@ -255,11 +269,12 @@ extension SSHClientService {
         await withCheckedContinuation { continuation in
             let box = ShutdownResumeOnceBox(continuation)
             operation { box.resumeOnce() }
-            DispatchQueue.global(qos: .utility).asyncAfter(
-                deadline: .now() + .milliseconds(max(25, timeoutMilliseconds))
-            ) {
+            let timeoutTask = Task {
+                let nanos = UInt64(max(25, timeoutMilliseconds)) * 1_000_000
+                try? await Task.sleep(nanoseconds: nanos)
                 box.resumeOnce()
             }
+            box.setTimeoutTask(timeoutTask)
         }
     }
 
