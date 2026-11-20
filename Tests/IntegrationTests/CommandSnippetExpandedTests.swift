@@ -11,7 +11,7 @@ struct CommandSnippetExpandedTests {
     func testBuiltInSnippetsCatalogCountAndCategories() {
         let defaults = CommandSnippetStore.builtInDefaults
         #expect(defaults.count >= 180)
-        #expect(defaults.count == 185)
+        #expect(defaults.count == 550)
 
         let categories = Set(defaults.map(\.category))
         let expectedCategories: Set<String> = [
@@ -60,15 +60,15 @@ struct CommandSnippetExpandedTests {
         let custom = CommandSnippet(title: "Legacy Ping", command: "ping -c 1 8.8.8.8", category: "Custom")
         try await store.saveSnippets([custom])
 
-        // Load snippets should return the custom snippet + all 185 defaults
+        // Load snippets should return the custom snippet + all defaults
         let loaded = try await store.loadSnippets()
-        #expect(loaded.count == 186)
+        #expect(loaded.count == CommandSnippetStore.builtInDefaults.count + 1)
         #expect(loaded.contains { $0.title == "Legacy Ping" })
         #expect(loaded.contains { $0.title == "Disk Space Overview" })
 
         // Calling loadSnippets a second time should keep the same count
         let reloaded = try await store.loadSnippets()
-        #expect(reloaded.count == 186)
+        #expect(reloaded.count == CommandSnippetStore.builtInDefaults.count + 1)
     }
 
     @MainActor
@@ -87,7 +87,7 @@ struct CommandSnippetExpandedTests {
         #expect(appState.snippets.contains { $0.title == "Temporary" })
 
         await appState.resetSnippetsToDefaults()
-        #expect(appState.snippets.count == 185)
+        #expect(appState.snippets.count == CommandSnippetStore.builtInDefaults.count)
         #expect(!appState.snippets.contains { $0.title == "Temporary" })
     }
 }

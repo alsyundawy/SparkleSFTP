@@ -16,7 +16,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Tcpdump Capture HTTP Requests Only",
             command: "sudo tcpdump -i any -nn -s 0 -A 'tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' " +
-            "2>/dev/null",
+                "2>/dev/null",
             category: "POSIX Network"
         ),
         CommandSnippet(
@@ -51,7 +51,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "POSIX SS Summary Socket Statistics",
-            command: "ss -s",
+            command: "ss -s -a",
             category: "POSIX Network"
         ),
         CommandSnippet(
@@ -67,19 +67,19 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Check SSL Certificate Expiry Date",
             command: "echo | openssl s_client -servername example.com -connect example.com:443 " +
-            "2>/dev/null | openssl x509 -noout -dates",
+                "2>/dev/null | openssl x509 -noout -dates",
             category: "POSIX Network"
         ),
         CommandSnippet(
             title: "POSIX Check SSL Certificate Fingerprint (SHA256)",
             command: "echo | openssl s_client -connect example.com:443 2>/dev/null | openssl x509 " +
-            "-noout -fingerprint -sha256",
+                "-noout -fingerprint -sha256",
             category: "POSIX Network"
         ),
         CommandSnippet(
             title: "POSIX Check SSL Certificate Subject and Issuer",
             command: "echo | openssl s_client -connect example.com:443 2>/dev/null | openssl x509 " +
-            "-noout -subject -issuer",
+                "-noout -subject -issuer",
             category: "POSIX Network"
         ),
         CommandSnippet(
@@ -90,13 +90,13 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Verify TLS Private Key Matches Certificate",
             command: "openssl rsa -in key.pem -modulus -noout | openssl sha256; openssl x509 -in " +
-            "cert.pem -modulus -noout | openssl sha256",
+                "cert.pem -modulus -noout | openssl sha256",
             category: "POSIX Network"
         ),
         CommandSnippet(
             title: "POSIX Generate Self-Signed TLS Certificate (ECC)",
             command: "openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout " +
-            "server.key -out server.crt -days 365 -subj '/CN=localhost'",
+                "server.key -out server.crt -days 365 -subj '/CN=localhost'",
             category: "POSIX Network"
         ),
         CommandSnippet(
@@ -107,13 +107,13 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Test Cipher Support Against Remote Host",
             command: "openssl s_client -cipher 'ECDHE-ECDSA-AES256-GCM-SHA384' -connect " +
-            "example.com:443 2>&1 | grep -i 'Cipher'",
+                "example.com:443 2>&1 | grep -i 'Cipher'",
             category: "POSIX Network"
         ),
         CommandSnippet(
             title: "POSIX Download Remote SSL Certificate to File",
             command: "echo | openssl s_client -showcerts -connect example.com:443 2>/dev/null | sed " +
-            "-ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > remote_cert.crt",
+                "-ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > remote_cert.crt",
             category: "POSIX Network"
         ),
         CommandSnippet(
@@ -173,7 +173,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "POSIX Check Current User Sudo Privileges",
-            command: "sudo -l",
+            command: "sudo -l -U $USER",
             category: "POSIX Security"
         ),
         CommandSnippet(
@@ -203,7 +203,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "POSIX Check UFW Firewall Status (Ubuntu/Debian)",
-            command: "sudo ufw status verbose 2>/dev/null",
+            command: "sudo ufw status numbered 2>/dev/null",
             category: "POSIX Security"
         ),
         CommandSnippet(
@@ -238,7 +238,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "POSIX Audit ASLR Randomization Status",
-            command: "sysctl kernel.randomize_va_space",
+            command: "sysctl -a 2>/dev/null | grep -E 'kernel.randomize_va_space'",
             category: "POSIX Security"
         ),
         CommandSnippet(
@@ -284,7 +284,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Test Terminal 256 Color Support",
             command: "for i in {0..255}; do printf '\\e[48;5;%dm%3d\\e[0m ' $i $i; if (( (i+1) % 16 " +
-            "== 0 )); then echo; fi; done",
+                "== 0 )); then echo; fi; done",
             category: "POSIX Env"
         ),
         CommandSnippet(

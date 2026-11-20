@@ -151,7 +151,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Print Duplicate Lines with Frequency",
             command: "awk '{count[$0]++} END {for (line in count) if (count[line] > 1) print " +
-            "count[line], line}' file.txt",
+                "count[line], line}' file.txt",
             category: "POSIX Streams"
         ),
         CommandSnippet(
@@ -232,7 +232,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX HTTP Post JSON Body with Headers",
             command: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"status\":\"ok\"}' " +
-            "https://httpbin.org/post",
+                "https://httpbin.org/post",
             category: "POSIX Network"
         ),
         CommandSnippet(

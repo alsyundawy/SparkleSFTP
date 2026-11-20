@@ -83,14 +83,6 @@ public final class TerminalContainerView: NSView {
         true
     }
 
-    public override func hitTest(_ point: NSPoint) -> NSView? {
-        let hit = super.hitTest(point)
-        if hit === currentTerminalView || hit?.isDescendant(of: self) == true {
-            window?.makeFirstResponder(currentTerminalView)
-        }
-        return hit
-    }
-
     public func attachTerminalView(_ view: TerminalView) {
         if currentTerminalView === view && view.superview === self {
             return
@@ -106,13 +98,14 @@ public final class TerminalContainerView: NSView {
             view.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
         currentTerminalView = view
-        view.terminal.updateFullScreen()
         needsLayout = true
         needsDisplay = true
         DispatchQueue.main.async { [weak self, weak view] in
-            guard let view else { return }
-            view.terminal.updateFullScreen()
-            if let window = view.window ?? self?.window {
+            guard let view, let self else { return }
+            if self.bounds.width > 50, self.bounds.height > 50 {
+                view.terminal.updateFullScreen()
+            }
+            if let window = view.window ?? self.window {
                 window.makeFirstResponder(view)
             }
             view.needsLayout = true
@@ -130,8 +123,14 @@ public final class TerminalContainerView: NSView {
     public override func layout() {
         super.layout()
         if let view = currentTerminalView {
+            if view.frame != bounds {
+                view.frame = bounds
+            }
             view.needsLayout = true
             view.needsDisplay = true
+            if bounds.width > 50, bounds.height > 50 {
+                view.terminal.updateFullScreen()
+            }
         }
     }
 }

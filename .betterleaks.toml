@@ -15,3 +15,11 @@ regexes = [
   '''-----BEGIN OPENSSH PRIVATE KEY-----''',
   '''-----END OPENSSH PRIVATE KEY-----'''
 ]
+
+[[allowlists]]
+description = "Allowlist documentation and release notes containing vulnerability references"
+paths = [
+  '''^docs/.*\.md$''',
+  '''^CHANGELOG\.md$''',
+  '''^DOCNOTE\.md$'''
+]

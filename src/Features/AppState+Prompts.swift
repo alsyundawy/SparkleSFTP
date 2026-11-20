@@ -55,7 +55,7 @@ public extension AppState {
 
     internal func promptCredential(_ request: CredentialPromptRequest) async -> String? {
         let key = "\(request.host):\(request.port):\(request.username)"
-        if let transient = transientQuickConnectSecrets.removeValue(forKey: key),
+        if let transient = transientQuickConnectSecrets[key],
            !transient.isEmpty {
             return transient
         }

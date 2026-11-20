@@ -170,8 +170,6 @@ public extension AppState {
         defer {
             connectingProfileIDs.remove(profile.id)
             pendingPromptedSecretToRemember = nil
-            let key = "\(profile.host):\(profile.port):\(profile.username)"
-            transientQuickConnectSecrets.removeValue(forKey: key)
         }
 
         guard await authenticateBiometricsIfNeeded(for: profile) else { return }

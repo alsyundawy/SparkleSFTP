@@ -10,7 +10,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "Find Files Modified in Last 24 Hours",
-            command: "find . -type f -mtime -1",
+            command: "find . -type f -mtime -1 -exec ls -ld {} +",
             category: "POSIX Files"
         ),
         CommandSnippet(

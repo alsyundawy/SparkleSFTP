@@ -84,10 +84,6 @@ public extension AppState {
                 $0.remoteSessionID == session.id && $0.isActive
             }) {
                 terminalManager.selectedSessionID = existing.id
-            } else if let pending = terminalManager.sessions.first(where: {
-                $0.remoteSessionID == session.id
-            }) {
-                terminalManager.selectedSessionID = pending.id
             } else {
                 do {
                     _ = try await terminalManager.openSession(

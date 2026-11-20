@@ -4,6 +4,7 @@ import SwiftTerm
 
 extension TerminalTabSession: TerminalViewDelegate {
     public nonisolated func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {
+        guard newCols >= 10, newRows >= 2 else { return }
         Task { @MainActor [weak self] in
             self?.resizePTY(cols: newCols, rows: newRows)
         }

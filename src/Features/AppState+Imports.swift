@@ -11,12 +11,10 @@ public extension AppState {
               let tabID = currentTab?.id
         else { return }
         do {
-            let sessionIndex = terminalManager.sessions.count + 1
-            let title = sessionIndex == 1 ? session.profile.name : "\(session.profile.name) (\(sessionIndex))"
-            _ = try await terminalManager.openSession(
-                title: title,
+            _ = try await terminalManager.ensureSingleSession(
                 workspaceTabID: tabID,
                 remoteSessionID: session.id,
+                title: session.profile.name,
                 sshClient: sshClient
             )
             isTerminalEnlarged = false

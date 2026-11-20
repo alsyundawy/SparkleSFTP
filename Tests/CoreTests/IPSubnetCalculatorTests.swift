@@ -5,7 +5,7 @@ import Testing
 @Suite("IP Subnet & CIDR Calculator Tests")
 struct IPSubnetCalculatorTests {
     @Test("IPSubnetCalculator calculates standard /24 IPv4 subnet correctly")
-    func testStandardClassCSubnet() throws {
+    func standardClassCSubnet() throws {
         let res = try IPSubnetCalculator.calculate(cidrText: "192.168.1.50/24")
         #expect(res.ipAddress == "192.168.1.50")
         #expect(res.cidrPrefix == 24)
@@ -23,7 +23,7 @@ struct IPSubnetCalculatorTests {
     }
 
     @Test("IPSubnetCalculator calculates /30 point-to-point subnet")
-    func testPointToPointSubnet() throws {
+    func pointToPointSubnet() throws {
         let res = try IPSubnetCalculator.calculate(address: "10.0.0.1", prefix: 30)
         #expect(res.netmask == "255.255.255.252")
         #expect(res.totalHosts == 4)
@@ -35,7 +35,7 @@ struct IPSubnetCalculatorTests {
     }
 
     @Test("IPSubnetCalculator calculates /32 single host")
-    func testSingleHostSubnet() throws {
+    func singleHostSubnet() throws {
         let res = try IPSubnetCalculator.calculate(address: "8.8.8.8", prefix: 32)
         #expect(res.netmask == "255.255.255.255")
         #expect(res.totalHosts == 1)
@@ -46,7 +46,7 @@ struct IPSubnetCalculatorTests {
     }
 
     @Test("IPSubnetCalculator detects invalid IP addresses and prefixes")
-    func testInvalidInputs() {
+    func invalidInputs() {
         #expect(throws: IPSubnetCalculator.SubnetError.self) {
             _ = try IPSubnetCalculator.calculate(cidrText: "256.1.1.1/24")
         }

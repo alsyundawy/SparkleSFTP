@@ -251,7 +251,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Fetch HTTP Headers via /dev/tcp",
             command: "exec 3<>/dev/tcp/example.com/80; printf 'HEAD / HTTP/1.0\\r\\nHost: " +
-            "example.com\\r\\n\\r\\n' >&3; cat <&3; exec 3<&-",
+                "example.com\\r\\n\\r\\n' >&3; cat <&3; exec 3<&-",
             category: "POSIX Network"
         ),
         CommandSnippet(

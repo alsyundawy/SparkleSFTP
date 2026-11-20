@@ -31,7 +31,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Create Sparse File (1GB)",
             command: "truncate -s 1G sparse_disk.img || dd if=/dev/zero of=sparse_disk.img bs=1 " +
-            "count=0 seek=1G",
+                "count=0 seek=1G",
             category: "POSIX Storage"
         ),
         CommandSnippet(
@@ -42,7 +42,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "POSIX Benchmarking Disk Write Speed (dd)",
             command: "dd if=/dev/zero of=test_bench.tmp bs=1M count=1024 conv=fdatasync 2>&1; rm -f " +
-            "test_bench.tmp",
+                "test_bench.tmp",
             category: "POSIX Storage"
         ),
         CommandSnippet(
@@ -293,7 +293,7 @@ extension CommandSnippetStore {
         CommandSnippet(
             title: "Bash Retry Loop with Exponential Backoff",
             command: "for i in {1..5}; do curl -s --fail https://api.service.com && break || sleep " +
-            "$((2**i)); done",
+                "$((2**i)); done",
             category: "Bash Patterns"
         ),
         CommandSnippet(

@@ -131,8 +131,8 @@ public enum ExternalEditorDetector {
             let lower = saved.lowercased()
             if let matched = available.first(where: {
                 $0.appURL?.path.lowercased() == lower ||
-                $0.displayName.lowercased() == lower ||
-                $0.id.lowercased() == lower
+                    $0.displayName.lowercased() == lower ||
+                    $0.id.lowercased() == lower
             }) {
                 return matched
             }

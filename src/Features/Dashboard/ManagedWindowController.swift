@@ -59,7 +59,7 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
         @ViewBuilder content: () -> some View
     ) {
         if let existing = activeOrSharedWindow() {
-            presentExistingWindow(existing, title: title, appState: appState)
+            presentExistingWindow(existing, title: title, appState: appState, content: content)
             return
         }
 
@@ -72,8 +72,16 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func presentExistingWindow(_ existing: NSWindow, title: String, appState: AppState) {
+    private func presentExistingWindow(
+        _ existing: NSWindow,
+        title: String,
+        appState: AppState,
+        @ViewBuilder content: () -> some View
+    ) {
         existing.title = title
+        let hosting = NSHostingController(rootView: content())
+        hosting.sizingOptions = [.minSize]
+        existing.contentViewController = hosting
         if !descriptor.isResizable {
             let bounds = NSRect(origin: .zero, size: descriptor.defaultSize)
             let targetFrame = existing.frameRect(forContentRect: bounds).size

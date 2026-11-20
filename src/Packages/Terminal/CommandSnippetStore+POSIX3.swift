@@ -255,7 +255,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "POSIX Human Readable Disk Free",
-            command: "df -h",
+            command: "df -h -P",
             category: "POSIX Storage"
         ),
         CommandSnippet(

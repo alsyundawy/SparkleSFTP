@@ -307,7 +307,7 @@ public final class TerminalSessionManager: ObservableObject {
         sshClient: SSHClientService?
     ) async throws -> TerminalTabSession {
         if let existing = sessions.first(where: {
-            $0.remoteSessionID == remoteSessionID && $0.isActive
+            $0.remoteSessionID == remoteSessionID && ($0.isActive || $0.workspaceTabID == workspaceTabID)
         }) {
             selectedSessionID = existing.id
             return existing
