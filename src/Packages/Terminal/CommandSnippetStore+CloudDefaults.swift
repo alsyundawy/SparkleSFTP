@@ -123,7 +123,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "HTTP Latency & Curl Timers",
-            command: "curl -w '\\nDNS: %{time_namelookup}s\\nTotal: %{time_total}s\\n' -o /dev/null -s http://localhost",
+            command: "curl -w 'DNS: %{time_namelookup}s\\nTotal: %{time_total}s\\n' -so /dev/null http://localhost",
             category: "Web & Proxy"
         ),
         CommandSnippet(
