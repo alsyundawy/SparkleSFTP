@@ -100,6 +100,8 @@ public final class TerminalTabSession: NSObject, Identifiable, ObservableObject 
         persistentTerminalView = view
         view.terminalDelegate = self
         view.terminal.updateFullScreen()
+        view.feed(text: "")
+        view.setNeedsDisplay(view.bounds)
         if !pendingOutputBuffer.isEmpty {
             let buffered = pendingOutputBuffer
             pendingOutputBuffer.removeAll(keepingCapacity: false)

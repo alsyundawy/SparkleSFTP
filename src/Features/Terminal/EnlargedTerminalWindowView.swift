@@ -78,12 +78,10 @@ struct EnlargedTerminalWindowView: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 if let view = activeSession?.getOrCreateTerminalView() {
+                    view.terminal.updateFullScreen()
+                    view.feed(text: "")
+                    view.setNeedsDisplay(view.bounds)
                     view.window?.makeFirstResponder(view)
-                    view.needsLayout = true
-                    view.needsDisplay = true
-                    if view.bounds.width > 50, view.bounds.height > 50 {
-                        view.terminal.updateFullScreen()
-                    }
                 }
             }
         }
@@ -238,9 +236,10 @@ extension EnlargedTerminalWindowView {
         Button {
             terminalManager.selectedSessionID = sess.id
             let view = sess.getOrCreateTerminalView()
-            if let window = view.window {
-                window.makeFirstResponder(view)
-            }
+            view.terminal.updateFullScreen()
+            view.feed(text: "")
+            view.setNeedsDisplay(view.bounds)
+            view.window?.makeFirstResponder(view)
         } label: {
             HStack(spacing: 6) {
                 Circle()

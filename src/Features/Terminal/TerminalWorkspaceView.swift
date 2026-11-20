@@ -182,6 +182,14 @@ public struct TerminalWorkspaceView: View {
 
                         Button(appState.strings.t("term.reattachDrawer")) {
                             appState.closeEnlargedTerminalWindow()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                if let view = activeSession?.getOrCreateTerminalView() {
+                                    view.terminal.updateFullScreen()
+                                    view.feed(text: "")
+                                    view.setNeedsDisplay(view.bounds)
+                                    view.window?.makeFirstResponder(view)
+                                }
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -264,6 +272,11 @@ extension TerminalWorkspaceView {
     ) -> some View {
         Button {
             terminalManager.selectedSessionID = sess.id
+            let view = sess.getOrCreateTerminalView()
+            view.terminal.updateFullScreen()
+            view.feed(text: "")
+            view.setNeedsDisplay(view.bounds)
+            view.window?.makeFirstResponder(view)
         } label: {
             HStack(spacing: 6) {
                 Circle()

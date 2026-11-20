@@ -79,9 +79,11 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
         @ViewBuilder content: () -> some View
     ) {
         existing.title = title
-        let hosting = NSHostingController(rootView: content())
-        hosting.sizingOptions = [.minSize]
-        existing.contentViewController = hosting
+        if existing.contentViewController == nil {
+            let hosting = NSHostingController(rootView: content())
+            hosting.sizingOptions = [.minSize]
+            existing.contentViewController = hosting
+        }
         if !descriptor.isResizable {
             let bounds = NSRect(origin: .zero, size: descriptor.defaultSize)
             let targetFrame = existing.frameRect(forContentRect: bounds).size

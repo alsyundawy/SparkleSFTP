@@ -33,6 +33,17 @@ final class EnlargedTerminalWindowController {
         host.present(title: title, appState: appState) {
             EnlargedTerminalWindowView(appState: appState)
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if let active = appState.terminalManager.selectedSession ?? appState.terminalManager.sessions.first {
+                let view = active.getOrCreateTerminalView()
+                view.terminal.updateFullScreen()
+                view.feed(text: "")
+                view.setNeedsDisplay(view.bounds)
+                if let window = view.window {
+                    window.makeFirstResponder(view)
+                }
+            }
+        }
     }
 
     func close() {

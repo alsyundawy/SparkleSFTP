@@ -61,81 +61,7 @@ public struct TerminalThemeColors: Sendable, Equatable {
     }
 }
 
-/// AppKit container ensuring `SwiftTerm.TerminalView` automatically tracks parent layout geometry (MEM-002).
-public final class TerminalContainerView: NSView {
-    public private(set) weak var currentTerminalView: TerminalView?
-
-    public override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-    }
-
-    public required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        wantsLayer = true
-    }
-
-    public override var isFlipped: Bool {
-        true
-    }
-
-    public override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
-        true
-    }
-
-    public func attachTerminalView(_ view: TerminalView) {
-        if currentTerminalView === view && view.superview === self {
-            return
-        }
-        currentTerminalView?.removeFromSuperview()
-        view.removeFromSuperview()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(view)
-        NSLayoutConstraint.activate([
-            view.leadingAnchor.constraint(equalTo: leadingAnchor),
-            view.trailingAnchor.constraint(equalTo: trailingAnchor),
-            view.topAnchor.constraint(equalTo: topAnchor),
-            view.bottomAnchor.constraint(equalTo: bottomAnchor)
-        ])
-        currentTerminalView = view
-        needsLayout = true
-        needsDisplay = true
-        DispatchQueue.main.async { [weak self, weak view] in
-            guard let view, let self else { return }
-            if self.bounds.width > 50, self.bounds.height > 50 {
-                view.terminal.updateFullScreen()
-            }
-            if let window = view.window ?? self.window {
-                window.makeFirstResponder(view)
-            }
-            view.needsLayout = true
-            view.needsDisplay = true
-        }
-    }
-
-    public override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        if let view = currentTerminalView {
-            window?.makeFirstResponder(view)
-        }
-    }
-
-    public override func layout() {
-        super.layout()
-        if let view = currentTerminalView {
-            if view.frame != bounds {
-                view.frame = bounds
-            }
-            view.needsLayout = true
-            view.needsDisplay = true
-            if bounds.width > 50, bounds.height > 50 {
-                view.terminal.updateFullScreen()
-            }
-        }
-    }
-}
-
-/// SwiftUI NSViewRepresentable wrapper over `SwiftTerm.TerminalView` with strict PTY delegate teardown (MEM-002).
+/// SwiftUI NSViewRepresentable directly embedding `SwiftTerm.TerminalView` with clean cross-window reattachment.
 public struct TerminalViewRepresentable: NSViewRepresentable {
     public let session: TerminalTabSession
     public let themeColors: TerminalThemeColors?
@@ -155,9 +81,9 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         Coordinator(session: session)
     }
 
-    public func makeNSView(context: Context) -> TerminalContainerView {
-        let container = TerminalContainerView()
+    public func makeNSView(context: Context) -> TerminalView {
         let view = session.getOrCreateTerminalView()
+        view.removeFromSuperview()
         if fontSize != 13.0 {
             view.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
@@ -166,12 +92,19 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         context.coordinator.cachedFontSize = fontSize
         view.terminalDelegate = session
         session.attachTerminalView(view)
-        container.attachTerminalView(view)
-        return container
+        DispatchQueue.main.async { [weak view] in
+            guard let view else { return }
+            view.terminal.updateFullScreen()
+            view.feed(text: "")
+            view.setNeedsDisplay(view.bounds)
+            if let window = view.window {
+                window.makeFirstResponder(view)
+            }
+        }
+        return view
     }
 
-    public func updateNSView(_ container: TerminalContainerView, context: Context) {
-        let view = session.getOrCreateTerminalView()
+    public func updateNSView(_ view: TerminalView, context: Context) {
         if view.terminalDelegate !== session {
             view.terminalDelegate = session
         }
@@ -183,14 +116,13 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
             context.coordinator.cachedFontSize = fontSize
             view.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
-        container.attachTerminalView(view)
     }
 
     private func applyTheme(_ colors: TerminalThemeColors?, to view: TerminalView) {
         TerminalThemeColors.apply(colors, to: view)
     }
 
-    public static func dismantleNSView(_ container: TerminalContainerView, coordinator: Coordinator) {
+    public static func dismantleNSView(_ view: TerminalView, coordinator: Coordinator) {
         coordinator.teardown()
     }
 
@@ -282,7 +214,6 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         }
 
         public nonisolated func clipboardRead(source _: TerminalView) -> Data? {
-            // Security default: deny arbitrary OSC 52 clipboard reads from untrusted remote PTYs.
             nil
         }
 
