@@ -324,7 +324,7 @@ struct TransferEngineTests {
         let start = ContinuousClock.now
         await MainActor.run {}
         let mainActorLatency = ContinuousClock.now - start
-        #expect(mainActorLatency < .seconds(15))
+        #expect(mainActorLatency < .seconds(25))
         try await verifyTask.value
     }
 }

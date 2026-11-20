@@ -93,7 +93,7 @@ extension CommandSnippetStore {
         ),
         CommandSnippet(
             title: "Postgres Database Sizes",
-            command: "sudo -u postgres psql -c 'SELECT datname, pg_database_size(datname) FROM pg_database;'",
+            command: "psql -c 'SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database;'",
             category: "Databases"
         ),
         CommandSnippet(

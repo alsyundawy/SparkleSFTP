@@ -111,7 +111,8 @@ public enum RemoteProcessManager {
         }
     }
 
-    /// Parses tab-delimited output from `docker ps -a --format '{{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}\t{{.State}}'`.
+    /// Parses tab-delimited output from `docker ps -a --format`.
+    /// Format: `{{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}\t{{.State}}`.
     public static func parseDockerContainers(from rawOutput: String) -> [DockerContainer] {
         var containers: [DockerContainer] = []
         let lines = rawOutput.components(separatedBy: .newlines)

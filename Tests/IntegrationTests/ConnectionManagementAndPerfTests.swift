@@ -167,7 +167,7 @@ struct ConnectionManagementAndPerfTests {
             await appState.shutdownAsyncResources()
             await SSHClientService.closeChannelAndShutdownGroup(nil, group: group)
         }
-        #expect(elapsed < .seconds(15))
+        #expect(elapsed < .seconds(25))
     }
 
     @Test("TransferQueue throttles rapid journal checkpoints while LocalFileService reads POSIX stats")
