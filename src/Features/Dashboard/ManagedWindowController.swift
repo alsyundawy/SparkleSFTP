@@ -45,6 +45,7 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
 
     func close() {
         window?.close()
+        window = nil
     }
 
     init(descriptor: ManagedWindowDescriptor) {
@@ -66,7 +67,9 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
         hostingController.sizingOptions = [.minSize]
         let newWindow = makeWindow(title: title, appState: appState, hostingController: hostingController)
         window = newWindow
+        newWindow.orderFrontRegardless()
         newWindow.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func presentExistingWindow(_ existing: NSWindow, title: String, appState: AppState) {
@@ -83,7 +86,14 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
             allowFullScreen: descriptor.allowFullScreen,
             allowResize: descriptor.isResizable
         )
+        if existing.isMiniaturized {
+            existing.deminiaturize(nil)
+        }
+        existing.setIsVisible(true)
+        existing.orderFrontRegardless()
         existing.makeKeyAndOrderFront(nil)
+        existing.makeMain()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func instantiateWindow(styleMask: NSWindow.StyleMask) -> NSWindow {
@@ -149,7 +159,7 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
     }
 
     private func activeOrSharedWindow() -> NSWindow? {
-        if let existing = window {
+        if let existing = window, existing.isVisible {
             return existing
         }
         guard descriptor.shareAcrossAppStates else { return nil }
@@ -160,6 +170,7 @@ final class ManagedWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_: Notification) {
         onWindowWillClose?()
+        window = nil
     }
 }
 

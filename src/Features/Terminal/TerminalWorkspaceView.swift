@@ -19,10 +19,14 @@ public struct TerminalWorkspaceView: View {
 
     private var activeSession: TerminalTabSession? {
         if let selID = terminalManager.selectedSessionID,
-           let found = terminalManager.sessions.first(where: { $0.id == selID }) {
+           let found = terminalManager.sessions.first(where: { $0.id == selID && $0.isActive }) {
             return found
         }
-        return terminalManager.session(forWorkspaceTabID: appState.activeTabID) ?? terminalManager.sessions.first
+        if let currentRemote = appState.currentSession?.id,
+           let match = terminalManager.sessions.first(where: { $0.remoteSessionID == currentRemote && $0.isActive }) {
+            return match
+        }
+        return terminalManager.sessions.first(where: { $0.isActive }) ?? terminalManager.sessions.first
     }
 
     public var body: some View {
@@ -188,6 +192,16 @@ public struct TerminalWorkspaceView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(palette.canvasColor)
+                .task {
+                    if let session = appState.currentSession, let sshClient = session.sshClient {
+                        _ = try? await terminalManager.openSession(
+                            title: session.profile.name,
+                            workspaceTabID: appState.activeTabID,
+                            remoteSessionID: session.id,
+                            sshClient: sshClient
+                        )
+                    }
+                }
             }
         }
         .sheet(isPresented: $isShowingSnippets) {
@@ -198,9 +212,12 @@ public struct TerminalWorkspaceView: View {
         }
         .sparkleWorkspaceSurface(palette, useCanvas: true)
     }
+}
 
+// MARK: - Subviews & Search Extensions
+extension TerminalWorkspaceView {
     @ViewBuilder
-    private func tabBar(palette: SparkleThemePalette) -> some View {
+    fileprivate func tabBar(palette: SparkleThemePalette) -> some View {
         if terminalManager.sessions.count > 1 {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
@@ -217,40 +234,48 @@ public struct TerminalWorkspaceView: View {
         }
     }
 
-    private func tabChip(sess: TerminalTabSession, isSelected: Bool, palette: SparkleThemePalette) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
-                .frame(width: 6, height: 6)
-            Text(sess.title)
-                .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
-                .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
-            if terminalManager.sessions.count > 1 {
-                Button {
-                    terminalManager.closeSession(id: sess.id)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
-                }
-                .buttonStyle(.borderless)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(isSelected ? palette.canvasColor : palette.windowColor)
-        .cornerRadius(4)
-        .contentShape(Rectangle())
-        .onTapGesture {
+    fileprivate func tabChip(
+        sess: TerminalTabSession,
+        isSelected: Bool,
+        palette: SparkleThemePalette
+    ) -> some View {
+        Button {
             terminalManager.selectedSessionID = sess.id
+        } label: {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
+                    .frame(width: 6, height: 6)
+                Text(sess.title)
+                    .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
+                if terminalManager.sessions.count > 1 {
+                    Button {
+                        terminalManager.closeSession(id: sess.id)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8, weight: .bold))
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(isSelected ? palette.canvasColor : palette.windowColor)
+            .cornerRadius(4)
         }
+        .buttonStyle(.plain)
     }
 
-    private func terminalSessionView(session: TerminalTabSession, themeColors: TerminalThemeColors) -> some View {
+    fileprivate func terminalSessionView(
+        session: TerminalTabSession,
+        themeColors: TerminalThemeColors
+    ) -> some View {
         TerminalViewRepresentable(session: session, themeColors: themeColors)
             .id(session.id)
     }
 
-    private func performFind(forward: Bool) {
+    fileprivate func performFind(forward: Bool) {
         guard let session = activeSession, !findQuery.isEmpty else {
             findSummary = ""
             return

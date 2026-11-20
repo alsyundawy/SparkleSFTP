@@ -226,4 +226,42 @@ public extension AppState {
             }
         }
     }
+
+    func disconnect(sessionID: UUID) async {
+        guard let idx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        let removed = activeSessions.remove(at: idx)
+        ActivityLogger.shared.logStatus("Disconnected from \(removed.profile.name) (\(removed.profile.host)).")
+        terminalManager.closeSessions(forRemoteSessionID: sessionID)
+        try? await removed.service.connection.disconnect(policy: .cancelAllTransfers)
+
+        for tabIdx in workspaceTabs.indices where workspaceTabs[tabIdx].sessionID == sessionID {
+            workspaceTabs[tabIdx].sessionID = nil
+            workspaceTabs[tabIdx].title = strings.t("tabs.newTab")
+            workspaceTabs[tabIdx].isTerminalVisible = false
+        }
+        if activeSessionID == sessionID {
+            activeSessionID = currentTab?.sessionID
+            if currentTab?.sessionID == nil {
+                isTerminalVisible = false
+                terminalManager.selectedSessionID = nil
+            } else if let tab = currentTab {
+                isTerminalVisible = tab.isTerminalVisible
+                terminalManager.selectedSessionID = terminalManager.session(forWorkspaceTabID: tab.id)?.id
+            }
+        }
+        if activeSessions.isEmpty {
+            for (dirURL, watcher) in remoteEditWatches {
+                watcher.stopWatching()
+                try? FileManager.default.removeItem(at: dirURL)
+            }
+            remoteEditWatches.removeAll()
+        }
+    }
+
+    func disconnectAllSessions(forProfileID profileID: UUID) async {
+        let matchingIDs = activeSessions.filter { $0.profile.id == profileID }.map(\.id)
+        for sessionID in matchingIDs {
+            await disconnect(sessionID: sessionID)
+        }
+    }
 }

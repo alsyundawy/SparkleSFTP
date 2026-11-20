@@ -96,13 +96,12 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     public func attachTerminalView(_ view: TerminalView) {
         terminalView = view
-        if persistentTerminalView == nil {
-            persistentTerminalView = view
-        }
+        persistentTerminalView = view
         if !pendingOutputBuffer.isEmpty {
             let buffered = pendingOutputBuffer
             pendingOutputBuffer.removeAll(keepingCapacity: false)
             view.feed(byteArray: buffered[...])
+            view.needsDisplay = true
         }
     }
 
@@ -131,8 +130,9 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
 
     private func flushBufferedOutput(_ chunk: [UInt8], fallbackView: TerminalView?) {
         guard !chunk.isEmpty else { return }
-        if let activeView = terminalView ?? fallbackView {
+        if let activeView = terminalView ?? persistentTerminalView ?? fallbackView {
             activeView.feed(byteArray: chunk[...])
+            activeView.needsDisplay = true
         } else {
             appendPendingOutput(chunk)
         }
@@ -275,6 +275,7 @@ public final class TerminalSessionManager: ObservableObject {
         if let sshClient {
             let pty = try await sshClient.openPTYChannel()
             session.attachPTYChannel(pty)
+            objectWillChange.send()
         }
         return session
     }
@@ -291,7 +292,7 @@ public final class TerminalSessionManager: ObservableObject {
         sshClient: SSHClientService?
     ) async throws -> TerminalTabSession {
         if let existing = sessions.first(where: {
-            $0.workspaceTabID == workspaceTabID && $0.remoteSessionID == remoteSessionID && $0.isActive
+            $0.remoteSessionID == remoteSessionID && $0.isActive
         }) {
             selectedSessionID = existing.id
             return existing

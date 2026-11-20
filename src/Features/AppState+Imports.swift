@@ -27,7 +27,7 @@ public extension AppState {
     }
 
     func toggleTerminalDrawerForActiveTab() async {
-        if isTerminalVisible {
+        if isTerminalVisible && !isTerminalEnlarged {
             setActiveTabTerminalVisibility(false)
             return
         }
@@ -36,15 +36,27 @@ public extension AppState {
 
         guard let tab = currentTab,
               let session = currentSession,
-              session.sshClient != nil
+              let sshClient = session.sshClient
         else { return }
 
-        if let existing = terminalManager.sessions.first(where: {
-            ($0.workspaceTabID == tab.id || $0.remoteSessionID == session.id) && $0.isActive
+        let hasActiveSession = terminalManager.sessions.contains(where: {
+            $0.remoteSessionID == session.id && $0.isActive
+        })
+        if !hasActiveSession {
+            do {
+                _ = try await terminalManager.openSession(
+                    title: session.profile.name,
+                    workspaceTabID: tab.id,
+                    remoteSessionID: session.id,
+                    sshClient: sshClient
+                )
+            } catch {
+                reportNonCancellationError(error)
+            }
+        } else if let match = terminalManager.sessions.first(where: {
+            $0.remoteSessionID == session.id && $0.isActive
         }) {
-            terminalManager.selectedSessionID = existing.id
-        } else {
-            await openTerminalTab()
+            terminalManager.selectedSessionID = match.id
         }
     }
 

@@ -61,6 +61,55 @@ public struct TerminalThemeColors: Sendable, Equatable {
     }
 }
 
+/// AppKit container ensuring `SwiftTerm.TerminalView` automatically tracks parent layout geometry (MEM-002).
+public final class TerminalContainerView: NSView {
+    public private(set) weak var currentTerminalView: TerminalView?
+
+    public override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+    }
+
+    public required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+    }
+
+    public func attachTerminalView(_ view: TerminalView) {
+        if currentTerminalView === view && view.superview === self {
+            return
+        }
+        currentTerminalView?.removeFromSuperview()
+        view.removeFromSuperview()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(view)
+        NSLayoutConstraint.activate([
+            view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            view.topAnchor.constraint(equalTo: topAnchor),
+            view.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        currentTerminalView = view
+        needsLayout = true
+        needsDisplay = true
+    }
+
+    public override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        if let view = currentTerminalView {
+            window?.makeFirstResponder(view)
+        }
+    }
+
+    public override func layout() {
+        super.layout()
+        if let view = currentTerminalView {
+            view.needsLayout = true
+            view.needsDisplay = true
+        }
+    }
+}
+
 /// SwiftUI NSViewRepresentable wrapper over `SwiftTerm.TerminalView` with strict PTY delegate teardown (MEM-002).
 public struct TerminalViewRepresentable: NSViewRepresentable {
     public let session: TerminalTabSession
@@ -81,9 +130,9 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         Coordinator(session: session)
     }
 
-    public func makeNSView(context: Context) -> TerminalView {
+    public func makeNSView(context: Context) -> TerminalContainerView {
+        let container = TerminalContainerView()
         let view = session.getOrCreateTerminalView()
-        view.removeFromSuperview()
         if fontSize != 13.0 {
             view.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
@@ -91,32 +140,45 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         context.coordinator.cachedThemeColors = themeColors
         context.coordinator.cachedFontSize = fontSize
         view.terminalDelegate = context.coordinator
-        return view
+        session.attachTerminalView(view)
+        container.attachTerminalView(view)
+
+        DispatchQueue.main.async { [weak view] in
+            guard let view else { return }
+            view.window?.makeFirstResponder(view)
+            view.needsLayout = true
+            view.needsDisplay = true
+        }
+        return container
     }
 
-    public func updateNSView(_ nsView: TerminalView, context: Context) {
-        if context.coordinator.boundSession !== session {
-            context.coordinator.rebind(to: session, terminalView: nsView)
+    public func updateNSView(_ container: TerminalContainerView, context: Context) {
+        let view = session.getOrCreateTerminalView()
+        if view.terminalDelegate !== context.coordinator {
+            view.terminalDelegate = context.coordinator
         }
-        if nsView.terminalDelegate !== context.coordinator {
-            nsView.terminalDelegate = context.coordinator
+        if context.coordinator.boundSession !== session {
+            context.coordinator.rebind(to: session, terminalView: view)
         }
         if context.coordinator.cachedThemeColors != themeColors {
             context.coordinator.cachedThemeColors = themeColors
-            applyTheme(themeColors, to: nsView)
+            applyTheme(themeColors, to: view)
         }
         if context.coordinator.cachedFontSize != fontSize {
             context.coordinator.cachedFontSize = fontSize
-            nsView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+            view.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
+        container.attachTerminalView(view)
     }
 
     private func applyTheme(_ colors: TerminalThemeColors?, to view: TerminalView) {
         TerminalThemeColors.apply(colors, to: view)
     }
 
-    public static func dismantleNSView(_ nsView: TerminalView, coordinator: Coordinator) {
-        nsView.terminalDelegate = nil
+    public static func dismantleNSView(_ container: TerminalContainerView, coordinator: Coordinator) {
+        if let view = container.currentTerminalView, view.terminalDelegate === coordinator {
+            view.terminalDelegate = nil
+        }
         coordinator.teardown()
     }
 

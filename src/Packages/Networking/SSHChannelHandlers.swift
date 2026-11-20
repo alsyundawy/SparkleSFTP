@@ -362,17 +362,19 @@ final class SSHPTYChannelHandler: ChannelInboundHandler {
         self.continuation = continuation
     }
 
+    func handlerAdded(context: ChannelHandlerContext) {
+        _ = context.channel.setOption(ChannelOptions.allowRemoteHalfClosure, value: true)
+    }
+
     func channelActive(context: ChannelHandlerContext) {
         let pty = SSHChannelRequestEvent.PseudoTerminalRequest(
-            wantReply: false,
-            term: term,
-            terminalCharacterWidth: cols,
-            terminalRowHeight: rows,
-            terminalPixelWidth: 0,
-            terminalPixelHeight: 0,
+            wantReply: false, term: term, terminalCharacterWidth: cols,
+            terminalRowHeight: rows, terminalPixelWidth: 0, terminalPixelHeight: 0,
             terminalModes: SSHTerminalModes([:])
         )
         context.triggerUserOutboundEvent(pty, promise: nil)
+        let env = SSHChannelRequestEvent.EnvironmentRequest(wantReply: false, name: "TERM", value: term)
+        context.triggerUserOutboundEvent(env, promise: nil)
         context.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(wantReply: false), promise: nil)
     }
 

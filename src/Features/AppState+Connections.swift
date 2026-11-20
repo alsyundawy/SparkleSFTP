@@ -282,18 +282,7 @@ public extension AppState {
         created: (service: RemoteService, sshClient: SSHClientService?),
         openInNewTab: Bool
     ) async throws {
-        var updatedProfile = profile
-        if let promptedSecret = pendingPromptedSecretToRemember, !promptedSecret.isEmpty {
-            let ref = updatedProfile.passwordRef ?? SecretReference(kind: .password)
-            if await (try? credentialStore.saveSecret(
-                Data(promptedSecret.utf8),
-                for: ref,
-                requireTouchID: updatedProfile.requireTouchID
-            )) != nil {
-                updatedProfile.passwordRef = ref
-            }
-            pendingPromptedSecretToRemember = nil
-        }
+        var updatedProfile = await savePromptedSecretIfNeeded(profile: profile)
         updatedProfile.lastConnectedAt = Date()
 
         if openInNewTab {
@@ -318,6 +307,45 @@ public extension AppState {
         activePane = .right
         statusBannerMessage = "Connected to \(profile.host)"
 
+        autoConnectTerminalShell(session: session, sshClient: created.sshClient)
+        persistConnectedProfileAndTrust(updatedProfile: updatedProfile, profile: profile)
+    }
+
+    private func savePromptedSecretIfNeeded(profile: ConnectionProfile) async -> ConnectionProfile {
+        var updatedProfile = profile
+        if let promptedSecret = pendingPromptedSecretToRemember, !promptedSecret.isEmpty {
+            let ref = updatedProfile.passwordRef ?? SecretReference(kind: .password)
+            if await (try? credentialStore.saveSecret(
+                Data(promptedSecret.utf8),
+                for: ref,
+                requireTouchID: updatedProfile.requireTouchID
+            )) != nil {
+                updatedProfile.passwordRef = ref
+            }
+            pendingPromptedSecretToRemember = nil
+        }
+        return updatedProfile
+    }
+
+    private func autoConnectTerminalShell(session: ActiveSessionModel, sshClient: SSHClientService?) {
+        guard let sshClient else { return }
+        let tabID = currentTab?.id ?? activeTabID
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await self.terminalManager.ensureSingleSession(
+                    workspaceTabID: tabID,
+                    remoteSessionID: session.id,
+                    title: session.profile.name,
+                    sshClient: sshClient
+                )
+            } catch {
+                ActivityLogger.shared.logError("Terminal auto-connect: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func persistConnectedProfileAndTrust(updatedProfile: ConnectionProfile, profile: ConnectionProfile) {
         Task { [weak self] in
             guard let self else { return }
             if let idx = self.profiles.firstIndex(where: { $0.id == updatedProfile.id }) {
@@ -332,44 +360,6 @@ public extension AppState {
                FileManager.default.fileExists(atPath: localDefault) {
                 await self.refreshLocalDirectory(URL(fileURLWithPath: localDefault))
             }
-        }
-    }
-
-    func disconnect(sessionID: UUID) async {
-        guard let idx = activeSessions.firstIndex(where: { $0.id == sessionID }) else { return }
-        let removed = activeSessions.remove(at: idx)
-        ActivityLogger.shared.logStatus("Disconnected from \(removed.profile.name) (\(removed.profile.host)).")
-        terminalManager.closeSessions(forRemoteSessionID: sessionID)
-        try? await removed.service.connection.disconnect(policy: .cancelAllTransfers)
-
-        for tabIdx in workspaceTabs.indices where workspaceTabs[tabIdx].sessionID == sessionID {
-            workspaceTabs[tabIdx].sessionID = nil
-            workspaceTabs[tabIdx].title = strings.t("tabs.newTab")
-            workspaceTabs[tabIdx].isTerminalVisible = false
-        }
-        if activeSessionID == sessionID {
-            activeSessionID = currentTab?.sessionID
-            if currentTab?.sessionID == nil {
-                isTerminalVisible = false
-                terminalManager.selectedSessionID = nil
-            } else if let tab = currentTab {
-                isTerminalVisible = tab.isTerminalVisible
-                terminalManager.selectedSessionID = terminalManager.session(forWorkspaceTabID: tab.id)?.id
-            }
-        }
-        if activeSessions.isEmpty {
-            for (dirURL, watcher) in remoteEditWatches {
-                watcher.stopWatching()
-                try? FileManager.default.removeItem(at: dirURL)
-            }
-            remoteEditWatches.removeAll()
-        }
-    }
-
-    func disconnectAllSessions(forProfileID profileID: UUID) async {
-        let matchingIDs = activeSessions.filter { $0.profile.id == profileID }.map(\.id)
-        for sessionID in matchingIDs {
-            await disconnect(sessionID: sessionID)
         }
     }
 }

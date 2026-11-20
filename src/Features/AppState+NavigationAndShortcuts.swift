@@ -78,23 +78,29 @@ public extension AppState {
 
     func openEnlargedTerminalWindow() async {
         isTerminalEnlarged = true
-        enlargedTerminalWindowController.present(appState: self)
-
         if let session = currentSession, let sshClient = session.sshClient {
             let tabID = currentTab?.id ?? activeTabID
-            if terminalManager.sessions.isEmpty || terminalManager.sessions.allSatisfy({ !$0.isActive }) {
+            let hasActiveSession = terminalManager.sessions.contains(where: {
+                $0.remoteSessionID == session.id && $0.isActive
+            })
+            if !hasActiveSession {
                 do {
-                    _ = try await terminalManager.ensureSingleSession(
+                    _ = try await terminalManager.openSession(
+                        title: session.profile.name,
                         workspaceTabID: tabID,
                         remoteSessionID: session.id,
-                        title: session.profile.name,
                         sshClient: sshClient
                     )
                 } catch {
                     reportNonCancellationError(error)
                 }
+            } else if let match = terminalManager.sessions.first(where: {
+                $0.remoteSessionID == session.id && $0.isActive
+            }) {
+                terminalManager.selectedSessionID = match.id
             }
         }
+        enlargedTerminalWindowController.present(appState: self)
     }
 
     func closeEnlargedTerminalWindow() {

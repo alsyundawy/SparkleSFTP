@@ -23,10 +23,14 @@ struct EnlargedTerminalWindowView: View {
 
     var activeSession: TerminalTabSession? {
         if let selID = terminalManager.selectedSessionID,
-           let found = terminalManager.sessions.first(where: { $0.id == selID }) {
+           let found = terminalManager.sessions.first(where: { $0.id == selID && $0.isActive }) {
             return found
         }
-        return terminalManager.session(forWorkspaceTabID: appState.activeTabID) ?? terminalManager.sessions.first
+        if let currentRemote = appState.currentSession?.id,
+           let match = terminalManager.sessions.first(where: { $0.remoteSessionID == currentRemote && $0.isActive }) {
+            return match
+        }
+        return terminalManager.sessions.first(where: { $0.isActive }) ?? terminalManager.sessions.first
     }
 
     var body: some View {
@@ -196,31 +200,32 @@ extension EnlargedTerminalWindowView {
     }
 
     private func tabChip(sess: TerminalTabSession, isSelected: Bool, palette: SparkleThemePalette) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
-                .frame(width: 6, height: 6)
-            Text(sess.title)
-                .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
-                .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
-            if terminalManager.sessions.count > 1 {
-                Button {
-                    terminalManager.closeSession(id: sess.id)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .bold))
-                }
-                .buttonStyle(.borderless)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(isSelected ? palette.canvasColor : palette.windowColor)
-        .cornerRadius(5)
-        .contentShape(Rectangle())
-        .onTapGesture {
+        Button {
             terminalManager.selectedSessionID = sess.id
+        } label: {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
+                    .frame(width: 6, height: 6)
+                Text(sess.title)
+                    .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
+                if terminalManager.sessions.count > 1 {
+                    Button {
+                        terminalManager.closeSession(id: sess.id)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(isSelected ? palette.canvasColor : palette.windowColor)
+            .cornerRadius(5)
         }
+        .buttonStyle(.plain)
     }
 
     func searchBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
@@ -294,6 +299,16 @@ extension EnlargedTerminalWindowView {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(palette.canvasColor)
+            .task {
+                if let session = appState.currentSession, let sshClient = session.sshClient {
+                    _ = try? await terminalManager.openSession(
+                        title: session.profile.name,
+                        workspaceTabID: appState.activeTabID,
+                        remoteSessionID: session.id,
+                        sshClient: sshClient
+                    )
+                }
+            }
         }
     }
 
