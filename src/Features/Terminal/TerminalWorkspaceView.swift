@@ -17,16 +17,38 @@ public struct TerminalWorkspaceView: View {
         terminalManager = appState.terminalManager
     }
 
+    private var visibleSessions: [TerminalTabSession] {
+        if let currentRemote = appState.currentSession?.id {
+            return terminalManager.sessions.filter { $0.remoteSessionID == currentRemote }
+        } else {
+            return terminalManager.sessions.filter { $0.remoteSessionID == nil }
+        }
+    }
+
     private var activeSession: TerminalTabSession? {
-        if let selID = terminalManager.selectedSessionID,
-           let found = terminalManager.sessions.first(where: { $0.id == selID && $0.isActive }) {
-            return found
+        if let currentRemote = appState.currentSession?.id {
+            if let selID = terminalManager.selectedSessionID,
+               let found = terminalManager.sessions.first(where: {
+                   $0.id == selID && $0.remoteSessionID == currentRemote && $0.isActive
+               }) {
+                return found
+            }
+            if let match = terminalManager.sessions.first(where: {
+                $0.remoteSessionID == currentRemote && $0.isActive
+            }) {
+                return match
+            }
+            return terminalManager.sessions.first(where: { $0.remoteSessionID == currentRemote })
+        } else {
+            if let selID = terminalManager.selectedSessionID,
+               let found = terminalManager.sessions.first(where: {
+                   $0.id == selID && $0.remoteSessionID == nil && $0.isActive
+               }) {
+                return found
+            }
+            return terminalManager.sessions.first(where: { $0.remoteSessionID == nil && $0.isActive })
+                ?? terminalManager.sessions.first(where: { $0.remoteSessionID == nil })
         }
-        if let currentRemote = appState.currentSession?.id,
-           let match = terminalManager.sessions.first(where: { $0.remoteSessionID == currentRemote && $0.isActive }) {
-            return match
-        }
-        return terminalManager.sessions.first(where: { $0.isActive }) ?? terminalManager.sessions.first
     }
 
     public var body: some View {
@@ -141,7 +163,7 @@ public struct TerminalWorkspaceView: View {
                 .background(palette.windowColor.opacity(0.95))
             }
 
-            if appState.isTerminalEnlarged && appState.enlargedTerminalWindowController.isVisible {
+            if appState.isTerminalEnlarged {
                 VStack(spacing: SparkleTheme.Spacing.small) {
                     Image(systemName: SparkleTheme.Symbols.enlargedTerminal)
                         .font(.system(size: 28))
@@ -218,10 +240,11 @@ public struct TerminalWorkspaceView: View {
 extension TerminalWorkspaceView {
     @ViewBuilder
     fileprivate func tabBar(palette: SparkleThemePalette) -> some View {
-        if terminalManager.sessions.count > 1 {
+        let currentSessions = visibleSessions
+        if currentSessions.count > 1 {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
-                    ForEach(terminalManager.sessions) { sess in
+                    ForEach(currentSessions) { sess in
                         let isSelected = (sess.id == (terminalManager.selectedSessionID ?? activeSession?.id))
                         tabChip(sess: sess, isSelected: isSelected, palette: palette)
                     }

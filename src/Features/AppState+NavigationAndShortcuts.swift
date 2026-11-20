@@ -80,10 +80,15 @@ public extension AppState {
         isTerminalEnlarged = true
         if let session = currentSession, let sshClient = session.sshClient {
             let tabID = currentTab?.id ?? activeTabID
-            let hasActiveSession = terminalManager.sessions.contains(where: {
+            if let existing = terminalManager.sessions.first(where: {
                 $0.remoteSessionID == session.id && $0.isActive
-            })
-            if !hasActiveSession {
+            }) {
+                terminalManager.selectedSessionID = existing.id
+            } else if let pending = terminalManager.sessions.first(where: {
+                $0.remoteSessionID == session.id
+            }) {
+                terminalManager.selectedSessionID = pending.id
+            } else {
                 do {
                     _ = try await terminalManager.openSession(
                         title: session.profile.name,
@@ -94,10 +99,6 @@ public extension AppState {
                 } catch {
                     reportNonCancellationError(error)
                 }
-            } else if let match = terminalManager.sessions.first(where: {
-                $0.remoteSessionID == session.id && $0.isActive
-            }) {
-                terminalManager.selectedSessionID = match.id
             }
         }
         enlargedTerminalWindowController.present(appState: self)

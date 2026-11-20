@@ -80,18 +80,30 @@ public final class KeychainService: CredentialStoreProtocol, Sendable {
     }
 
     public func saveSecret(_ data: Data, for reference: SecretReference, requireTouchID: Bool) async throws {
-        let attributes = try buildAddAttributes(
-            data: data,
-            accountKey: reference.accountKey,
-            requireTouchID: requireTouchID
-        )
-        var status = SecItemAdd(attributes as CFDictionary, nil)
-        if status == errSecDuplicateItem {
-            try deleteSync(accountKey: reference.accountKey)
-            status = SecItemAdd(attributes as CFDictionary, nil)
+        let updateQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceIdentifier,
+            kSecAttrAccount as String: reference.accountKey,
+            kSecAttrSynchronizable as String: kCFBooleanFalse as Any
+        ]
+        let updateAttributes: [String: Any] = [
+            kSecValueData as String: data
+        ]
+        var status = SecItemUpdate(updateQuery as CFDictionary, updateAttributes as CFDictionary)
+        if status == errSecItemNotFound {
+            let addAttributes = try buildAddAttributes(
+                data: data,
+                accountKey: reference.accountKey,
+                requireTouchID: requireTouchID
+            )
+            status = SecItemAdd(addAttributes as CFDictionary, nil)
+            if status == errSecDuplicateItem {
+                try deleteSync(accountKey: reference.accountKey)
+                status = SecItemAdd(addAttributes as CFDictionary, nil)
+            }
         }
         guard status == errSecSuccess else {
-            DiagnosticsLogger.security.error("Keychain add failed with status \(status, privacy: .public)")
+            DiagnosticsLogger.security.error("Keychain save failed with status \(status, privacy: .public)")
             throw AppError.keychainFailure(status: status, message: Self.errorMessage(for: status))
         }
         if requireTouchID {

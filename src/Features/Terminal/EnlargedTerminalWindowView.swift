@@ -21,16 +21,38 @@ struct EnlargedTerminalWindowView: View {
         self.terminalManager = appState.terminalManager
     }
 
+    private var visibleSessions: [TerminalTabSession] {
+        if let currentRemote = appState.currentSession?.id {
+            return terminalManager.sessions.filter { $0.remoteSessionID == currentRemote }
+        } else {
+            return terminalManager.sessions.filter { $0.remoteSessionID == nil }
+        }
+    }
+
     var activeSession: TerminalTabSession? {
-        if let selID = terminalManager.selectedSessionID,
-           let found = terminalManager.sessions.first(where: { $0.id == selID && $0.isActive }) {
-            return found
+        if let currentRemote = appState.currentSession?.id {
+            if let selID = terminalManager.selectedSessionID,
+               let found = terminalManager.sessions.first(where: {
+                   $0.id == selID && $0.remoteSessionID == currentRemote && $0.isActive
+               }) {
+                return found
+            }
+            if let match = terminalManager.sessions.first(where: {
+                $0.remoteSessionID == currentRemote && $0.isActive
+            }) {
+                return match
+            }
+            return terminalManager.sessions.first(where: { $0.remoteSessionID == currentRemote })
+        } else {
+            if let selID = terminalManager.selectedSessionID,
+               let found = terminalManager.sessions.first(where: {
+                   $0.id == selID && $0.remoteSessionID == nil && $0.isActive
+               }) {
+                return found
+            }
+            return terminalManager.sessions.first(where: { $0.remoteSessionID == nil && $0.isActive })
+                ?? terminalManager.sessions.first(where: { $0.remoteSessionID == nil })
         }
-        if let currentRemote = appState.currentSession?.id,
-           let match = terminalManager.sessions.first(where: { $0.remoteSessionID == currentRemote && $0.isActive }) {
-            return match
-        }
-        return terminalManager.sessions.first(where: { $0.isActive }) ?? terminalManager.sessions.first
     }
 
     var body: some View {
@@ -39,7 +61,7 @@ struct EnlargedTerminalWindowView: View {
         VStack(spacing: 0) {
             topBar(palette: palette, strings: strings)
             Divider()
-            if terminalManager.sessions.count > 1 {
+            if visibleSessions.count > 1 {
                 tabBar(palette: palette, strings: strings)
                 Divider()
             }
@@ -186,9 +208,10 @@ extension EnlargedTerminalWindowView {
     }
 
     func tabBar(palette: SparkleThemePalette, strings: AppStrings) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        let currentSessions = visibleSessions
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
-                ForEach(terminalManager.sessions) { sess in
+                ForEach(currentSessions) { sess in
                     let isSelected = (sess.id == (terminalManager.selectedSessionID ?? activeSession?.id))
                     tabChip(sess: sess, isSelected: isSelected, palette: palette)
                 }
@@ -210,7 +233,7 @@ extension EnlargedTerminalWindowView {
                 Text(sess.title)
                     .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
-                if terminalManager.sessions.count > 1 {
+                if visibleSessions.count > 1 {
                     Button {
                         terminalManager.closeSession(id: sess.id)
                     } label: {
@@ -333,7 +356,7 @@ extension EnlargedTerminalWindowView {
                     .foregroundStyle(session.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.warning)
             }
             Spacer()
-            Text("\(terminalManager.sessions.count) \(strings.t("terminal.standalone.panes"))")
+            Text("\(visibleSessions.count) \(strings.t("terminal.standalone.panes"))")
                 .font(SparkleTheme.Typography.caption)
                 .foregroundStyle(palette.secondaryTextColor)
             Text(appState.activePalette.displayName)

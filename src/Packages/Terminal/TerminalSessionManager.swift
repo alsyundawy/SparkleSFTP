@@ -273,9 +273,21 @@ public final class TerminalSessionManager: ObservableObject {
         selectedSessionID = session.id
 
         if let sshClient {
-            let pty = try await sshClient.openPTYChannel()
-            session.attachPTYChannel(pty)
-            objectWillChange.send()
+            do {
+                let pty = try await sshClient.openPTYChannel()
+                session.attachPTYChannel(pty)
+                objectWillChange.send()
+            } catch {
+                if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                    sessions.remove(at: idx)
+                }
+                session.close()
+                if selectedSessionID == session.id {
+                    selectedSessionID = sessions.last?.id
+                }
+                objectWillChange.send()
+                throw error
+            }
         }
         return session
     }

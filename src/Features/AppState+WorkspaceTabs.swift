@@ -71,11 +71,18 @@ public extension AppState {
         localSortDescriptor = target.localSortDescriptor
         if let sessionID = target.sessionID {
             activePane = .right
-            let bound = terminalManager.session(forWorkspaceTabID: target.id)
-            terminalManager.selectedSessionID = (bound?.remoteSessionID == sessionID) ? bound?.id : nil
+            let bound = terminalManager.sessions.first(where: {
+                $0.remoteSessionID == sessionID && $0.isActive
+            }) ?? terminalManager.sessions.first(where: {
+                $0.remoteSessionID == sessionID
+            })
+            terminalManager.selectedSessionID = bound?.id
             isTerminalVisible = target.isTerminalVisible
         } else {
-            terminalManager.selectedSessionID = nil
+            let localSession = terminalManager.sessions.first(where: {
+                $0.remoteSessionID == nil && $0.workspaceTabID == target.id
+            })
+            terminalManager.selectedSessionID = localSession?.id
             isTerminalVisible = false
         }
         if target.localPath.standardizedFileURL != localCurrentURL.standardizedFileURL {
