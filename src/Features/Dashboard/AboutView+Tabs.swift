@@ -147,6 +147,11 @@ extension AboutView {
                     detail: "AES-256-GCM + PBKDF2 600K iterations, safe multi-archive extraction "
                         + "& O(N+M) high-speed directory diff"
                 )
+                creditRow(
+                    "Open-Source Sysadmin & DevOps Collections (v0.7.0)",
+                    detail: "Curated POSIX IEEE Std 1003.1, GNU Bash, Kubernetes, and NetDevOps "
+                        + "command snippets (550 presets across 31 categories)"
+                )
             }
         }
     }

@@ -170,8 +170,24 @@ Untuk mengeksplorasi seluruh 8 layar pratinjau antarmuka Sparkle Commander:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
-# SHA-256 Valid: 6271fbb870a5cc8ed80915dd61557b27175d70b30acdebea7006f2ba1d885657
+# SHA-256 Valid: c3e775cc414a072a447fb43aa6bd86d14ef520b99151ae5c652c95734e99ca7d
 ```
+
+---
+
+## 🎖️ Kredit Rekayasa & Sumber Terbuka
+
+SparkleSFTP dibangun di atas fondasi inovasi luar biasa dari komunitas open-source dunia:
+
+- **Google Gemini 3.8 Flash & Google Antigravity IDE**: Arsitektur perangkat lunak berbantuan AI canggih, orkestrasi multi-skill, dan tinjauan kode empiris 14 pilar.
+- **Inspirasi SparkNotePad & Notepad2**: Ergonomi editor kode macOS, 76 palet warna developer, dan token tipografi native.
+- **SubnetCalc**: Algoritma kalkulasi IP jaringan, subnetting CIDR, dan fondasi rekayasa port protokol.
+- **apple/swift-nio & swift-nio-ssh (0.15.1)**: Transport SSH asinkron EventLoop, framing RFC SFTP v3, dan penerusan port DirectTCPIP.
+- **apple/swift-crypto**: Verifikasi SHA-256 streaming di luar MainActor dan parsing kunci OpenSSH Ed25519/ECDSA.
+- **migueldeicaza/SwiftTerm (1.20.0)**: Emulasi terminal native xterm/VT100, ruang kerja mandiri, dan sinkronisasi direktori OSC 7.
+- **sparkle-project/Sparkle (2.10.1)**: Pengiriman pembaruan perangkat lunak otomatis bertanda tangan Ed25519 dan validasi appcast.
+- **Apple macOS SDK Frameworks**: libcurl FTPS dengan pembungkus C11, jurnal SQLite3 WAL, Security.framework Keychain dengan Touch ID.
+- **Komunitas Sysadmin & NetDevOps Open-Source**: Kurasi cuplikan perintah POSIX IEEE Std 1003.1, GNU Bash, Kubernetes, dan otomasi jaringan (550 preset di 31 kategori).
 
 ---
 

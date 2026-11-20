@@ -170,8 +170,24 @@ To explore all 8 showcase screens of the Sparkle Commander visual refresh:
 
 ```bash
 shasum -a 256 SparkleSFTP-0.7.0-universal.dmg
-# Expected SHA-256: 6271fbb870a5cc8ed80915dd61557b27175d70b30acdebea7006f2ba1d885657
+# Expected SHA-256: c3e775cc414a072a447fb43aa6bd86d14ef520b99151ae5c652c95734e99ca7d
 ```
+
+---
+
+## 🎖️ Open-Source & Engineering Credits
+
+SparkleSFTP stands on the shoulders of remarkable open-source engineering achievements:
+
+- **Google Gemini 3.8 Flash & Google Antigravity IDE**: Advanced AI-assisted software architecture, multi-skill orchestration, and 14-pillar empirical code review.
+- **SparkNotePad & Notepad2**: macOS code editor ergonomics, 76 developer color palettes, and typography tokens.
+- **SubnetCalc**: Network IP calculation algorithms, CIDR subnetting, and port engineering foundations.
+- **apple/swift-nio & swift-nio-ssh (0.15.1)**: Async EventLoop SSH transport, RFC SFTP v3 framing, and DirectTCPIP port forwarding.
+- **apple/swift-crypto**: Streaming off-MainActor SHA-256 verification and OpenSSH Ed25519/ECDSA key parsing.
+- **migueldeicaza/SwiftTerm (1.20.0)**: Native xterm/VT100 terminal emulation, standalone workspace, and OSC 7 directory sync.
+- **sparkle-project/Sparkle (2.10.1)**: Ed25519-signed automated software update delivery and appcast validation.
+- **Apple macOS SDK Frameworks**: libcurl FTPS with C11 wrapper, SQLite3 WAL journal, Security.framework Keychain with Touch ID.
+- **Open-Source Sysadmin & NetDevOps Communities**: Curated POSIX IEEE Std 1003.1, GNU Bash, Kubernetes, and network automation command snippets (550 presets across 31 categories).
 
 ---
 
