@@ -75,6 +75,22 @@ public final class TerminalContainerView: NSView {
         wantsLayer = true
     }
 
+    public override var isFlipped: Bool {
+        true
+    }
+
+    public override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    public override func hitTest(_ point: NSPoint) -> NSView? {
+        let hit = super.hitTest(point)
+        if hit === currentTerminalView || hit?.isDescendant(of: self) == true {
+            window?.makeFirstResponder(currentTerminalView)
+        }
+        return hit
+    }
+
     public func attachTerminalView(_ view: TerminalView) {
         if currentTerminalView === view && view.superview === self {
             return
@@ -90,8 +106,18 @@ public final class TerminalContainerView: NSView {
             view.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
         currentTerminalView = view
+        view.terminal.updateFullScreen()
         needsLayout = true
         needsDisplay = true
+        DispatchQueue.main.async { [weak self, weak view] in
+            guard let view else { return }
+            view.terminal.updateFullScreen()
+            if let window = view.window ?? self?.window {
+                window.makeFirstResponder(view)
+            }
+            view.needsLayout = true
+            view.needsDisplay = true
+        }
     }
 
     public override func mouseDown(with event: NSEvent) {
@@ -139,26 +165,16 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
         applyTheme(themeColors, to: view)
         context.coordinator.cachedThemeColors = themeColors
         context.coordinator.cachedFontSize = fontSize
-        view.terminalDelegate = context.coordinator
+        view.terminalDelegate = session
         session.attachTerminalView(view)
         container.attachTerminalView(view)
-
-        DispatchQueue.main.async { [weak view] in
-            guard let view else { return }
-            view.window?.makeFirstResponder(view)
-            view.needsLayout = true
-            view.needsDisplay = true
-        }
         return container
     }
 
     public func updateNSView(_ container: TerminalContainerView, context: Context) {
         let view = session.getOrCreateTerminalView()
-        if view.terminalDelegate !== context.coordinator {
-            view.terminalDelegate = context.coordinator
-        }
-        if context.coordinator.boundSession !== session {
-            context.coordinator.rebind(to: session, terminalView: view)
+        if view.terminalDelegate !== session {
+            view.terminalDelegate = session
         }
         if context.coordinator.cachedThemeColors != themeColors {
             context.coordinator.cachedThemeColors = themeColors
@@ -176,9 +192,6 @@ public struct TerminalViewRepresentable: NSViewRepresentable {
     }
 
     public static func dismantleNSView(_ container: TerminalContainerView, coordinator: Coordinator) {
-        if let view = container.currentTerminalView, view.terminalDelegate === coordinator {
-            view.terminalDelegate = nil
-        }
         coordinator.teardown()
     }
 

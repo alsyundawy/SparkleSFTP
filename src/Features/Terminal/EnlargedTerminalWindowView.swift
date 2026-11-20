@@ -75,6 +75,11 @@ struct EnlargedTerminalWindowView: View {
         }
         .background(palette.canvasColor)
         .tint(palette.accentColor)
+        .onAppear {
+            if let view = activeSession?.getOrCreateTerminalView(), let window = view.window {
+                window.makeFirstResponder(view)
+            }
+        }
         .sheet(isPresented: $isShowingSnippets) {
             SnippetsSheet(appState: appState)
         }
@@ -225,6 +230,10 @@ extension EnlargedTerminalWindowView {
     private func tabChip(sess: TerminalTabSession, isSelected: Bool, palette: SparkleThemePalette) -> some View {
         Button {
             terminalManager.selectedSessionID = sess.id
+            let view = sess.getOrCreateTerminalView()
+            if let window = view.window {
+                window.makeFirstResponder(view)
+            }
         } label: {
             HStack(spacing: 6) {
                 Circle()

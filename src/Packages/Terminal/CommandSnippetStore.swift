@@ -37,7 +37,13 @@ public actor CommandSnippetStore {
         observabilitySnippets +
         containerOrchestrationSnippets +
         databaseCloudSnippets +
-        systemHardeningSnippets
+        systemHardeningSnippets +
+        posixBashSnippets1 +
+        posixBashSnippets2 +
+        posixBashSnippets3 +
+        posixBashSnippets4 +
+        posixBashSnippets5 +
+        posixBashSnippets6
 
     public func loadSnippets() async throws -> [CommandSnippet] {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {

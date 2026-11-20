@@ -50,7 +50,7 @@ private final class PTYResourceBox: @unchecked Sendable { // JUSTIFICATION: NSLo
 
 /// Represents a single interactive SSH PTY terminal tab or split pane with explicit resource cleanup (MEM-002).
 @MainActor
-public final class TerminalTabSession: Identifiable, ObservableObject {
+public final class TerminalTabSession: NSObject, Identifiable, ObservableObject {
     public let id: UUID
     public let workspaceTabID: UUID?
     public let remoteSessionID: UUID?
@@ -75,6 +75,7 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
         self.title = title
         self.workspaceTabID = workspaceTabID
         self.remoteSessionID = remoteSessionID
+        super.init()
     }
 
     deinit {
@@ -97,6 +98,8 @@ public final class TerminalTabSession: Identifiable, ObservableObject {
     public func attachTerminalView(_ view: TerminalView) {
         terminalView = view
         persistentTerminalView = view
+        view.terminalDelegate = self
+        view.terminal.updateFullScreen()
         if !pendingOutputBuffer.isEmpty {
             let buffered = pendingOutputBuffer
             pendingOutputBuffer.removeAll(keepingCapacity: false)
