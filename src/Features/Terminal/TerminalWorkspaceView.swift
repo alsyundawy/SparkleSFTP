@@ -254,7 +254,12 @@ extension TerminalWorkspaceView {
                 HStack(spacing: 4) {
                     ForEach(currentSessions) { sess in
                         let isSelected = (sess.id == (terminalManager.selectedSessionID ?? activeSession?.id))
-                        tabChip(sess: sess, isSelected: isSelected, palette: palette)
+                        tabChip(
+                            sess: sess,
+                            isSelected: isSelected,
+                            canClose: currentSessions.count > 1,
+                            palette: palette
+                        )
                     }
                 }
                 .padding(.horizontal, 8)
@@ -268,39 +273,39 @@ extension TerminalWorkspaceView {
     fileprivate func tabChip(
         sess: TerminalTabSession,
         isSelected: Bool,
+        canClose: Bool,
         palette: SparkleThemePalette
     ) -> some View {
-        Button {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
+                .frame(width: 6, height: 6)
+            Text(sess.title)
+                .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
+            if canClose {
+                Button {
+                    terminalManager.closeSession(id: sess.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(isSelected ? palette.canvasColor : palette.windowColor)
+        .cornerRadius(4)
+        .contentShape(Rectangle())
+        .onTapGesture {
             terminalManager.selectedSessionID = sess.id
             let view = sess.getOrCreateTerminalView()
             view.terminal.updateFullScreen()
             view.feed(text: "")
             view.setNeedsDisplay(view.bounds)
             view.window?.makeFirstResponder(view)
-        } label: {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(sess.isActive ? SparkleTheme.Colors.success : SparkleTheme.Colors.danger)
-                    .frame(width: 6, height: 6)
-                Text(sess.title)
-                    .font(SparkleTheme.Typography.caption.weight(isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? palette.primaryTextColor : palette.secondaryTextColor)
-                if terminalManager.sessions.count > 1 {
-                    Button {
-                        terminalManager.closeSession(id: sess.id)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .bold))
-                    }
-                    .buttonStyle(.borderless)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(isSelected ? palette.canvasColor : palette.windowColor)
-            .cornerRadius(4)
         }
-        .buttonStyle(.plain)
     }
 
     fileprivate func terminalSessionView(
@@ -337,7 +342,6 @@ public struct PortForwardingSheet: View {
     public init(appState: AppState) {
         self.appState = appState
     }
-
     public var body: some View {
         VStack(alignment: .leading, spacing: SparkleTheme.Spacing.medium) {
             HStack {
@@ -360,31 +364,24 @@ public struct PortForwardingSheet: View {
                 TextField("Target Port", text: $targetPort).frame(width: 75)
                 Button("Start") {
                     let rule = PortForwardingRule(
-                        name: name,
-                        direction: direction,
-                        bindHost: "127.0.0.1",
-                        bindPort: Int(bindPort) ?? 15432,
-                        targetHost: targetHost,
-                        targetPort: Int(targetPort) ?? 5432
+                        name: name, direction: direction, bindHost: "127.0.0.1",
+                        bindPort: Int(bindPort) ?? 15432, targetHost: targetHost, targetPort: Int(targetPort) ?? 5432
                     )
                     Task { await appState.startPortForwarding(rule) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(appState.currentSession?.sshClient == nil)
             }
-
             List(appState.activeTunnels) { tunnel in
                 HStack {
-                    let arrow = tunnel.rule.direction == .local ? "-L" : "-R"
-                    let forwardSummary = "[\(arrow)] \(tunnel.rule.name): "
+                    let isLocal = tunnel.rule.direction == .local
+                    let arrow = isLocal ? "-L" : (tunnel.rule.direction == .remote ? "-R" : "-D")
+                    let summary = "[\(arrow)] \(tunnel.rule.name): "
                         + "127.0.0.1:\(tunnel.listeningPort) -> "
                         + "\(tunnel.rule.targetHost):\(tunnel.rule.targetPort)"
-                    Text(forwardSummary)
-                        .font(SparkleTheme.Typography.monoSmall)
+                    Text(summary).font(SparkleTheme.Typography.monoSmall)
                     Spacer()
-                    Button("Stop") {
-                        Task { await appState.stopPortForwarding(id: tunnel.id) }
-                    }
+                    Button("Stop") { Task { await appState.stopPortForwarding(id: tunnel.id) } }
                 }
                 .listRowBackground(appState.activePalette.canvasColor)
             }

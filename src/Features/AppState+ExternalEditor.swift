@@ -17,7 +17,11 @@ extension AppState {
 
     private func openLocalWithExternalEditor(localURL: URL, filename: String) {
         let installed = ExternalEditorDetector.detectInstalledEditors()
-        if let preferred = ExternalEditorDetector.resolveEditor(savedPath: nil, available: installed),
+        let savedPath = extendedSettings.editorExternalAppPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let preferred = ExternalEditorDetector.resolveEditor(
+               savedPath: savedPath.isEmpty ? nil : savedPath,
+               available: installed
+           ),
            let appURL = preferred.appURL {
             let config = NSWorkspace.OpenConfiguration()
             NSWorkspace.shared.open([localURL], withApplicationAt: appURL, configuration: config)
@@ -32,8 +36,10 @@ extension AppState {
         let profileID = session.profile.id
         let host = session.profile.host
         let remotePath = file.path
+        var stagingTempDir: URL?
         do {
             let tempDir = try SecureTempDirectory.createIsolatedWorkingDirectory(prefix: "SparkleExtEdit")
+            stagingTempDir = tempDir
             let localCopy = try PathValidator.safeLocalDestination(filename: file.name, baseDirectory: tempDir)
             try await session.service.fileSystem.download(from: remotePath, to: localCopy) { _ in }
             let initialDigest = try await SHA256Verifier.computeHexDigest(of: localCopy)
@@ -49,7 +55,11 @@ extension AppState {
                     remotePath: remotePath
                 )
             )
+            stagingTempDir = nil
         } catch {
+            if let stagingTempDir {
+                try? FileManager.default.removeItem(at: stagingTempDir)
+            }
             reportNonCancellationError(error, asBannerOnly: true)
         }
     }

@@ -40,11 +40,12 @@ public final class TransferRateLimiter: @unchecked Sendable { // JUSTIFICATION: 
     public func consume(bytes: Int) async throws {
         guard bytes > 0 else { return }
 
-        while true {
+        var remaining = bytes
+        while remaining > 0 {
             try Task.checkCancellation()
 
-            let waitDuration: TimeInterval? = lock.withLock {
-                guard limitKBps > 0 else { return nil }
+            let (consumedNow, waitDuration) = lock.withLock { () -> (Int, TimeInterval?) in
+                guard limitKBps > 0 else { return (remaining, nil) }
 
                 let now = timeProvider()
                 let elapsed = max(0, now - lastRefillTime)
@@ -53,13 +54,21 @@ public final class TransferRateLimiter: @unchecked Sendable { // JUSTIFICATION: 
                 let bytesPerSec = Double(limitKBps) * 1024.0
                 availableTokens = min(bytesPerSec, availableTokens + (elapsed * bytesPerSec))
 
-                if availableTokens >= Double(bytes) {
-                    availableTokens -= Double(bytes)
-                    return nil
+                let maxStep = max(1, Int(bytesPerSec))
+                let step = min(remaining, maxStep)
+
+                if availableTokens >= Double(step) {
+                    availableTokens -= Double(step)
+                    return (step, nil)
                 } else {
-                    let needed = Double(bytes) - availableTokens
-                    return needed / bytesPerSec
+                    let needed = Double(step) - availableTokens
+                    return (0, needed / bytesPerSec)
                 }
+            }
+
+            if consumedNow > 0 {
+                remaining -= consumedNow
+                continue
             }
 
             guard let duration = waitDuration, duration > 0 else {

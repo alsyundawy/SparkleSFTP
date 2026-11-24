@@ -46,16 +46,17 @@ extension TransferQueue {
 
         do {
             try await remoteFS.download(from: remotePath, to: tempPrefixURL, offset: 0) { _ in }
-            guard let remoteData = try? Data(contentsOf: tempPrefixURL) else { return false }
-            let compareLength = min(remoteData.count, 65_536)
+            let remoteHandle = try FileHandle(forReadingFrom: tempPrefixURL)
+            defer { try? remoteHandle.close() }
+            guard let remotePrefixData = try remoteHandle.read(upToCount: 65_536) else { return false }
+            let compareLength = remotePrefixData.count
             guard compareLength > 0 else { return true }
 
             let localHandle = try FileHandle(forReadingFrom: localURL)
             defer { try? localHandle.close() }
             guard let localPrefixData = try localHandle.read(upToCount: compareLength) else { return false }
 
-            let remotePrefixSlice = remoteData.prefix(compareLength)
-            return SHA256.hash(data: remotePrefixSlice) == SHA256.hash(data: localPrefixData)
+            return SHA256.hash(data: remotePrefixData) == SHA256.hash(data: localPrefixData)
         } catch {
             return false
         }

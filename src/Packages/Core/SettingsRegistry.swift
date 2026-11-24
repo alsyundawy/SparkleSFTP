@@ -25,7 +25,7 @@ public enum SettingsTabIdentifier: String, Sendable, Codable, CaseIterable, Iden
         case .editor: return "prefs.tabEditor"
         case .security: return "prefs.tabSecurity"
         case .network: return "prefs.tabNetwork"
-        case .sync: return "prefs.tabSync"
+        case .sync: return "prefs.tabSyncBookmarks"
         case .transfers: return "prefs.tabTransfers"
         case .archives: return "prefs.tabArchives"
         case .updates: return "prefs.tabUpdates"

@@ -68,7 +68,8 @@ public struct MainWindowView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .sparkleOpenExternalURL)) { notification in
-            guard let url = notification.userInfo?["url"] as? URL else { return }
+            guard appState.hostWindow == nil || appState.hostWindow?.isKeyWindow == true,
+                  let url = notification.userInfo?["url"] as? URL else { return }
             Task { @MainActor in
                 await appState.handleExternalURL(url)
             }

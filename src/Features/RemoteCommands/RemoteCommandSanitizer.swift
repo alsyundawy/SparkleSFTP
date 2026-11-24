@@ -18,54 +18,78 @@ public enum RemoteCommandSanitizer {
             throw AppError.maliciousCommandInjection(command: template)
         }
 
-        var result = template
+        // Single-pass left-to-right token substitution prevents re-scanning substituted
+        // values that happen to contain `!` or `!/` (CWE-78).
+        let promptRegex = try NSRegularExpression(pattern: #"!\?([^:?]+?)(?::([^?]*?))?\?!"#)
+        var output = ""
+        output.reserveCapacity(template.count)
 
-        // 1. Substitute interactive prompts: !?<prompt>:<default>?! or !?<prompt>?!
-        let regex = try NSRegularExpression(pattern: #"!\?([^:?]+?)(?::([^?]*?))?\?!"#)
-        let nsString = result as NSString
-        let matches = regex.matches(in: result, range: NSRange(location: 0, length: nsString.length))
+        var cachedSafePath: String?
+        var cachedSafeFile: String?
+        var index = template.startIndex
 
-        for match in matches.reversed() {
-            let fullRange = match.range
-            let promptRange = match.range(at: 1)
-            let promptKey = nsString.substring(with: promptRange)
-
-            let defaultValue: String = if match.numberOfRanges > 2, match.range(at: 2).location != NSNotFound {
-                nsString.substring(with: match.range(at: 2))
+        while index < template.endIndex {
+            let nsRemaining = NSRange(index ..< template.endIndex, in: template)
+            if template[index...].hasPrefix("!?"),
+               let match = promptRegex.firstMatch(in: template, options: [.anchored], range: nsRemaining),
+               let fullRange = Range(match.range, in: template) {
+                try output.append(resolvePromptToken(match: match, in: template, promptInputs: promptInputs))
+                index = fullRange.upperBound
+            } else if template[index...].hasPrefix("!/") {
+                if let cachedSafePath {
+                    output.append(cachedSafePath)
+                } else {
+                    let safePath = try validateAndQuote(remotePath, placeholder: "!/", label: "remote directory")
+                    cachedSafePath = safePath
+                    output.append(safePath)
+                }
+                index = template.index(index, offsetBy: 2)
+            } else if template[index] == "!" {
+                if let cachedSafeFile {
+                    output.append(cachedSafeFile)
+                } else {
+                    let safeFile = try validateAndQuote(selectedFile, placeholder: "!", label: "selected file")
+                    cachedSafeFile = safeFile
+                    output.append(safeFile)
+                }
+                index = template.index(after: index)
             } else {
-                ""
+                output.append(template[index])
+                index = template.index(after: index)
             }
-
-            let rawValue = promptInputs[promptKey] ?? defaultValue
-            try assertNoDangerousShellEscapes(rawValue)
-            let safeValue = try PathValidator.escapePOSIXSingleQuoted(rawValue)
-
-            let targetSubstring = nsString.substring(with: fullRange)
-            result = result.replacingOccurrences(of: targetSubstring, with: safeValue)
         }
 
-        // 2. Substitute remote directory `!/` (must come before `!`)
-        if result.contains("!/") {
-            guard let remotePath, !remotePath.isEmpty else {
-                let msg = "Missing required remote directory for '!/' placeholder"
-                throw AppError.maliciousCommandInjection(command: msg)
-            }
-            try assertNoDangerousShellEscapes(remotePath)
-            let safePath = try PathValidator.escapePOSIXSingleQuoted(remotePath)
-            result = result.replacingOccurrences(of: "!/", with: safePath)
-        }
+        return output
+    }
 
-        // 3. Substitute selected file `!`
-        if result.contains("!") {
-            guard let selectedFile, !selectedFile.isEmpty else {
-                throw AppError.maliciousCommandInjection(command: "Missing required selected file for '!' placeholder")
-            }
-            try assertNoDangerousShellEscapes(selectedFile)
-            let safeFile = try PathValidator.escapePOSIXSingleQuoted(selectedFile)
-            result = result.replacingOccurrences(of: "!", with: safeFile)
+    private static func resolvePromptToken(
+        match: NSTextCheckingResult,
+        in template: String,
+        promptInputs: [String: String]
+    ) throws -> String {
+        guard let keyRange = Range(match.range(at: 1), in: template) else {
+            throw AppError.maliciousCommandInjection(command: template)
         }
+        let promptKey = String(template[keyRange])
+        let defaultValue: String = if match.numberOfRanges > 2,
+                                      let defRange = Range(match.range(at: 2), in: template) {
+            String(template[defRange])
+        } else {
+            ""
+        }
+        let rawValue = promptInputs[promptKey] ?? defaultValue
+        try assertNoDangerousShellEscapes(rawValue)
+        return try PathValidator.escapePOSIXSingleQuoted(rawValue)
+    }
 
-        return result
+    private static func validateAndQuote(_ value: String?, placeholder: String, label: String) throws -> String {
+        guard let value, !value.isEmpty else {
+            throw AppError.maliciousCommandInjection(
+                command: "Missing required \(label) for '\(placeholder)' placeholder"
+            )
+        }
+        try assertNoDangerousShellEscapes(value)
+        return try PathValidator.escapePOSIXSingleQuoted(value)
     }
 
     /// Extracts interactive prompt definitions from a template string.

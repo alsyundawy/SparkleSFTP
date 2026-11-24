@@ -11,7 +11,7 @@ public struct LocaleDocument: Sendable, Codable, Equatable, Identifiable {
         code
     }
 
-    public init(code: String, displayName: String, version: String = "0.3.0", strings: [String: String]) {
+    public init(code: String, displayName: String, version: String = "0.7.0", strings: [String: String]) {
         self.code = code
         self.displayName = displayName
         self.version = version
@@ -107,7 +107,15 @@ public enum LocalizationCatalog {
                 sourceURL.stopAccessingSecurityScopedResource()
             }
         }
+        let maxImportBytes = 5 * 1024 * 1024
+        let sizeAttrs = try? sourceURL.resourceValues(forKeys: [.fileSizeKey])
+        if let fileSize = sizeAttrs?.fileSize, fileSize > maxImportBytes {
+            throw CocoaError(.fileReadTooLarge)
+        }
         let data = try Data(contentsOf: sourceURL)
+        guard data.count <= maxImportBytes else {
+            throw CocoaError(.fileReadTooLarge)
+        }
         let stem = sourceURL.deletingPathExtension().lastPathComponent
         guard let parsed = decodeLocaleData(data, fallbackCode: stem),
               !parsed.strings.isEmpty,
@@ -116,11 +124,14 @@ public enum LocalizationCatalog {
             throw CocoaError(.fileReadCorruptFile)
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let destURL = directory.appendingPathComponent("\(parsed.code).json", isDirectory: false)
         let resolvedDir = directory.standardizedFileURL.resolvingSymlinksInPath()
+        let destURL = resolvedDir.appendingPathComponent("\(parsed.code).json", isDirectory: false)
         let resolvedDest = destURL.standardizedFileURL
         let prefix = resolvedDir.path.hasSuffix("/") ? resolvedDir.path : resolvedDir.path + "/"
-        guard resolvedDest.path.hasPrefix(prefix) else {
+        var linkStat = stat()
+        guard resolvedDest.path.hasPrefix(prefix),
+              lstat(resolvedDest.path, &linkStat) != 0 || (linkStat.st_mode & S_IFMT) != S_IFLNK
+        else {
             throw CocoaError(.fileReadInvalidFileName)
         }
         try exportLocaleDocument(parsed, to: resolvedDest)

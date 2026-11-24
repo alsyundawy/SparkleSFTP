@@ -243,6 +243,10 @@ public final class TerminalTabSession: NSObject, Identifiable, ObservableObject 
         resourceBox.closeAll()
         terminalView?.terminalDelegate = nil
         terminalView = nil
+        persistentTerminalView?.terminalDelegate = nil
+        persistentTerminalView = nil
+        pendingOutputBuffer.removeAll(keepingCapacity: false)
+        pendingCommandInsertion = nil
         isActive = false
     }
 }

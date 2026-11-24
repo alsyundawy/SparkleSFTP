@@ -42,12 +42,12 @@ codesign --force --verify --verbose --timestamp \
 codesign --verify --deep --strict "${APP_BUNDLE}"
 
 ZIP_PATH="${REPO_ROOT}/dist/SparkleSFTP-notarize.zip"
+trap 'rm -f "${ZIP_PATH}"' EXIT
 rm -f "${ZIP_PATH}"
 ditto -c -k --keepParent "${APP_BUNDLE}" "${ZIP_PATH}"
 
 xcrun notarytool submit "${ZIP_PATH}" --keychain-profile "${APPLE_NOTARY_PROFILE}" --wait
 xcrun stapler staple "${APP_BUNDLE}"
 spctl -a -vv -t exec "${APP_BUNDLE}"
-rm -f "${ZIP_PATH}"
 
 printf 'Signed and notarized successfully: %s\n' "${APP_BUNDLE}"

@@ -144,19 +144,25 @@ public actor TransferQueue {
     public func cancel(id: UUID) async {
         cancelledIDs.insert(id)
         activeWorkerTokens.removeValue(forKey: id)
-        await scheduler.removePending(id: id)
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
         }
-        if let existing = snapshots[id] {
-            let updated = TransferSnapshot(
+        let updatedSnapshot: TransferSnapshot? = if let existing = snapshots[id] {
+            TransferSnapshot(
                 metadata: existing.metadata,
                 status: .cancelled,
                 progress: existing.progress,
                 checkpoint: existing.checkpoint
             )
-            snapshots[id] = updated
-            await persistSnapshot(updated)
+        } else {
+            nil
+        }
+        if let updatedSnapshot {
+            snapshots[id] = updatedSnapshot
+        }
+        await scheduler.removePending(id: id)
+        if let updatedSnapshot {
+            await persistSnapshot(updatedSnapshot)
             broadcastSnapshots()
         }
         await scheduleNextIfAvailable()
@@ -166,7 +172,6 @@ public actor TransferQueue {
         guard let existing = snapshots[id], !existing.status.isTerminal else { return }
         cancelledIDs.insert(id)
         activeWorkerTokens.removeValue(forKey: id)
-        await scheduler.removePending(id: id)
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
         }
@@ -191,18 +196,14 @@ public actor TransferQueue {
             )
         )
         snapshots[id] = updated
+        await scheduler.removePending(id: id)
+        guard snapshots[id]?.status == .paused else {
+            await scheduleNextIfAvailable()
+            return
+        }
         await persistSnapshot(updated)
         broadcastSnapshots()
         await scheduleNextIfAvailable()
-    }
-
-    public func pauseAll() async {
-        let pausableIDs = snapshots.values
-            .filter { $0.status.isActive || $0.status == .queued }
-            .map(\.id)
-        for id in pausableIDs {
-            await pause(id: id)
-        }
     }
 
     public func retry(id: UUID) async {

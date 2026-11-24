@@ -189,6 +189,7 @@ public extension AppState {
     }
 
     func prepareFastShutdown() {
+        TransferRefreshTracker.cleanup(windowID: windowInstanceID)
         snapshotStreamTask?.cancel()
         snapshotStreamTask = nil
         localWatcher.stopWatching()

@@ -158,11 +158,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Code Quality, Structured Concurrency & Release Infrastructure
 
 - **Structured Concurrency Migration (`SSHClientService+Helpers.swift`, `Task 17.4`, `TD-14`)**: Migrated legacy `DispatchQueue` timeout in `waitBounded` to Swift 6 structured concurrency with cooperative timeout cancellation via `ShutdownResumeOnceBox.setTimeoutTask`, eliminating lingering dispatch timers.
-- **100% Bilingual Parity across 752 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 752 keys with complete parity across English and Indonesian catalogs covering Command Snippets categories, TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
-- **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 332 source files.
-- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `27113427`, and cryptographic signature verification.
-- **Full 14-Pillar Quality Gate Sweep (`Task 18.5`)**: `swiftlint lint --strict` passed across all 332 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings.
-- **Empirical Test Gate (`Task 18.4`)**: 221 unit and integration tests across 56 suites passing with 100% green status (exit code 0).
+- **100% Bilingual Parity across 766 Keys (`en.json`, `id.json`, `Task 18.7`)**: Synchronized 766 keys with complete parity across English and Indonesian catalogs covering Command Snippets categories, TLS Certificate Inspector, Subnet & CIDR Calculator, ProxyJump, FTP active mode, and server management.
+- **SonarQube SwiftLint Report Generator (`Tools/Lint/generate-sonarqube-report.sh`, `Task 17.6`, `TD-08`)**: Automated bash-pro script exporting SwiftLint diagnostics to SonarQube generic issue format (`reports/swiftlint-sonarqube.json`), reporting 0 violations across 340 source files.
+- **Automated Appcast Generator (`Tools/Release/generate-appcast.sh`, `Task 18.2`)**: Generates valid RSS appcast XML feed at `dist/appcast.xml` with HTTPS enclosure URL, byte length `27343460`, and cryptographic signature verification.
+- **Full 38-Pillar Quality Gate Sweep across 7 Tiers (`Task 18.5`)**: `swiftlint lint --strict` passed across all 340 source files with 0 violations; `shellcheck -s bash` passed with 0 warnings; SonarLint/SonarQube reporting 0 issues.
+- **Empirical Test Gate (`Task 18.4`)**: 228 unit and integration tests across 56 suites passing with 100% green status (exit code 0).
+- **SwiftNIO Channel Pipeline Proxy Handoff Order (`SSHProxyChannelHandler.swift`)**: Dispatches `context.fireChannelActive()` and any buffered remainder bytes prior to handler pipeline detachment, guaranteeing `NIOSSHHandler` activates properly and eliminating idle state inbound packet panics.
 - **High-Performance Responsiveness & Zero-Latency Optimizations**:
   - Registered `NSInitialToolTipDelay = 150ms` in `UserDefaults.standard` at application startup, cutting hover tooltip delay by 13x across all icons and buttons.
   - Eliminated $O(N \cdot M)$ `CollectionDifference` calculations on folder navigation in `FilePaneTableView+Coordinator.swift`, providing instant directory navigation without Main Thread hangs.
@@ -170,7 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streamlined `SSHPTYChannelHandler` and `SFTPSubsystemChannelHandler` with `wantReply: false`, removing unnecessary round-trip latency during channel initialization.
   - Converted `finalizeSuccessfulConnection` to update profile state in-place, eliminating redundant SQLite re-reads and sidebar redraw storms.
   - Displayed enlarged terminal window immediately in `openEnlargedTerminalWindow()` for instant 0ms user interaction.
-- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (26 MB) with verified SHA-256 checksum `6271fbb870a5cc8ed80915dd61557b27175d70b30acdebea7006f2ba1d885657`.
+- **Universal 2 DMG Release Packaging & Verification (`Task 18.6`)**: Compiled `x86_64 arm64` fat binary packaged into `dist/SparkleSFTP-0.7.0-universal.dmg` (27 MB, 27,343,460 bytes) with verified SHA-256 checksum `c3e775cc414a072a447fb43aa6bd86d14ef520b99151ae5c652c95734e99ca7d`.
 
 ## [0.6.0] - 2026-11-15 (Released)
 
@@ -244,13 +245,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dynamic context-aware Upload/Download commander menu action button in `SparkleSFTPApp`.
   - Expanded external terminal search paths in `ZlibAndLibraryProbes` for `/Applications/iTerm2.app`, `~/Applications/iTerm.app`, and `~/Applications/iTerm2.app`.
 - **Localization & Documentation**:
-  - 100% key parity across English (`en.json`) and Indonesian (`id.json`) spanning 691 keys.
-  - Added `ADR-0009` (Config Bundles & Crypto) and `ADR-0010` (External Toolchains & Security).
-  - Authored comprehensive 14-Pillar Codebase Review report (`docs/reviews/0.6.0-14-pillar-review.md`).
+  - 100% key parity across English (`en.json`) and Indonesian (`id.json`) spanning 766 keys.
+  - Added `ADR-0013` (TextKit 2 Editor Core Architecture) and updated architectural records.
+  - Authored comprehensive 38-Dimension / 30-Pillar Codebase Review report (`docs/reviews/0.7.0-14-pillar-review.md` and `docs/CODE_REVIEW_14_PILLAR_CHECKLIST_v0.7.0.md`).
 - **Quality Gates, Test Suite & Universal 2 Release Packaging**:
-  - 157 tests across 45 suites passing (100% green).
-  - 0 SwiftLint violations across 278 Swift files, 0 SwiftFormat warnings, 0 Trunk issues (361 files).
-  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.6.0-universal.dmg` (SHA-256: `063fef7c074f23ec750fb4fe302d505770e85c708dfb9de804c6dc99b4854dff`).
+  - 228 tests across 56 suites passing (100% green).
+  - 0 SwiftLint violations across 340 Swift files, 0 SwiftFormat warnings across 341 files, 0 SonarQube issues (`reports/swiftlint-sonarqube.json`), 0 ShellCheck warnings, 0 Clang-tidy warnings.
+  - Universal 2 binary bundle (`x86_64 arm64`) in `dist/SparkleSFTP.app` and DMG installer `dist/SparkleSFTP-0.7.0-universal.dmg` (SHA-256: `c3e775cc414a072a447fb43aa6bd86d14ef520b99151ae5c652c95734e99ca7d`, size: 27,343,460 bytes).
 
 ## [0.5.0] - 2026-11-14
 

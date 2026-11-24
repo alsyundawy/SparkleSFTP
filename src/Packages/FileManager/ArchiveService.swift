@@ -53,20 +53,22 @@ public enum ArchiveService {
     /// Verifies that archive does not contain directory traversal or malicious entry paths.
     public static func inspectArchiveEntries(archiveURL: URL) throws -> [String] {
         let pipe = Pipe()
+        let errPipe = Pipe()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
         process.arguments = ["-tf", archiveURL.path]
         process.standardOutput = pipe
-        process.standardError = Pipe()
+        process.standardError = errPipe
 
         try process.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        _ = errPipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
             throw AppError.persistenceFailure(reason: "Failed to inspect archive contents")
         }
 
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8) else {
             return []
         }
@@ -79,7 +81,13 @@ public enum ArchiveService {
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("/") || trimmed.contains("../") || trimmed.contains("..\\") || trimmed == ".." {
+            let normalized = trimmed.replacingOccurrences(of: "\\", with: "/")
+            let segments = normalized.split(separator: "/", omittingEmptySubsequences: false)
+            if trimmed.hasPrefix("/")
+                || trimmed.hasPrefix("\\")
+                || trimmed.contains("..\\")
+                || trimmed.contains("../")
+                || segments.contains("..") {
                 throw AppError.pathTraversal(attempted: "Zip-Slip path traversal: \(trimmed)")
             }
         }
@@ -91,13 +99,17 @@ public enum ArchiveService {
         _ = try inspectArchiveEntries(archiveURL: archiveURL)
 
         try await Task.detached(priority: .userInitiated) {
+            let outPipe = Pipe()
+            let errPipe = Pipe()
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
             process.arguments = ["-xf", archiveURL.path, "-C", destinationDirectory.path]
-            process.standardOutput = Pipe()
-            process.standardError = Pipe()
+            process.standardOutput = outPipe
+            process.standardError = errPipe
 
             try process.run()
+            _ = outPipe.fileHandleForReading.readDataToEndOfFile()
+            _ = errPipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
 
             guard process.terminationStatus == 0 else {
@@ -113,6 +125,9 @@ public enum ArchiveService {
     /// and total uncompressed size remains under 4 GB ceiling (CWE-409).
     public static func validateExtractedSymlinksAndSize(in destinationDirectory: URL) throws {
         let canonicalDest = destinationDirectory.resolvingSymlinksInPath()
+        let canonicalDestPrefix = canonicalDest.path.hasSuffix("/")
+            ? canonicalDest.path
+            : canonicalDest.path + "/"
         guard let enumerator = FileManager.default.enumerator(
             at: destinationDirectory,
             includingPropertiesForKeys: [.isSymbolicLinkKey, .fileSizeKey],
@@ -133,7 +148,7 @@ public enum ArchiveService {
                     let parent = fileURL.deletingLastPathComponent()
                     resolvedTarget = parent.appendingPathComponent(targetPath).resolvingSymlinksInPath()
                 }
-                if !resolvedTarget.path.hasPrefix(canonicalDest.path) {
+                if resolvedTarget.path != canonicalDest.path && !resolvedTarget.path.hasPrefix(canonicalDestPrefix) {
                     try? FileManager.default.removeItem(at: fileURL)
                     throw AppError.pathTraversal(
                         attempted: "Malicious symlink escaping destination root (CVE-2026-57233): \(targetPath)"

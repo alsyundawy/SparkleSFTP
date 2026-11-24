@@ -29,11 +29,18 @@ struct RemoteEditWatchRequest {
 }
 
 @MainActor
-private enum TransferRefreshTracker {
+enum TransferRefreshTracker {
     static var completedIDsByWindow: [UUID: Set<UUID>] = [:]
     static var failedIDsByWindow: [UUID: Set<UUID>] = [:]
     static var debounceTasksByWindow: [UUID: Task<Void, Never>] = [:]
     static var lastRefreshAtByWindow: [UUID: Date] = [:]
+
+    static func cleanup(windowID: UUID) {
+        debounceTasksByWindow.removeValue(forKey: windowID)?.cancel()
+        completedIDsByWindow.removeValue(forKey: windowID)
+        failedIDsByWindow.removeValue(forKey: windowID)
+        lastRefreshAtByWindow.removeValue(forKey: windowID)
+    }
 }
 
 public extension AppState {

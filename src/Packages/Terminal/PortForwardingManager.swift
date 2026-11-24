@@ -70,7 +70,13 @@ public actor PortForwardingManager {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let registry = TunnelChannelRegistry()
         let bootstrap = Self.makeServerBootstrap(group: group, rule: rule, sshClient: sshClient, registry: registry)
-        let serverChannel = try await bootstrap.bind(host: rule.bindHost, port: rule.bindPort).get()
+        let serverChannel: Channel
+        do {
+            serverChannel = try await bootstrap.bind(host: rule.bindHost, port: rule.bindPort).get()
+        } catch {
+            try? await group.shutdownGracefully()
+            throw error
+        }
         let actualPort = serverChannel.localAddress?.port ?? rule.bindPort
         var updatedRule = rule
         updatedRule.bindPort = actualPort

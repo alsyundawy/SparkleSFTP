@@ -42,7 +42,9 @@ public struct TLSCertificateValidator: Sendable {
         let box = TLSHandshakeBox()
         let tlsOptions = makeTLSOptions(host: host, box: box)
         let parameters = NWParameters(tls: tlsOptions)
-        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(clamping: port)) else {
+        guard (1 ... 65535).contains(port),
+              let nwPort = NWEndpoint.Port(rawValue: UInt16(port))
+        else {
             throw AppError.invalidConfiguration("Invalid TLS port \(port)")
         }
         let connection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: parameters)
@@ -55,6 +57,11 @@ public struct TLSCertificateValidator: Sendable {
         port: Int = 21,
         timeoutSeconds: Int = 10
     ) async throws -> TLSCertificateInfo {
+        guard (1 ... 65535).contains(port),
+              let nwPort = NWEndpoint.Port(rawValue: UInt16(port))
+        else {
+            throw AppError.invalidConfiguration("Invalid explicit FTPS port \(port)")
+        }
         let box = TLSHandshakeBox()
         let tlsOptions = makeTLSOptions(host: host, box: box)
         ExplicitFTPSOptionsRegistry.shared.push(tlsOptions)
@@ -65,9 +72,6 @@ public struct TLSCertificateValidator: Sendable {
         let parameters = NWParameters(tls: nil, tcp: NWProtocolTCP.Options())
         parameters.defaultProtocolStack.applicationProtocols.insert(framerOptions, at: 0)
 
-        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(clamping: port)) else {
-            throw AppError.invalidConfiguration("Invalid explicit FTPS port \(port)")
-        }
         let connection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: parameters)
         return try await awaitTLSConnection(connection, host: host, timeoutSeconds: timeoutSeconds, box: box)
     }
@@ -247,24 +251,42 @@ final class ExplicitFTPSFramer: NWProtocolFramerImplementation, @unchecked Senda
 
     func handleInput(framer: NWProtocolFramer.Instance) -> Int {
         while state != .upgraded && state != .failed {
-            var bytesProcessed = 0
+            var completedLine: Data?
+            var lineTooLong = false
             let parsed = framer.parseInput(minimumIncompleteLength: 1, maximumLength: 1024) { buffer, _ in
                 guard let buffer, !buffer.isEmpty else { return 0 }
-                for (offset, byte) in buffer.enumerated() {
+                var consumed = 0
+                for byte in buffer {
+                    if lineBuffer.count >= 8192 {
+                        lineTooLong = true
+                        break
+                    }
                     lineBuffer.append(byte)
+                    consumed += 1
                     if byte == 0x0A {
-                        bytesProcessed = offset + 1
+                        completedLine = lineBuffer
+                        lineBuffer.removeAll(keepingCapacity: true)
                         break
                     }
                 }
-                return bytesProcessed
+                return consumed
             }
-            guard parsed, bytesProcessed > 0 else { break }
-
-            if let line = String(data: lineBuffer, encoding: .ascii) {
-                lineBuffer.removeAll(keepingCapacity: true)
+            if lineTooLong {
+                lineBuffer.removeAll(keepingCapacity: false)
+                state = .failed
+                framer.markFailed(error: nil)
+                break
+            }
+            if let lineData = completedLine {
+                guard let line = String(data: lineData, encoding: .ascii) else {
+                    state = .failed
+                    framer.markFailed(error: nil)
+                    break
+                }
                 processLine(line, framer: framer)
+                continue
             }
+            guard parsed else { break }
         }
         return 0
     }
@@ -292,6 +314,7 @@ final class ExplicitFTPSFramer: NWProtocolFramerImplementation, @unchecked Senda
                 }
             } else if line.hasPrefix("4") || line.hasPrefix("5") {
                 state = .failed
+                framer.markFailed(error: nil)
             }
         case .upgraded, .failed:
             break

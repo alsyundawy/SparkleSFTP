@@ -249,8 +249,7 @@ public actor SSHClientService {
                     try await withTaskCancellationHandler {
                         try await handshakeBox.futureResult.get()
                     } onCancel: {
-                        let timeoutError = AppError.connectionTimeout(host: targetHost, seconds: timeoutSeconds)
-                        handshakeBox.failHandshake(defaultError: timeoutError)
+                        handshakeBox.failHandshake(defaultError: CancellationError())
                         channel.close(promise: nil)
                     }
                 }

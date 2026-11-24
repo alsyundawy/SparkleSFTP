@@ -59,11 +59,13 @@ public enum RsyncIntegrationService {
         process.standardError = Pipe()
 
         do {
+            let errPipe = Pipe()
+            process.standardError = errPipe
             try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            _ = errPipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
             guard process.terminationStatus == 0 else { return nil }
-
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
             guard let output = String(data: data, encoding: .utf8) else { return nil }
             let firstLine = output.components(separatedBy: .newlines).first ?? ""
 

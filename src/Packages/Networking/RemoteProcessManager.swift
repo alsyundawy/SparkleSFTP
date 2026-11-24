@@ -99,6 +99,7 @@ public enum RemoteProcessManager {
     ) throws -> String {
         let trimmed = containerId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
+              !trimmed.hasPrefix("-"),
               trimmed.range(of: "^[a-zA-Z0-9_.-]+$", options: .regularExpression) != nil else {
             throw AppError.invalidConfiguration("Invalid Docker container identifier: '\(containerId)'")
         }

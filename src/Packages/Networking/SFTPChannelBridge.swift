@@ -222,6 +222,10 @@ public final class SFTPChannelBridge:
         cont?.resume(throwing: error)
     }
 
+    public func cancelPendingRequest(requestID: UInt32) {
+        failPending(id: requestID, error: CancellationError())
+    }
+
     private func failPending(id: UInt32, error: Error) {
         lock.lock()
         bufferedEarlyResponses.removeValue(forKey: id)

@@ -248,7 +248,10 @@ private final class FileZillaXMLDelegate: NSObject, XMLParserDelegate {
             }
             return (decoded, .plaintextReady)
         }
-        if enc == nil || enc == "plain" {
+        if enc == "plain" {
+            return (pass.data(using: .utf8), .plaintextReady)
+        }
+        if enc == nil {
             if let decoded = Data(base64Encoded: pass, options: [.ignoreUnknownCharacters]),
                let utf8 = String(data: decoded, encoding: .utf8),
                !utf8.isEmpty,

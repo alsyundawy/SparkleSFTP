@@ -19,7 +19,30 @@ mkdir -p "${DIST_DIR}"
 
 DMG_TARGET="${1:-}"
 if [[ -z "${DMG_TARGET}" ]]; then
-  DMG_TARGET="$(find "${DIST_DIR}" -maxdepth 1 -name "SparkleSFTP-*-universal.dmg" -type f 2>/dev/null | sort -V | tail -n 1 || true)"
+  DMG_TARGET="$(
+    python3 - "${DIST_DIR}" <<'PY'
+import glob
+import os
+import re
+import sys
+
+dist_dir = sys.argv[1]
+pattern = os.path.join(dist_dir, "SparkleSFTP-*-universal.dmg")
+candidates = [p for p in glob.glob(pattern) if os.path.isfile(p)]
+
+def sort_key(path: str):
+    name = os.path.basename(path)
+    match = re.match(r"^SparkleSFTP-(\d+)\.(\d+)\.(\d+)(?:-([A-Za-z0-9.]+))?-universal\.dmg$", name)
+    if not match:
+        return (0, 0, 0, 0, name)
+    nums = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    prerelease = match.group(4)
+    return (*nums, 1 if prerelease is None else 0, prerelease or "")
+
+if candidates:
+    print(sorted(candidates, key=sort_key)[-1])
+PY
+  )"
 fi
 
 if [[ -z "${DMG_TARGET}" || ! -f "${DMG_TARGET}" ]]; then
@@ -39,17 +62,25 @@ fi
 printf 'Generating appcast for %s (version: %s, size: %s bytes)...\n' "${DMG_NAME}" "${VERSION}" "${DMG_SIZE}"
 
 ED_SIGNATURE=""
-if [[ -n "${SIGN_UPDATE_BIN}" && -x "${SIGN_UPDATE_BIN}" && -n "${SPARKLE_ED25519_PRIVATE_KEY:-}" ]]; then
+if [[ -n "${SPARKLE_ED25519_PRIVATE_KEY:-}" ]]; then
+  if [[ -z "${SIGN_UPDATE_BIN}" || ! -x "${SIGN_UPDATE_BIN}" ]]; then
+    printf 'Error: SPARKLE_ED25519_PRIVATE_KEY is set, but Sparkle sign_update binary was not found in .build.\n' >&2
+    exit 1
+  fi
   printf 'Signing DMG with Sparkle Ed25519 key...\n'
-  ED_SIGNATURE="$(printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | "${SIGN_UPDATE_BIN}" -s - "${DMG_TARGET}" 2>/dev/null || true)"
+  ED_SIGNATURE="$(printf '%s' "${SPARKLE_ED25519_PRIVATE_KEY}" | "${SIGN_UPDATE_BIN}" -s - "${DMG_TARGET}")"
 fi
 
 if [[ -z "${ED_SIGNATURE}" ]]; then
   ED_SIGNATURE="SIGNATURE_PLACEHOLDER_FOR_RELEASE_NOTARIZATION"
 fi
 
-cat <<EOF >"${APPCAST_XML}"
-<?xml version="1.0" encoding="utf-8"?>
+python3 - "${APPCAST_XML}" "${VERSION}" "${PUB_DATE}" "${RELEASE_PREFIX}" "${DMG_NAME}" "${ED_SIGNATURE}" "${DMG_SIZE}" <<'PY'
+import sys
+from xml.sax.saxutils import escape, quoteattr
+
+out_path, version, pub_date, release_prefix, dmg_name, ed_sig, dmg_size = sys.argv[1:8]
+xml_body = f"""<?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>SparkleSFTP Changelog</title>
@@ -57,19 +88,22 @@ cat <<EOF >"${APPCAST_XML}"
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
     <item>
-      <title>Version ${VERSION}</title>
-      <sparkle:releaseNotesLink>https://github.com/alsyundawy/SparkleSFTP/releases/tag/v${VERSION}</sparkle:releaseNotesLink>
-      <pubDate>${PUB_DATE}</pubDate>
+      <title>Version {escape(version)}</title>
+      <sparkle:releaseNotesLink>{escape(f"https://github.com/alsyundawy/SparkleSFTP/releases/tag/v{version}")}</sparkle:releaseNotesLink>
+      <pubDate>{escape(pub_date)}</pubDate>
       <enclosure
-        url="${RELEASE_PREFIX}/${DMG_NAME}"
-        sparkle:edSignature="${ED_SIGNATURE}"
-        sparkle:version="${VERSION}"
-        sparkle:shortVersionString="${VERSION}"
-        length="${DMG_SIZE}"
+        url={quoteattr(f"{release_prefix}/{dmg_name}")}
+        sparkle:edSignature={quoteattr(ed_sig)}
+        sparkle:version={quoteattr(version)}
+        sparkle:shortVersionString={quoteattr(version)}
+        length={quoteattr(dmg_size)}
         type="application/octet-stream" />
     </item>
   </channel>
 </rss>
-EOF
+"""
+with open(out_path, "w", encoding="utf-8") as fh:
+    fh.write(xml_body)
+PY
 
 printf 'Generated appcast feed: %s\n' "${APPCAST_XML}"

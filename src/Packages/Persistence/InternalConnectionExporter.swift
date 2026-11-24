@@ -74,10 +74,15 @@ public enum InternalConnectionExporter {
         else {
             throw AppError.persistenceFailure(reason: "Malformed base64 components in encrypted archive")
         }
+        guard (10000 ... Int(SparkleVaultHeader.maxIterations)).contains(archive.iterations) else {
+            throw AppError.persistenceFailure(
+                reason: "Encrypted archive iteration count is out of safe bounds"
+            )
+        }
         let symmetricKey = try deriveKey(
             passphrase: passphrase,
             salt: salt,
-            iterations: UInt32(max(10000, archive.iterations))
+            iterations: UInt32(archive.iterations)
         )
         let nonce = try AES.GCM.Nonce(data: nonceData)
         let sealedBox = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ciphertext, tag: tag)

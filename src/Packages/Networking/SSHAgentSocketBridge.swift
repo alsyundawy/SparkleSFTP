@@ -52,11 +52,13 @@ public final class SSHAgentSocketBridge: Sendable {
             guard let resolvedStr = String(bytes: byteSlice, encoding: .utf8) else {
                 throw BridgeError.invalidSocketPath("Cannot decode resolved socket symlink")
             }
-            guard stat(resolvedStr, &statBuf) == 0, (statBuf.st_mode & S_IFMT) == S_IFSOCK else {
-                throw BridgeError.invalidSocketPath("Resolved path is not a Unix domain socket")
+            guard stat(resolvedStr, &statBuf) == 0,
+                  (statBuf.st_mode & S_IFMT) == S_IFSOCK,
+                  statBuf.st_uid == getuid() else {
+                throw BridgeError.invalidSocketPath("Resolved path is not an owned Unix domain socket")
             }
-        } else if (statBuf.st_mode & S_IFMT) != S_IFSOCK {
-            throw BridgeError.invalidSocketPath("Target file is not a Unix domain socket")
+        } else if (statBuf.st_mode & S_IFMT) != S_IFSOCK || statBuf.st_uid != getuid() {
+            throw BridgeError.invalidSocketPath("Target file is not an owned Unix domain socket")
         }
     }
 
@@ -67,7 +69,8 @@ public final class SSHAgentSocketBridge: Sendable {
             try validateSocketPath(path)
             return true
         } catch {
-            DiagnosticsLogger.security.warning("SSH agent socket rejected: \(error.localizedDescription)")
+            DiagnosticsLogger.security
+                .warning("SSH agent socket rejected: \(error.localizedDescription, privacy: .private)")
             return false
         }
     }

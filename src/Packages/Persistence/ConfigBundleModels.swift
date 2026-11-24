@@ -103,7 +103,7 @@ public struct ConfigBundlePayload: Sendable, Codable, Equatable {
 public struct SparkleConfigBundle: Sendable, Codable, Equatable {
     public static let currentMagic = "sparklesftp.config"
     public static let currentSchemaVersion = 1
-    public static let currentAppVersion = "0.6.0"
+    public static let currentAppVersion = "0.7.0"
     public static let maxFileSizeBytes = 25 * 1024 * 1024 // 25 MB cap (CWE-400)
     public static let maxProfileCount = 10000
     public static let maxBookmarkCount = 50000
@@ -145,6 +145,7 @@ public struct SparkleVaultHeader: Sendable, Equatable {
     public static let headerLength = 46
     public static let defaultIterations: UInt32 = 600_000
     public static let minIterations: UInt32 = 10000
+    public static let maxIterations: UInt32 = 5_000_000
     public static let saltByteCount = 16
     public static let nonceByteCount = 12
     public static let tagByteCount = 16
@@ -201,11 +202,11 @@ public struct SparkleVaultHeader: Sendable, Equatable {
         }
         let iterData = data.subdata(in: 10 ..< 14)
         let iterations = iterData.withUnsafeBytes { $0.load(as: UInt32.self) }.bigEndian
-        guard iterations >= minIterations else {
-            throw AppError
-                .persistenceFailure(
-                    reason: "Vault iterations below safety threshold (\(iterations) < \(minIterations))"
-                )
+        guard iterations >= minIterations, iterations <= maxIterations else {
+            let rangeDesc = "\(minIterations)...\(maxIterations)"
+            throw AppError.persistenceFailure(
+                reason: "Vault iterations out of safe bounds (\(iterations) not in \(rangeDesc))"
+            )
         }
         let salt = data.subdata(in: 14 ..< 30)
         let nonce = data.subdata(in: 30 ..< 42)

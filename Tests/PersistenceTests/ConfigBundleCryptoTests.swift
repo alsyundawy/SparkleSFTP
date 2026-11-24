@@ -64,4 +64,18 @@ struct ConfigBundleCryptoTests {
             _ = try ConfigBundleCrypto.decryptVault(vaultData: vaultData, passphrase: passphrase)
         }
     }
+
+    @Test("SparkleVaultHeader rejects out-of-bounds iteration counts")
+    func vaultRejectsExcessiveIterations() throws {
+        let header = SparkleVaultHeader(
+            iterations: SparkleVaultHeader.maxIterations + 1,
+            salt: Data(repeating: 0x11, count: SparkleVaultHeader.saltByteCount),
+            nonce: Data(repeating: 0x22, count: SparkleVaultHeader.nonceByteCount),
+            ciphertextLength: 16
+        )
+        let encoded = header.serialize() + Data(repeating: 0x33, count: 32)
+        #expect(throws: AppError.self) {
+            _ = try SparkleVaultHeader.parse(from: encoded)
+        }
+    }
 }

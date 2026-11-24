@@ -22,4 +22,11 @@ struct TransferRateLimiterTests {
         limiter.setLimit(kbps: 0)
         #expect(limiter.currentLimitKBps == 0)
     }
+
+    @Test("Consume completes without deadlock when chunk exceeds 1-second token capacity")
+    func oversizedChunkCompletesWithoutDeadlock() async throws {
+        // 100 KB/s => 102_400 bytes/sec bucket capacity; request 120_000 bytes (> bucket capacity).
+        let limiter = TransferRateLimiter(limitKBps: 100)
+        try await limiter.consume(bytes: 120_000)
+    }
 }

@@ -250,7 +250,7 @@ public final class AppState: ObservableObject {
         installedAppVersion: String? = nil,
         isSignedUpdatesReady: Bool = false,
         performUpdateCheckAction: @escaping @MainActor (AutoUpdateSettings, Bool) async
-            -> AutoUpdateCheckStatus = { _, _ in .upToDate(version: "0.6.0") },
+            -> AutoUpdateCheckStatus = { _, _ in .upToDate(version: "0.7.0") },
         applyAutoUpdateSettingsAction: @escaping @MainActor (AutoUpdateSettings) -> Void = { _ in }
     ) {
         let themeSignpostID = SparkleSignposts.launch.makeSignpostID()
@@ -273,7 +273,7 @@ public final class AppState: ObservableObject {
         self.portForwardingManager = portForwardingManager
         self.featureFlags = featureFlags
         let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.6.0"
+        self.installedAppVersion = installedAppVersion ?? bundleVersion ?? "0.7.0"
         self.isSignedUpdatesReady = isSignedUpdatesReady
         self.performUpdateCheckAction = performUpdateCheckAction
         self.applyAutoUpdateSettingsAction = applyAutoUpdateSettingsAction

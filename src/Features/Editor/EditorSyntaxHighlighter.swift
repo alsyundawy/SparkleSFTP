@@ -2,6 +2,37 @@ import AppKit
 import Foundation
 import SparkleDesignSystem
 
+private final class SyntaxRegexCache: @unchecked Sendable { // JUSTIFICATION: NSLock guards immutable regex cache.
+    private struct CacheKey: Hashable {
+        let pattern: String
+        let rawOptions: UInt
+    }
+
+    static let shared = SyntaxRegexCache()
+    private let lock = NSLock()
+    private var cache: [CacheKey: NSRegularExpression] = [:]
+
+    func regex(pattern: String, options: NSRegularExpression.Options) -> NSRegularExpression? {
+        let key = CacheKey(pattern: pattern, rawOptions: options.rawValue)
+        lock.lock()
+        if let hit = cache[key] {
+            lock.unlock()
+            return hit
+        }
+        lock.unlock()
+        guard let compiled = try? NSRegularExpression(pattern: pattern, options: options) else {
+            return nil
+        }
+        lock.lock()
+        if cache.count >= 512 {
+            cache.removeAll(keepingCapacity: true)
+        }
+        cache[key] = compiled
+        lock.unlock()
+        return compiled
+    }
+}
+
 /// Lightweight regex-based syntax highlighter styled directly from the active `SparkleThemePalette`.
 public enum EditorSyntaxHighlighter {
     private static let maxHighlightCharacters = 64_000
@@ -30,7 +61,7 @@ public enum EditorSyntaxHighlighter {
         let source = textStorage.string
         let patterns = ruleSet(for: language, palette: palette)
         for rule in patterns {
-            guard let regex = try? NSRegularExpression(pattern: rule.pattern, options: rule.options) else {
+            guard let regex = SyntaxRegexCache.shared.regex(pattern: rule.pattern, options: rule.options) else {
                 continue
             }
             let color = NSColor(hex: rule.hexColor)

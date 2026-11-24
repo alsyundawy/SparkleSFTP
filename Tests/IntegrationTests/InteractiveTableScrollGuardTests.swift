@@ -8,7 +8,7 @@ import Testing
 struct InteractiveTableScrollGuardTests {
     @Test("InteractiveFileTableView scrollWheel activates scrolling guard and cancels pending selection")
     @MainActor
-    func interactiveTableScrollCancelsPendingSelection() {
+    func interactiveTableScrollCancelsPendingSelection() throws {
         _ = NSApplication.shared
         let table = InteractiveFileTableView()
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
@@ -19,22 +19,24 @@ struct InteractiveTableScrollGuardTests {
 
         #expect(!table.isScrollingActive)
 
-        if let cgEvent = CGEvent(
-            scrollWheelEvent2Source: nil,
-            units: .pixel,
-            wheelCount: 1,
-            wheel1: -10,
-            wheel2: 0,
-            wheel3: 0
-        ), let scrollEvt = NSEvent(cgEvent: cgEvent) {
-            table.scrollWheel(with: scrollEvt)
-            #expect(table.isScrollingActive)
-        }
+        let cgEvent = try #require(
+            CGEvent(
+                scrollWheelEvent2Source: nil,
+                units: .pixel,
+                wheelCount: 1,
+                wheel1: -10,
+                wheel2: 0,
+                wheel3: 0
+            )
+        )
+        let scrollEvt = try #require(NSEvent(cgEvent: cgEvent))
+        table.scrollWheel(with: scrollEvt)
+        #expect(table.isScrollingActive)
     }
 
     @Test("Vertical drag without modifiers is treated as trackpad scroll gesture and does not select rows")
     @MainActor
-    func verticalDragWithoutModifiersDiscardsSelection() {
+    func verticalDragWithoutModifiersDiscardsSelection() throws {
         _ = NSApplication.shared
         let table = InteractiveFileTableView()
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
@@ -43,34 +45,45 @@ struct InteractiveTableScrollGuardTests {
         scroll.documentView = table
         table.viewDidMoveToSuperview()
 
-        let downPoint = CGPoint(x: 50, y: 50)
-        let dragPoint = CGPoint(x: 52, y: 120) // Predominantly vertical movement (70pt down, 2pt horizontal)
+        let downPoint = NSPoint(x: 50, y: 50)
+        let dragPoint = NSPoint(x: 52, y: 120) // Predominantly vertical movement (70pt down, 2pt horizontal)
 
-        let downCG = CGEvent(
-            mouseEventSource: nil,
-            mouseType: .leftMouseDown,
-            mouseCursorPosition: downPoint,
-            mouseButton: .left
+        let downEvt = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: downPoint,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1.0
+            )
         )
-        let dragCG = CGEvent(
-            mouseEventSource: nil,
-            mouseType: .leftMouseDragged,
-            mouseCursorPosition: dragPoint,
-            mouseButton: .left
+        let dragEvt = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: dragPoint,
+                modifierFlags: [],
+                timestamp: 0.01,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1.0
+            )
         )
 
-        if let downCG, let downEvt = NSEvent(cgEvent: downCG),
-           let dragCG, let dragEvt = NSEvent(cgEvent: dragCG) {
-            table.mouseDown(with: downEvt)
-            table.mouseDragged(with: dragEvt)
-            #expect(!table.isDraggingSelection)
-            #expect(table.selectedRowIndexes.isEmpty)
-        }
+        table.mouseDown(with: downEvt)
+        table.mouseDragged(with: dragEvt)
+        #expect(!table.isDraggingSelection)
+        #expect(table.selectedRowIndexes.isEmpty)
     }
 
     @Test("InteractiveConnectionTableView vertical drag without modifiers discards selection")
     @MainActor
-    func connectionVerticalDragWithoutModifiersDiscardsSelection() {
+    func connectionVerticalDragWithoutModifiersDiscardsSelection() throws {
         _ = NSApplication.shared
         let table = InteractiveConnectionTableView()
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("conn"))
@@ -79,34 +92,45 @@ struct InteractiveTableScrollGuardTests {
         scroll.documentView = table
         table.viewDidMoveToSuperview()
 
-        let downPoint = CGPoint(x: 50, y: 50)
-        let dragPoint = CGPoint(x: 51, y: 130)
+        let downPoint = NSPoint(x: 50, y: 50)
+        let dragPoint = NSPoint(x: 51, y: 130)
 
-        let downCG = CGEvent(
-            mouseEventSource: nil,
-            mouseType: .leftMouseDown,
-            mouseCursorPosition: downPoint,
-            mouseButton: .left
+        let downEvt = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: downPoint,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1.0
+            )
         )
-        let dragCG = CGEvent(
-            mouseEventSource: nil,
-            mouseType: .leftMouseDragged,
-            mouseCursorPosition: dragPoint,
-            mouseButton: .left
+        let dragEvt = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: dragPoint,
+                modifierFlags: [],
+                timestamp: 0.01,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1.0
+            )
         )
 
-        if let downCG, let downEvt = NSEvent(cgEvent: downCG),
-           let dragCG, let dragEvt = NSEvent(cgEvent: dragCG) {
-            table.mouseDown(with: downEvt)
-            table.mouseDragged(with: dragEvt)
-            #expect(!table.isDraggingSelection)
-            #expect(table.selectedRowIndexes.isEmpty)
-        }
+        table.mouseDown(with: downEvt)
+        table.mouseDragged(with: dragEvt)
+        #expect(!table.isDraggingSelection)
+        #expect(table.selectedRowIndexes.isEmpty)
     }
 
     @Test("InteractiveConnectionTableView scrollWheel activates scrolling guard")
     @MainActor
-    func interactiveConnectionTableScrollGuard() {
+    func interactiveConnectionTableScrollGuard() throws {
         _ = NSApplication.shared
         let table = InteractiveConnectionTableView()
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("conn"))
@@ -117,16 +141,18 @@ struct InteractiveTableScrollGuardTests {
 
         #expect(!table.isScrollingActive)
 
-        if let cgEvent = CGEvent(
-            scrollWheelEvent2Source: nil,
-            units: .pixel,
-            wheelCount: 1,
-            wheel1: -10,
-            wheel2: 0,
-            wheel3: 0
-        ), let scrollEvt = NSEvent(cgEvent: cgEvent) {
-            table.scrollWheel(with: scrollEvt)
-            #expect(table.isScrollingActive)
-        }
+        let cgEvent = try #require(
+            CGEvent(
+                scrollWheelEvent2Source: nil,
+                units: .pixel,
+                wheelCount: 1,
+                wheel1: -10,
+                wheel2: 0,
+                wheel3: 0
+            )
+        )
+        let scrollEvt = try #require(NSEvent(cgEvent: cgEvent))
+        table.scrollWheel(with: scrollEvt)
+        #expect(table.isScrollingActive)
     }
 }

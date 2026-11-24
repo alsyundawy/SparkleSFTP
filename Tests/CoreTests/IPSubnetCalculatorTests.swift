@@ -65,4 +65,29 @@ struct IPSubnetCalculatorTests {
         #expect(IPSubnetCalculator.netmaskToPrefix("255.255.255.128") == 25)
         #expect(IPSubnetCalculator.netmaskToPrefix("255.255.255.1") == nil) // non-contiguous
     }
+
+    @Test("IPSubnetCalculator handles /0, /31 RFC 3021, scopes, and malformed CIDR")
+    func edgePrefixesAndScopes() throws {
+        let prefix31 = try IPSubnetCalculator.calculate(cidrText: "10.0.0.0/31")
+        #expect(prefix31.usableHosts == 2)
+        #expect(prefix31.firstUsableHost == "10.0.0.0")
+        #expect(prefix31.lastUsableHost == "10.0.0.1")
+        #expect(prefix31.scope == "Private (RFC 1918)")
+
+        let prefix0 = try IPSubnetCalculator.calculate(cidrText: "0.0.0.0/0")
+        #expect(prefix0.netmask == "0.0.0.0")
+        #expect(prefix0.totalHosts == 4_294_967_296)
+
+        #expect(try IPSubnetCalculator.calculate(cidrText: "127.0.0.1/8").scope == "Loopback")
+        #expect(try IPSubnetCalculator.calculate(cidrText: "169.254.1.5/16").scope == "Link-Local (RFC 3927)")
+        #expect(try IPSubnetCalculator.calculate(cidrText: "172.16.0.1/12").scope == "Private (RFC 1918)")
+        #expect(try IPSubnetCalculator.calculate(cidrText: "224.0.0.1/24").scope == "Multicast")
+
+        #expect(throws: IPSubnetCalculator.SubnetError.self) {
+            _ = try IPSubnetCalculator.calculate(address: "192.168.1.1", prefix: -1)
+        }
+        #expect(throws: IPSubnetCalculator.SubnetError.self) {
+            _ = try IPSubnetCalculator.calculate(cidrText: "192.168.1.1")
+        }
+    }
 }

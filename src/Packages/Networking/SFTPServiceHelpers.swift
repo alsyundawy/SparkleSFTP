@@ -321,7 +321,12 @@ private enum SFTPPipelinedTransfer {
             )
         )
         group.addTask {
-            try Task.checkCancellation()
+            do {
+                try Task.checkCancellation()
+            } catch {
+                ctx.bridge.cancelPendingRequest(requestID: reqID)
+                throw error
+            }
             let resp = try await ctx.bridge.awaitPacket(requestID: reqID)
             try SFTPService.verifyStatusOKPacket(resp, path: ctx.remotePath.rawValue)
             return (offset: slice.offset, count: slice.data.count)

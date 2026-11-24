@@ -213,7 +213,8 @@ public extension SFTPService {
 
     func setModificationTime(_ time: Date, at path: RemotePath) async throws {
         let sftp = try requireBridge()
-        let timestamp = UInt32(max(0, time.timeIntervalSince1970))
+        let clamped = min(Double(UInt32.max), max(0, time.timeIntervalSince1970))
+        let timestamp = UInt32(clamped)
         let resp = try await sftp.send(
             .setstat(
                 requestID: sftp.allocateRequestID(),

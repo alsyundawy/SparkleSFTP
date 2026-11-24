@@ -166,11 +166,11 @@ Detailed task breakdown and acceptance specs live in [`docs/TASK_LIST.md`](docs/
 - [x] Network diagnostics & Subnet Calculator: TCP port checker, host latency probe, native IPv4 Subnet & CIDR calculation hub `⌘⌥S` (`Task 15.5`, `Task 16.3`)
 - [x] High-performance transfer engine: Shortest-Job-First (SJF) scheduling, pipelined SFTP upload resume block SHA-256 verification, remote-to-remote streaming engine, macOS Dock progress bar, randomized jitter exponential backoff, SQLite corruption auto-quarantine & orphan checkpoint GC (`Task 3.1–3.7`, `Task 6.6`, `Task 17.1`)
 - [x] Dedicated enlarged internal terminal window (`macwindow.on.rectangle`) placed to the left of "Open Terminal" opening 1020×660 pt dedicated window directly multiplexed over active authenticated `SSHClientService` PTY channel with zero password prompt, multi-tab support, live search, font zoom, snippets, and tunnels (`Task 16.2`, `Task 17.2`)
-- [x] Expanded Command Snippets Catalog (80 modern snippets across 10 categories) with search query, category chips filter, one-click clipboard copying, and auto-merge
+- [x] Expanded Command Snippets Catalog (550 production snippets across 31 categories / 23 specialized families) with search query, category chips filter, one-click clipboard copying, and auto-merge
 - [x] Blazing-fast login and connection restoration (v0.6.0 parity): direct SFTP readdir traversal, non-blocking background disk synchronization, and non-blocking TLS verification
 - [x] Security vulnerability mitigations: CVE-2024-6387 regreSSHion audit, CVE-2023-48795 Terrapin mitigation, swift-nio-ssh pin gate, swift-nio CRLF injection defense, Zip-Slip immunity, XML entity limit, Lua sandbox isolation
-- [x] Quality gates: 221 tests in 56 suites passing (100% green), 0 SwiftLint violations across 332 files, 0 ShellCheck warnings, SonarQube report generator, 100% localization parity across 752 keys (`Task 17.6`, `Task 18.1–18.5`, `Task 18.7`)
-- [x] Universal 2 fat binary build (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `6271fbb870a5cc8ed80915dd61557b27175d70b30acdebea7006f2ba1d885657`) (`Task 18.6`)
+- [x] Quality gates: 228 tests in 56 suites passing (100% green), 0 SwiftLint violations across 340 files, 0 ShellCheck warnings, SonarQube report generator (0 issues), 100% localization parity across 766 keys (`Task 17.6`, `Task 18.1–18.5`, `Task 18.7`)
+- [x] Universal 2 fat binary build (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `c3e775cc414a072a447fb43aa6bd86d14ef520b99151ae5c652c95734e99ca7d`) (`Task 18.6`)
 - [x] Push commits and tag `v0.7.0` to GitHub repository and release v0.7.0 on `main` and `0.7.0` (`Task 18.8`)
 
 ## Post-MVP / External Infrastructure Gates (Not Executed in Offline Sandbox)

@@ -143,4 +143,47 @@ public extension TransferQueue {
         }
         broadcastSnapshots(immediate: true)
     }
+
+    func pauseAll() async {
+        let pausableIDs = snapshots.values
+            .filter { $0.status.isActive || $0.status == .queued }
+            .map(\.id)
+        guard !pausableIDs.isEmpty else { return }
+
+        var pausedSnapshots: [TransferSnapshot] = []
+        for id in pausableIDs {
+            guard let existing = snapshots[id], !existing.status.isTerminal else { continue }
+            cancelledIDs.insert(id)
+            activeWorkerTokens.removeValue(forKey: id)
+            activeTasks.removeValue(forKey: id)?.cancel()
+            let diskBytes = existing.metadata.direction == .download
+                ? Self.measureLocalPartialBytes(checkpoint: existing.checkpoint)
+                : 0
+            let recordedBytes = max(existing.progress.bytesTransferred, diskBytes)
+            let updated = TransferSnapshot(
+                metadata: existing.metadata,
+                status: .paused,
+                progress: TransferProgress(
+                    bytesTransferred: recordedBytes,
+                    totalBytes: existing.progress.totalBytes,
+                    bytesPerSecond: 0
+                ),
+                checkpoint: TransferCheckpoint(
+                    bytesTransferred: diskBytes > 0 ? diskBytes : existing.progress.bytesTransferred,
+                    remoteSize: existing.checkpoint?.remoteSize ?? existing.metadata.totalBytes,
+                    remoteModificationTime: existing.checkpoint?.remoteModificationTime,
+                    partialLocalPath: existing.checkpoint?.partialLocalPath
+                )
+            )
+            snapshots[id] = updated
+            pausedSnapshots.append(updated)
+        }
+        for id in pausableIDs {
+            await scheduler.removePending(id: id)
+        }
+        for updated in pausedSnapshots where snapshots[updated.id]?.status == .paused {
+            await persistSnapshot(updated)
+        }
+        broadcastSnapshots()
+    }
 }

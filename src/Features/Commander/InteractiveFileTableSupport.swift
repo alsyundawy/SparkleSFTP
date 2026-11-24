@@ -36,22 +36,26 @@ final class InteractiveFileTableView: NSTableView {
     }
 
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: options) {
             return .copy
         }
         return []
     }
 
     override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: options) {
             return .copy
         }
         return []
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-        guard let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
-              !urls.isEmpty else {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        guard let urls = (sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL])?
+            .filter(\.isFileURL),
+            !urls.isEmpty else {
             return false
         }
         onDropFiles?(urls)

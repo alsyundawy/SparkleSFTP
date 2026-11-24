@@ -103,10 +103,46 @@ struct SecurityHardeningTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let resolvedURL = repoRoot.appendingPathComponent("Package.resolved")
-        guard FileManager.default.fileExists(atPath: resolvedURL.path) else { return }
         let data = try Data(contentsOf: resolvedURL)
-        guard let string = String(data: data, encoding: .utf8) else { return }
-        #expect(string.contains("0.15.1"))
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let pins = try #require(json?["pins"] as? [[String: Any]])
+        let sshPin = try #require(pins.first { ($0["identity"] as? String) == "swift-nio-ssh" })
+        let state = try #require(sshPin["state"] as? [String: Any])
+        let version = try #require(state["version"] as? String)
+        let parts = version.split(separator: ".").compactMap { Int($0) }
+        #expect(parts.count >= 3)
+        let tuple = (parts[0], parts[1], parts[2])
+        #expect(tuple >= (0, 14, 1))
+    }
+
+    @Test("TLSCertificateValidator rejects invalid ports before connecting")
+    func validatorRejectsInvalidPorts() async {
+        let validator = TLSCertificateValidator()
+        do {
+            _ = try await validator.preflightVerifyTLS(host: "127.0.0.1", port: 0, timeoutSeconds: 1)
+            Issue.record("Expected invalidConfiguration error for port 0")
+        } catch let error as AppError {
+            if case .invalidConfiguration = error {
+                #expect(Bool(true))
+            } else {
+                Issue.record("Unexpected error: \(error)")
+            }
+        } catch {
+            Issue.record("Unexpected error type: \(error)")
+        }
+
+        do {
+            _ = try await validator.preflightVerifyExplicitFTPS(host: "127.0.0.1", port: 65536, timeoutSeconds: 1)
+            Issue.record("Expected invalidConfiguration error for port 65536")
+        } catch let error as AppError {
+            if case .invalidConfiguration = error {
+                #expect(Bool(true))
+            } else {
+                Issue.record("Unexpected error: \(error)")
+            }
+        } catch {
+            Issue.record("Unexpected error type: \(error)")
+        }
     }
 
     @Test("PrivateKeyParser KeyMetadata detects FIDO2/U2F security key tokens")

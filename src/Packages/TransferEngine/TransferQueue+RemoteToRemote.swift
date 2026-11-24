@@ -31,7 +31,11 @@ extension TransferQueue {
             "SparkleRemotePipe",
             isDirectory: true
         )
-        try FileManager.default.createDirectory(at: pipeDir, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: pipeDir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: NSNumber(value: Int16(0o700))]
+        )
         let pipeFile = pipeDir.appendingPathComponent("\(UUID().uuidString).pipe")
         defer {
             try? FileManager.default.removeItem(at: pipeFile)

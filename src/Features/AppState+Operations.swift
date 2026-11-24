@@ -299,7 +299,8 @@ public extension AppState {
 
     func uploadDroppedFiles(_ urls: [URL]) async {
         guard let session = currentSession else { return }
-        for url in urls {
+        for url in urls where url.isFileURL {
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? url.hasDirectoryPath
             await enqueueLocalItemUpload(url: url, isDirectory: isDir, into: session)
         }
@@ -372,28 +373,23 @@ public extension AppState {
 
     func openRemoteFileInEditor(_ file: RemoteFile) async {
         guard let session = currentSession, !file.isDirectory else { return }
-        let profileID = session.profile.id
-        let host = session.profile.host
-        let remotePath = file.path
+        var stagingTempDir: URL?
         do {
             let tempDir = try SecureTempDirectory.createIsolatedWorkingDirectory(prefix: "SparkleEdit")
+            stagingTempDir = tempDir
             let localCopy = try PathValidator.safeLocalDestination(filename: file.name, baseDirectory: tempDir)
-            try await session.service.fileSystem.download(from: remotePath, to: localCopy) { _ in }
+            try await session.service.fileSystem.download(from: file.path, to: localCopy) { _ in }
             let initialDigest = try await SHA256Verifier.computeHexDigest(of: localCopy)
-
             NSWorkspace.shared.open(localCopy)
             statusBannerMessage = "Opened \(file.name) in editor (auto-upload on change)"
-            watchEditedLocalFile(
-                RemoteEditWatchRequest(
-                    tempDir: tempDir,
-                    localCopy: localCopy,
-                    initialDigest: initialDigest,
-                    profileID: profileID,
-                    host: host,
-                    remotePath: remotePath
-                )
+            let watchReq = RemoteEditWatchRequest(
+                tempDir: tempDir, localCopy: localCopy, initialDigest: initialDigest,
+                profileID: session.profile.id, host: session.profile.host, remotePath: file.path
             )
+            watchEditedLocalFile(watchReq)
+            stagingTempDir = nil
         } catch {
+            if let stagingTempDir { try? FileManager.default.removeItem(at: stagingTempDir) }
             reportNonCancellationError(error, asBannerOnly: true)
         }
     }

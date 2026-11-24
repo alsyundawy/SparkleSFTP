@@ -126,4 +126,15 @@ struct RemoteCommandSanitizerTests {
         let macOSPresets = presets.filter { $0.targetOS == .macOS }
         #expect(macOSPresets.contains(where: { $0.name.contains("launchctl") }))
     }
+
+    @Test("Substituted values containing placeholder tokens are not re-substituted")
+    func nestedPlaceholderTokensNotReExpanded() throws {
+        let substituted = try RemoteCommandSanitizer.substitutePlaceholders(
+            template: "echo !?Tag:v1?! !/ !",
+            selectedFile: "file.txt",
+            remotePath: "/tmp/dir!/sub!name",
+            promptInputs: ["Tag": "prod!label"]
+        )
+        #expect(substituted == "echo 'prod!label' '/tmp/dir!/sub!name' 'file.txt'")
+    }
 }

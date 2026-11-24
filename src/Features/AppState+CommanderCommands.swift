@@ -343,10 +343,10 @@ public extension AppState {
         guard !rendered.isEmpty else {
             throw AppError.transferFailed(reason: "Command cannot be empty")
         }
-        rendered = rendered
-            .replacingOccurrences(of: "{file}", with: quotedFile)
-            .replacingOccurrences(of: "{path}", with: quotedPath)
-            .replacingOccurrences(of: "{dir}", with: quotedDir)
+        guard !rendered.contains("\0") else {
+            throw AppError.maliciousCommandInjection(command: rendered)
+        }
+        rendered = replaceCommandTokens(in: rendered, file: quotedFile, path: quotedPath, dir: quotedDir)
 
         let fullCommand = "cd \(quotedDir) && \(rendered)"
         let output = try await sshClient.executeCommand(fullCommand, timeoutSeconds: 30)
@@ -356,5 +356,28 @@ public extension AppState {
             stdout: output.stdout,
             stderr: output.stderr
         )
+    }
+
+    private func replaceCommandTokens(in template: String, file: String, path: String, dir: String) -> String {
+        var output = ""
+        output.reserveCapacity(template.count)
+        var index = template.startIndex
+        while index < template.endIndex {
+            let slice = template[index...]
+            if slice.hasPrefix("{file}") {
+                output.append(file)
+                index = template.index(index, offsetBy: 6)
+            } else if slice.hasPrefix("{path}") {
+                output.append(path)
+                index = template.index(index, offsetBy: 6)
+            } else if slice.hasPrefix("{dir}") {
+                output.append(dir)
+                index = template.index(index, offsetBy: 5)
+            } else {
+                output.append(template[index])
+                index = template.index(after: index)
+            }
+        }
+        return output
     }
 }

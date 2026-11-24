@@ -58,7 +58,7 @@ public final class DirectoryTreeNode: Identifiable, ObservableObject {
         visitedAncestors: Set<String> = [],
         loader: @escaping @MainActor (String) async -> [DirectoryTreeNode]
     ) async {
-        guard targetPath.hasPrefix(path) || path == "/" else { return }
+        guard Self.path(targetPath, isDescendantOrEqualTo: path) || path == "/" else { return }
 
         if children == nil {
             await loadChildren(visitedAncestors: visitedAncestors, loader: loader)
@@ -67,11 +67,17 @@ public final class DirectoryTreeNode: Identifiable, ObservableObject {
         isExpanded = true
 
         if let subNodes = children {
-            for child in subNodes where targetPath.hasPrefix(child.path) {
+            for child in subNodes where Self.path(targetPath, isDescendantOrEqualTo: child.path) {
                 var nextAncestors = visitedAncestors
                 nextAncestors.insert(canonicalPath)
                 await child.expandPath(targetPath, visitedAncestors: nextAncestors, loader: loader)
             }
         }
+    }
+
+    private static func path(_ targetPath: String, isDescendantOrEqualTo basePath: String) -> Bool {
+        if targetPath == basePath { return true }
+        let prefix = basePath.hasSuffix("/") ? basePath : basePath + "/"
+        return targetPath.hasPrefix(prefix)
     }
 }

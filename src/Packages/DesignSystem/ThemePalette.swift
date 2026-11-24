@@ -241,7 +241,15 @@ public enum SparkleThemeStore {
                 sourceURL.stopAccessingSecurityScopedResource()
             }
         }
+        let maxImportBytes = 5 * 1024 * 1024
+        if let fileSize = try? sourceURL.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+           fileSize > maxImportBytes {
+            throw CocoaError(.fileReadTooLarge)
+        }
         let data = try Data(contentsOf: sourceURL)
+        guard data.count <= maxImportBytes else {
+            throw CocoaError(.fileReadTooLarge)
+        }
         let decoder = JSONDecoder()
         let parsed: [SparkleThemePalette] = if let single = try? decoder.decode(SparkleThemePalette.self, from: data) {
             [single]
@@ -253,10 +261,19 @@ public enum SparkleThemeStore {
             throw CocoaError(.fileReadCorruptFile)
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let safeName = sourceURL.lastPathComponent.hasSuffix(".json")
-            ? sourceURL.lastPathComponent
-            : "\(sourceURL.deletingPathExtension().lastPathComponent).json"
-        let dest = directory.appendingPathComponent(safeName, isDirectory: false)
+        let rawBase = sourceURL.deletingPathExtension().lastPathComponent
+        let cleanBase = rawBase.filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
+        let safeStem = cleanBase.isEmpty ? "imported-theme" : String(cleanBase.prefix(64))
+        let safeName = "\(safeStem).json"
+        let resolvedDir = directory.standardizedFileURL.resolvingSymlinksInPath()
+        let dest = resolvedDir.appendingPathComponent(safeName, isDirectory: false).standardizedFileURL
+        let prefix = resolvedDir.path.hasSuffix("/") ? resolvedDir.path : resolvedDir.path + "/"
+        var linkStat = stat()
+        guard dest.path.hasPrefix(prefix),
+              lstat(dest.path, &linkStat) != 0 || (linkStat.st_mode & S_IFMT) != S_IFLNK
+        else {
+            throw CocoaError(.fileReadInvalidFileName)
+        }
         try data.write(to: dest, options: [.atomic])
         return valid
     }

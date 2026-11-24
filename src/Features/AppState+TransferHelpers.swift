@@ -336,13 +336,19 @@ extension AppState {
 
     public func quickLookRemoteFile(_ file: RemoteFile) async -> URL? {
         guard let session = currentSession, !file.isDirectory else { return nil }
+        var stagingTempDir: URL?
         do {
             let tempDir = try SecureTempDirectory.createIsolatedWorkingDirectory(prefix: "SparkleQuickLook")
+            stagingTempDir = tempDir
             let localPreview = try PathValidator.safeLocalDestination(filename: file.name, baseDirectory: tempDir)
             try await session.service.fileSystem.download(from: file.path, to: localPreview) { _ in }
             remoteEditWatches[tempDir] = LocalDirectoryWatcher()
+            stagingTempDir = nil
             return localPreview
         } catch {
+            if let stagingTempDir {
+                try? FileManager.default.removeItem(at: stagingTempDir)
+            }
             reportNonCancellationError(error)
             return nil
         }

@@ -76,7 +76,7 @@ extension ConfigImporter {
             magic: SparkleConfigBundle.currentMagic,
             schemaVersion: 1,
             kind: "imported-filezilla",
-            appVersion: "0.6.0",
+            appVersion: SparkleConfigBundle.currentAppVersion,
             createdAt: Date(),
             payload: payload,
             integrity: integrity
@@ -97,7 +97,7 @@ extension ConfigImporter {
             magic: SparkleConfigBundle.currentMagic,
             schemaVersion: 1,
             kind: "imported-winscp",
-            appVersion: "0.6.0",
+            appVersion: SparkleConfigBundle.currentAppVersion,
             createdAt: Date(),
             payload: payload,
             integrity: integrity
@@ -116,7 +116,7 @@ extension ConfigImporter {
             magic: SparkleConfigBundle.currentMagic,
             schemaVersion: 1,
             kind: "imported-openssh",
-            appVersion: "0.6.0",
+            appVersion: SparkleConfigBundle.currentAppVersion,
             createdAt: Date(),
             payload: payload,
             integrity: integrity

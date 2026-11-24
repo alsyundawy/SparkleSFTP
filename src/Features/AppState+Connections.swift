@@ -221,8 +221,9 @@ public extension AppState {
         if let appError = error as? AppError {
             if case .hostKeyMismatch = appError {
                 hostMismatchAlert = appError
+            } else {
+                lastError = appError
             }
-            lastError = appError
             ActivityLogger.shared.logError("Connection failed: \(appError.localizedDescription)")
         } else if error is CancellationError {
             ActivityLogger.shared.logStatus("Connection cancelled.")

@@ -38,7 +38,7 @@ public final class SparkleUpdaterService {
 
     public init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.6.0"
+        installedVersion = (info["CFBundleShortVersionString"] as? String) ?? "0.7.0"
         installedBuild = (info["CFBundleVersion"] as? String) ?? "1"
         installedCommit = (info["SparkleSFTPCommitHash"] as? String) ?? ""
         if let rawDate = info["SparkleSFTPBuildDate"] as? String {

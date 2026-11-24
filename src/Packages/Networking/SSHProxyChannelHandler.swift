@@ -4,7 +4,7 @@ import SparkleCore
 
 /// Pre-SSH SwiftNIO handler negotiating SOCKS5 (RFC 1928) or HTTP CONNECT proxy tunnels
 /// before handing the connected byte stream off to `NIOSSHHandler`.
-final class SSHProxyChannelHandler: ChannelInboundHandler {
+final class SSHProxyChannelHandler: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = ByteBuffer
     typealias InboundOut = ByteBuffer
     typealias OutboundOut = ByteBuffer
@@ -49,7 +49,8 @@ final class SSHProxyChannelHandler: ChannelInboundHandler {
             context.writeAndFlush(wrapOutboundOut(buf), promise: nil)
         case .http:
             state = .httpAwaitingConnectReply
-            let authority = "\(targetHost):\(targetPort)"
+            let formattedHost = targetHost.contains(":") && !targetHost.hasPrefix("[") ? "[\(targetHost)]" : targetHost
+            let authority = "\(formattedHost):\(targetPort)"
             let req = "CONNECT \(authority) HTTP/1.1\r\nHost: \(authority)\r\n\r\n"
             var buf = context.channel.allocator.buffer(capacity: req.utf8.count)
             buf.writeString(req)
@@ -171,11 +172,11 @@ final class SSHProxyChannelHandler: ChannelInboundHandler {
     private func removeSelfAndActivate(context: ChannelHandlerContext) {
         let readable = inboundBuffer.readableBytes
         let remainder = readable > 0 ? inboundBuffer.readSlice(length: readable) : nil
-        context.pipeline.syncOperations.removeHandler(context: context, promise: nil)
         context.fireChannelActive()
         if let remainder {
             context.fireChannelRead(wrapInboundOut(remainder))
         }
+        context.pipeline.syncOperations.removeHandler(context: context, promise: nil)
     }
 
     private func failProxy(context: ChannelHandlerContext, reason: String) {

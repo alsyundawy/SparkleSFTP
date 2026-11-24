@@ -129,7 +129,7 @@ public enum ConfigExporter {
         }
 
         var ini = "; WinSCP Configuration File\n"
-        ini += "; Exported by SparkleSFTP v0.6.0\n"
+        ini += "; Exported by SparkleSFTP v0.7.0\n"
         ini += "[Configuration\\Security]\n"
         ini += "MasterPasswordProtected=0\n\n"
 

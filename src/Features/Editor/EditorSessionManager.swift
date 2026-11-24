@@ -91,6 +91,16 @@ public final class EditorSessionManager: ObservableObject {
         }
     }
 
+    public func focusExistingRemoteDocument(profileID: UUID, remotePath: RemotePath) -> Bool {
+        guard let existing = documents.first(where: {
+            $0.remoteProfileID == profileID && $0.remotePath == remotePath
+        }) else {
+            return false
+        }
+        activeDocumentID = existing.id
+        return true
+    }
+
     public func openRemoteDocumentPreDecoded(
         _ spec: RemoteOpenSpec,
         text: String,
@@ -99,6 +109,7 @@ public final class EditorSessionManager: ObservableObject {
         if let existing = documents.first(where: {
             $0.remoteProfileID == spec.profileID && $0.remotePath == spec.remotePath
         }) {
+            try? FileManager.default.removeItem(at: spec.stagingTempDir)
             activeDocumentID = existing.id
             return
         }
@@ -123,6 +134,7 @@ public final class EditorSessionManager: ObservableObject {
         if let existing = documents.first(where: {
             $0.remoteProfileID == spec.profileID && $0.remotePath == spec.remotePath
         }) {
+            try? FileManager.default.removeItem(at: spec.stagingTempDir)
             activeDocumentID = existing.id
             return
         }

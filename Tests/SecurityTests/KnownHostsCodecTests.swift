@@ -30,6 +30,19 @@ struct KnownHostsCodecTests {
         #expect(KnownHostsCodec.matches(pattern: "example.com,192.168.1.1", host: "192.168.1.1", port: 22))
         #expect(KnownHostsCodec.matches(pattern: "[example.com]:2222", host: "example.com", port: 2222))
         #expect(!KnownHostsCodec.matches(pattern: "[example.com]:2222", host: "example.com", port: 22))
+        #expect(!KnownHostsCodec.matches(pattern: "example.com", host: "example.com", port: 2222))
+    }
+
+    @Test("KnownHostsCodec ignores malformed two-token non-key lines without crashing")
+    func testParseMalformedTwoTokenLinesDoesNotCrash() {
+        let malformed = """
+        onlytwo tokens
+        example.com malformedkey
+        github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl ok
+        """
+        let parsed = KnownHostsCodec.parse(contents: malformed)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?.hostPattern == "github.com")
     }
 
     @Test("KnownHostsCodec formats entries with and without comments")

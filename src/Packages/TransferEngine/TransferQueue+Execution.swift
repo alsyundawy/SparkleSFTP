@@ -352,16 +352,25 @@ extension TransferQueue {
 
         guard isStillActive(id: taskID) else { throw CancellationError() }
         await updateStatus(id: taskID, status: .finalizing)
+        try Self.ensureNotSymlink(at: request.finalDest)
         if FileManager.default.fileExists(atPath: request.finalDest.path) {
             _ = try FileManager.default.replaceItemAt(request.finalDest, withItemAt: request.partialURL)
         } else {
             try FileManager.default.moveItem(at: request.partialURL, to: request.finalDest)
         }
+        try Self.ensureNotSymlink(at: request.finalDest)
         if let perms = request.resolvedPermissions, perms > 0 {
             try? FileManager.default.setAttributes(
                 [.posixPermissions: NSNumber(value: perms & 0o777)],
                 ofItemAtPath: request.finalDest.path
             )
+        }
+    }
+
+    private nonisolated static func ensureNotSymlink(at url: URL) throws {
+        var linkStat = stat()
+        if lstat(url.path, &linkStat) == 0, (linkStat.st_mode & S_IFMT) == S_IFLNK {
+            throw AppError.pathTraversal(attempted: url.path)
         }
     }
 }

@@ -1,5 +1,6 @@
 ---
-Checks: '-*,clang-diagnostic-*,bugprone-*,cert-*,security-*,-bugprone-easily-swappable-parameters'
+Checks: '-*,clang-diagnostic-*,bugprone-*,cert-*,security-*,-bugprone-easily-swappable-parameters,-bugprone-macro-parentheses'
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: '^(.*/)?src/Packages/Clibcurl/.*'
+ExcludeHeaderFilterRegex: '^(/Library|/Applications|/usr|/opt|/System)/.*'
 FormatStyle: none

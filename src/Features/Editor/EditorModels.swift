@@ -302,6 +302,9 @@ public struct EditorDocument: Identifiable, Sendable, Equatable {
     }
 
     public var byteCount: Int {
-        encoding.encode(EditorLineEnding.normalize(content, to: lineEnding)).count
+        if encoding == .utf8, lineEnding == .unixLF, !content.contains("\r") {
+            return content.utf8.count
+        }
+        return encoding.encode(EditorLineEnding.normalize(content, to: lineEnding)).count
     }
 }

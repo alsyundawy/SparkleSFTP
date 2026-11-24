@@ -16,8 +16,14 @@ extension AppState {
 
     public func openRemoteFileInInternalEditor(_ file: RemoteFile) async {
         guard let session = currentSession, !file.isDirectory else { return }
+        if editorManager.focusExistingRemoteDocument(profileID: session.profile.id, remotePath: file.path) {
+            editorWindowController.present(appState: self)
+            return
+        }
+        var stagingTempDir: URL?
         do {
             let tempDir = try SecureTempDirectory.createIsolatedWorkingDirectory(prefix: "SparkleNotepad")
+            stagingTempDir = tempDir
             let localCopy = try PathValidator.safeLocalDestination(filename: file.name, baseDirectory: tempDir)
             statusBannerMessage = "\(strings.t("transfers.downloading")): \(file.name)..."
             try await session.service.fileSystem.download(from: file.path, to: localCopy) { [weak self] progress in
@@ -46,9 +52,13 @@ extension AppState {
                 text: decodedText,
                 encoding: encoding
             )
+            stagingTempDir = nil
             statusBannerMessage = nil
             editorWindowController.present(appState: self)
         } catch {
+            if let stagingTempDir {
+                try? FileManager.default.removeItem(at: stagingTempDir)
+            }
             statusBannerMessage = nil
             reportNonCancellationError(error)
         }

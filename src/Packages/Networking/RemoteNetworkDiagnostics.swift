@@ -10,7 +10,8 @@ public enum RemoteNetworkDiagnostics {
         guard !trimmed.isEmpty else {
             throw AppError.invalidConfiguration("Host target cannot be empty.")
         }
-        guard trimmed.range(of: "^[a-zA-Z0-9.:_-]+$", options: .regularExpression) != nil else {
+        guard !trimmed.hasPrefix("-"),
+              trimmed.range(of: "^[a-zA-Z0-9.:_-]+$", options: .regularExpression) != nil else {
             throw AppError.invalidConfiguration("Host '\(host)' contains invalid characters.")
         }
         return trimmed

@@ -1,12 +1,12 @@
 [
   {
     "directory": "/Users/alsyundawy/Downloads/GitHub/SparkleSFTP",
-    "command": "clang -std=c11 -Isrc/Packages/Clibcurl/include -c src/Packages/Clibcurl/ClibcurlHelpers.c -o src/Packages/Clibcurl/ClibcurlHelpers.o",
+    "command": "clang -std=c11 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wall -Wextra -Wpedantic -Isrc/Packages/Clibcurl/include -c src/Packages/Clibcurl/ClibcurlHelpers.c -o src/Packages/Clibcurl/ClibcurlHelpers.o",
     "file": "src/Packages/Clibcurl/ClibcurlHelpers.c"
   },
   {
     "directory": "/Users/alsyundawy/Downloads/GitHub/SparkleSFTP",
-    "command": "clang -std=c11 -Isrc/Packages/Clibcurl/include -c src/Packages/Clibcurl/ClibcurlSystemLibs.c -o src/Packages/Clibcurl/ClibcurlSystemLibs.o",
+    "command": "clang -std=c11 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wall -Wextra -Wpedantic -Isrc/Packages/Clibcurl/include -c src/Packages/Clibcurl/ClibcurlSystemLibs.c -o src/Packages/Clibcurl/ClibcurlSystemLibs.o",
     "file": "src/Packages/Clibcurl/ClibcurlSystemLibs.c"
   }
 ]

@@ -148,11 +148,12 @@ public extension FilePaneTableView {
                     parent.onActivateRow(navDir)
                 }
             } else {
-                parent.onContextAction(.transfer, nil)
+                let validFileURLs = urls.filter(\.isFileURL)
+                guard !validFileURLs.isEmpty else { return }
                 NotificationCenter.default.post(
                     name: .sparkleUploadDroppedFiles,
                     object: nil,
-                    userInfo: ["urls": urls]
+                    userInfo: ["urls": validFileURLs]
                 )
             }
         }

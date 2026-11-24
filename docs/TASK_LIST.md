@@ -170,7 +170,7 @@ This task list tracks every concrete engineering task required to deliver the **
 - [x] **T-128** Dedicated standalone terminal launcher (`macwindow.on.rectangle`) placed to the left of "Open Terminal" opening 1020×660 pt external terminal window with iTerm2 split panes, and persistent inline terminal drawer with 16ms stdout coalescing.
 - [x] **T-129** Blazing-fast login and connection restoration (v0.6.0 parity): direct SFTP readdir traversal, non-blocking background disk synchronization, and non-blocking TLS verification.
 - [x] **T-130** Security vulnerability mitigations: CVE-2024-6387 regreSSHion audit, CVE-2023-48795 Terrapin mitigation, swift-nio-ssh pin gate, swift-nio CRLF injection defense, Zip-Slip immunity, XML entity limit, Lua sandbox isolation.
-- [x] **T-131** Quality gates: 218 tests in 55 suites passing (100% green), 0 SwiftLint violations across 326 files, 0 ShellCheck warnings, SonarQube report generator, 100% localization parity across 742 keys.
+- [x] **T-131** Quality gates: 228 tests in 56 suites passing (100% green), 0 SwiftLint violations across 340 files, 0 ShellCheck warnings, SonarQube report generator (0 issues), 100% localization parity across 766 keys.
 - [x] **T-132** Build Universal 2 application bundle (`dist/SparkleSFTP.app`) and release DMG (`dist/SparkleSFTP-0.7.0-universal.dmg`, SHA-256: `cfe6bcd14ce4735aaacb10e0669f4fd04dada4234bbde733f81b5bdf901d1bc3`).
 - [x] **T-133** Push commits and tag `v0.7.0` to GitHub repository and release v0.7.0 on `main` and `0.7.0`.
 

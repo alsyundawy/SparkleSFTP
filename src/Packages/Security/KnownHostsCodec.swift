@@ -52,6 +52,7 @@ public enum KnownHostsCodec {
                 type = String(parts[0])
                 keyBase64 = String(parts[1])
             } else {
+                guard parts.count >= 3 else { continue }
                 type = String(parts[1])
                 keyBase64 = String(parts[2])
             }
@@ -99,7 +100,7 @@ public enum KnownHostsCodec {
 
         let segments = pattern.split(separator: ",").map { String($0).lowercased() }
         for segment in segments {
-            if segment == targetHostSpec || segment == host.lowercased() {
+            if segment == targetHostSpec || (port == 22 && segment == host.lowercased()) {
                 return true
             }
         }
